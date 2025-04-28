@@ -1,3 +1,3 @@
-layout: page
-title: "Test"
-permalink: /
+# TEST
+
+This is a simple test

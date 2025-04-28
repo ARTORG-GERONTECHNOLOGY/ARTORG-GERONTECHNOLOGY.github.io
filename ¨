@@ -1,0 +1,4 @@
+theme: jekyll-theme-minimal
+title: ARTORG Center for Biomedical Engineering Research GER Group
+description: dssd
+exclude: ["README.md", "**/README.md"]

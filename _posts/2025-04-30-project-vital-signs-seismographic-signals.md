@@ -1,7 +1,6 @@
 ---
 layout: post
 title: Extracting Vital Sings from Seismic Signals
-Gait Analysis via Wrist-Worn Accelerometers
 date: 2025-04-30 12:00:00
 summary: Project Proposal
 categories: sleep-analysis

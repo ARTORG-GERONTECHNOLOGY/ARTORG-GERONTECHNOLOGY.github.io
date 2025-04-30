@@ -3,7 +3,7 @@ layout: post
 title: Quantification of Daily Arm Use from IMU Data in Children with Hemiparesis
 date: 2025-04-30 12:00:00
 summary: Project Proposal
-categories: gait-analysis
+categories: upper-limb-analysis
 ---
 
 ### Background:

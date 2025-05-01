@@ -899,3 +899,5 @@ td{
     padding: 2px;
     border:1px solid $dark-blue;;
 }
+
+@media print { .pageBreak { page-break-before: always; } .labelPdf { font-weight: bold; font-size: 20px; } .noPrintPdf { display: none; } } 

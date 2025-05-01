@@ -11,7 +11,13 @@ layout: default
 
 <div class="container-fluid single">
   <div class="row">
-    <iframe src="https://docs.google.com/gview?url=http://example.com/mypdf.pdf&embedded=true" style="width:718px; height:700px;" frameborder="0"></iframe>
+
+	   <form id="form1">
+		       <div id="dvContainer">
+			               This content needs to be printed.
+				           </div>
+					       <input type="button" value="Print Div Contents" id="btnPrint" />
+					           </form>
 
     <div itemscope itemtype="http://schema.org/Article" class="col-md-12 article">
       {% if site.data.thumbnail[page.thumbnail] %}

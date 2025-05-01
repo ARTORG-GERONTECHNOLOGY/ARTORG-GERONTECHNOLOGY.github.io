@@ -9,3 +9,5 @@ categories: gait-analysis
 This is a placeholder.
 
 $$ E = m \cdot c^2 $$
+
+\\( \frac{1}{n^2} \\)

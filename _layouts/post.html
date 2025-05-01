@@ -12,12 +12,6 @@ layout: default
 <div class="container-fluid single">
   <div class="row">
 
-  <form id="form1">
-    <div id="dvContainer">
-      This content needs to be printed.
-    </div>
-    <input type="button" value="Print Div Contents" id="btnPrint" />
-  </form>
 
     <div itemscope itemtype="http://schema.org/Article" class="col-md-12 article">
       {% if site.data.thumbnail[page.thumbnail] %}
@@ -58,6 +52,13 @@ layout: default
           {{ minutes }} minute read
         </small>
       </div>
+
+  <form id="form1">
+    <div id="dvContainer">
+      This content needs to be printed.
+    </div>
+    <input type="button" value="Print Div Contents" id="btnPrint" />
+  </form>
 
       <div class="content-panel content">
 

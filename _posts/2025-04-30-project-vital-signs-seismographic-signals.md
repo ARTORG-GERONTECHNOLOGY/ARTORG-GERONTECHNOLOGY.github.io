@@ -15,6 +15,11 @@ Development of algorithm(s) to extract sleep-related activities such as heart ra
 ### Material and Methods:
 The student will begin with a literature review on algorithmic methods to derive HR, RR, and motion from seismic signals. Building on this, they will implement and test algorithms capable of extracting the parameters of interest. Data will be provided and collected from an ongoing study, where seismic signals are recorded simultaneously with reference systems (e.g., ECG and commercial sleep monitoring devices). This will allow evaluation of algorithm performance by comparing extracted parameters against ground truth. Depending on interest, additional algorithm development may explore multi-sensor fusion, advanced signal decomposition, or machine learning–based classification approaches for sleep staging or posture recognition.
 
+### Nature of the Thesis:
+Development of the algorithms: 60%  
+Data analysis: 30%  
+Data collection: 10%
+
 ### Requirements:
 - Good programming skills
 - Good knowledge of signal processing

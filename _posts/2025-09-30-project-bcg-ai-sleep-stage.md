@@ -1,9 +1,9 @@
 ---
 layout: post
-title: Gait Analysis via Wrist-Worn Accelerometers
-date: 2025-09-01 09:00:00
+title: AI-Based Algorithms for Automated Sleep Stage Classification from Ballistocardiogram Signals
+date: 2025-09-30 13:00:00
 summary: Project Proposal
-categories: gait-analysis
+categories: sleep-analysis
 ---
 
 ### Background:

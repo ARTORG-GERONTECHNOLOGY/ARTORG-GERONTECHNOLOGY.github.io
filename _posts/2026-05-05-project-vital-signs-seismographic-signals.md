@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Extracting Vital Sings from Seismic Signals
-date: 2025-05-05 09:00:00
+date: 2026-05-05 09:00:00
 summary: Project Proposal
 categories: sleep-analysis
 ---

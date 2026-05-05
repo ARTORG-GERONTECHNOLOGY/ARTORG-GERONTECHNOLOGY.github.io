@@ -33,4 +33,4 @@ Noora Angelva, MSc
 ARTORG Center for Biomedical Engineering Research, University of Bern, [Gerontechnology and Rehabilitation Group](https://www.artorg.unibe.ch/research/ger/index_eng.html)
 
 ### Contact:
-[Noora Angelca, MSc](mailto:noora.angelva@unibe.ch)
+[Noora Angelva, MSc](mailto:noora.angelva@unibe.ch)

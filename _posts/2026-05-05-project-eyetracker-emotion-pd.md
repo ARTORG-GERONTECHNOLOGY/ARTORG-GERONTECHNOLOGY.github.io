@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Analysis of Emotion-Related Pupillometry/Eyetracking in Parkinson’s Disease
-date: 2025-09-01 09:00:00
+date: 2026-05-05 09:00:00
 summary: Project Proposal
 categories: parkinson
 ---

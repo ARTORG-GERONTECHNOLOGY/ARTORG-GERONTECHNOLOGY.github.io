@@ -1,36 +1,19 @@
-# GER Project Proposals
+# GER student research proposals
 
-Adapted version of https://github.com/jacobtomlinson/carte-noire
+Jekyll website for student research and thesis proposals from the Gerontechnology
+and Rehabilitation Group at the ARTORG Center, University of Bern.
 
-## Tools and Libraries
-The following tools and libraries are used in this theme
+## Local setup
 
-### JavaScript
- * [jQuery](http://jquery.com/)
- * [MMenu](http://mmenu.frebsite.nl/)
- * [HighlightJS](https://highlightjs.org/)
- * [Simple Jekyll Search](https://github.com/christian-fei/Simple-Jekyll-Search)
+- [Windows](docs/setup-windows.md): installed environment, verified build commands,
+  preview, and troubleshooting.
+- [macOS](docs/setup-macos.md): prerequisites and local build instructions; not yet tested.
+- [Linux](docs/setup-linux.md): prerequisites and local build instructions; not yet tested.
 
-### CSS
- * [Bootstrap](http://getbootstrap.com/)
- * [Font Awesome](http://fortawesome.github.io/Font-Awesome/)
-
-### Social
- * [AddThis](http://www.addthis.com/)
- * [Disqus](https://disqus.com/)
-
-### Other
- * [Real Favicon Generator](http://realfavicongenerator.net/)
- * [Google Analytics](http://www.google.com/analytics/)
-
-## Howtos
-
-### Using Images in a Post
-
-### Using Latex in a Post
-
-### Using Code Snipets in a Post
-
+[Project guide](docs/project-guide.md): source layout, current features, and known issues.
 
 ## License
-The jekyll theme, HTML, CSS and JavaScript is licensed under GPLv3 (unless stated otherwise in the file).
+
+Adapted from [Carte Noire](https://github.com/jacobtomlinson/carte-noire).
+Theme code is GPLv3 unless otherwise stated; see [LICENSE](LICENSE) for terms and
+content exclusions. Third-party asset licenses still apply.

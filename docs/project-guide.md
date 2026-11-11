@@ -2,6 +2,10 @@
 
 ## Content and source layout
 
+New proposals use the [shared proposal format](proposal-format.md), with a blank
+template and separate draft/publication validation. Existing proposals await
+migration.
+
 - `_posts/`: five current proposal Markdown files, with publication dates and
   categories in YAML front matter. Edit scientific text carefully and preserve
   filenames, dates, and existing public URLs.
@@ -33,5 +37,3 @@ The theme also has duplicate jQuery/MathJax loading, a placeholder print button,
 limited search metadata, and inherited theme settings. The checked-in CNAME and
 production URL differ; local overrides leave both untouched. These issues are
 separate from installing the local build environment.
-
-[Back to README](../README.md)

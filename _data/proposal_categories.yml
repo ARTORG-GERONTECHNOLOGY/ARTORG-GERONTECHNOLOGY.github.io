@@ -1,0 +1,26 @@
+# Canonical IDs and display labels; legacy labels are migration references only.
+# Existing proposals and their category-based URLs are not changed in Step 2.
+- id: decision-support
+  label: Decision Support
+  legacy_labels: [Decsion Support]
+- id: gait-analysis
+  label: Gait Analysis
+  legacy_labels: []
+- id: biomarkers
+  label: Biomarkers
+  legacy_labels: [Biomarkers]
+- id: sensor-tracking
+  label: Sensor Tracking
+  legacy_labels: [Sensor-tracking]
+- id: sleep-analysis
+  label: Sleep Analysis
+  legacy_labels: []
+- id: markerless-tracking
+  label: Markerless Tracking
+  legacy_labels: []
+- id: upper-limb-analysis
+  label: Upper Limb Analysis
+  legacy_labels: []
+- id: parkinson
+  label: Parkinson’s Disease
+  legacy_labels: []

@@ -1,0 +1,10 @@
+document_title: "Master’s Thesis Proposal"
+program_name: "Master’s Program Biomedical Engineering"
+submission_email: "bme.artorg@unibe.ch"
+submission_instruction: "Please return this proposal to"
+# Source references only. Public logo assets are extracted in Step 4.
+branding:
+  - name: "University of Bern"
+    source_part: "word/media/image1.png"
+  - name: "Bern University of Applied Sciences"
+    source_part: "word/media/image3.png"

@@ -1,0 +1,14 @@
+schema_version: 1
+template_version: 1
+statuses: [available, taken, archived]
+eligibilities:
+  bme_only: "Only BME students"
+  bme_and_aim: "BME students and AIM students"
+required_text: [title, proposal_id, summary, language, student_eligibility, status, submission_email]
+required_sections: [Background, Aim, Materials and Methods, Requirements]
+optional_sections: [References]
+immutable_fields: [proposal_id, created_at, date, permalink]
+order:
+  - {field: priority, direction: ascending}
+  - {field: date, direction: descending}
+  - {field: proposal_id, direction: ascending}

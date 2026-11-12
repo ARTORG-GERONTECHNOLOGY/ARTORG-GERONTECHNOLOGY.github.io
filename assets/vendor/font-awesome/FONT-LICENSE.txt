@@ -1,0 +1,5 @@
+License metadata embedded in the unmodified Font Awesome 4.7.0 font:
+
+Copyright Dave Gandy 2016. All rights reserved.
+
+http://fontawesome.io/license/

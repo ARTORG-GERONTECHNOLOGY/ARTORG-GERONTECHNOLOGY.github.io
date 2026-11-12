@@ -92,7 +92,7 @@ folder. Keep production `_config.yml` and `CNAME` unchanged.
 
 Confirm that the build succeeds, then open the homepage, both proposal listings,
 search, and representative proposal pages. Check styles and menu navigation.
-The existing theme requires Internet access for external scripts and fonts.
+MathJax requires Internet access; navigation, styling and icons use local assets.
 Record the installed versions and any platform-specific problems before describing
 this setup as tested.
 
@@ -105,6 +105,6 @@ this setup as tested.
   required by your Ruby installation are installed.
 - **Port 4000 occupied:** stop the other local preview before starting this one.
 - **File changes are not detected:** add `--force_polling` to the serve command.
-- **Missing external styles/scripts:** check Internet access and browser errors.
+- **Missing styles/menu scripts:** confirm the build copied `assets/vendor/` and refresh the page. MathJax needs Internet access.
 
 [Back to README](../README.md)

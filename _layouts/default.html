@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
     {% include head.html %}
 
@@ -7,7 +7,7 @@
 
     {% include header.html %}
 
-    <div class="page-content">
+    <div class="page-content" id="main-content" tabindex="-1"{% unless page.layout == 'post' %} role="main"{% endunless %}>
       <div class="wrap">
       {{ content }}
       </div>

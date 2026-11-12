@@ -22,8 +22,9 @@ with a blank template and separate draft/publication validation. The
 
 The workspace's `AGENTS.md`, `new-features.md`, and `template.docx` contain project
 rules, the future implementation plan, and the original proposal reference.
-Planned status controls, team/news pages, staff editing, QR codes, PDF generation,
-and automated deployment are not implemented by this setup.
+Status controls, editable team/news content, staff editing, QR codes, PDF generation
+and automated deployment remain planned. Archive, News, Team and About currently
+have simple public pages linked from the main navigation.
 
 ## Baseline issues preserved during setup
 
@@ -35,10 +36,10 @@ approved temporary workload splits. Replace those choices before release.
 The handwriting proposal refers to a missing Figure 1, and an older gait proposal
 has a preserved filename/front-matter date mismatch; see the migration review.
 
-The theme also has duplicate jQuery/MathJax loading, unused print scripts,
-limited search metadata, and inherited theme settings. The checked-in CNAME and
+Search still has limited metadata, and some inherited theme settings remain. The checked-in CNAME and
 production URL differ; local overrides leave both untouched. These issues are
 separate from installing the local build environment.
+
 ## Shared proposal rendering
 
 Proposal pages follow the Word section order, including workload, affiliations,
@@ -66,3 +67,38 @@ bundle exec ruby scripts/tests/proposal-rendering-fixtures.rb
 
 The missing Figure 1 and temporary migration choices remain recorded in
 [migration issues](migration-issues.md). A new layout does not resolve those gaps.
+
+
+## Navigation and responsive layout
+
+The main navigation has Home, Proposals, Archive, News, Team, About and Search.
+The new destination pages provide useful links and known group information;
+status filters, news publishing and team profiles belong to later steps.
+The shared list is `_data/navigation.yml`.
+
+At widths below 1024 CSS pixels the menu uses Bootstrap 3 collapse. A real button
+reports its expanded state. Escape closes the expanded menu and returns focus to
+the button. Without JavaScript all navigation links remain visible. The former
+MMenu initializer is no longer used. Its original source files remain unchanged.
+A skip link, page language, labelled search input, visible keyboard focus and
+reduced-motion styles support accessible navigation. Titles wrap in CSS.
+
+The existing jQuery 3.2.1, Bootstrap 3.1.1 and Font Awesome 4.7.0 distributions are
+stored locally in `assets/vendor/`, with original attribution and license notices.
+No dependency upgrades were performed. Google Fonts, duplicate jQuery/MathJax,
+browser-side highlighting, title-shrinking scripts, inactive sharing/comment UI
+and placeholder print scripts are no longer loaded. Code highlighting uses Rouge.
+MathJax 2.7.1 still loads externally, once on proposal pages (or pages explicitly
+marked `mathjax: true`), so mathematical typesetting requires Internet access.
+
+After building, check generated navigation and assets with:
+
+```sh
+bundle exec ruby scripts/tests/site-navigation.rb ../.local/site
+```
+
+Visual review is pending with the supervising user because automated browser
+access to localhost is denied by a saved permission. Check 320, 375, 768, 1024 and
+1440-pixel widths, long titles, 200% zoom, keyboard focus, skip link, Menu open/close,
+Escape, and absence of horizontal page scrolling. Also check navigation with
+JavaScript disabled. Static checks do not establish browser behaviour.

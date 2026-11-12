@@ -8,9 +8,12 @@ layout: default
     <h1 class="header author-header">Search</h1>
 
     <div id="search-container">
-      <input type="text" id="search-input" placeholder="Type here...">
+      <label for="search-input">Search proposals</label>
+      <p id="search-help">Enter a project title or topic.</p>
+      <input type="search" id="search-input" placeholder="For example, gait analysis" aria-describedby="search-help">
+      <noscript><p>Search requires JavaScript. You can also <a href="{{ '/posts/' | relative_url }}">browse all proposals</a>.</p></noscript>
       <div class="col-md-12 content-panel articles">
-        <ul id="results-container"><small>Start typing to see some results</small></ul>
+        <ul id="results-container" aria-live="polite"><li>Start typing to see results.</li></ul>
       </div>
     </div>
 

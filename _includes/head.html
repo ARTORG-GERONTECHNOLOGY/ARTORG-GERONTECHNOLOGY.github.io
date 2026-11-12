@@ -4,11 +4,9 @@
 <title>{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</title>
 <meta name="description" content="{{ site.description | escape }}">
 
-<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="{{ '/assets/vendor/bootstrap/css/bootstrap.min.css' | relative_url }}">
+<link rel="stylesheet" href="{{ '/assets/vendor/font-awesome/css/font-awesome.min.css' | relative_url }}">
 <link rel="stylesheet" type="text/css" media="all" href="{{ site.baseurl }}/css/style.css" />
-<link rel="stylesheet" type="text/css" media="all" href="{{ site.baseurl }}/css/jquery.mmenu.all.css" />
-<link rel="stylesheet" href="{{ site.baseurl }}/css/highlightjs.piperita.css">
 
 <!-- Favicons generated at http://realfavicongenerator.net/ -->
 <link rel="apple-touch-icon" sizes="57x57" href="{{ site.baseurl }}/favicons/apple-touch-icon-57x57.png">
@@ -31,28 +29,8 @@
 <meta name="msapplication-config" content="{{ site.baseurl }}/favicons/browserconfig.xml">
 <meta name="theme-color" content="#ffffff">
 
-{% if page.content contains '<script type="math/tex' %}
-<!-- MathJax for LaTeX -->
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+{% if site.mathjax and page.layout == 'post' or page.mathjax %}
+<!-- One pinned MathJax loader; proposal math uses the standard TeX delimiters. -->
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 {% endif %}
-
-<script type="text/javascript" async 
-src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-</script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
-<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<script type="text/javascript">
-	$("#btnPrint").on("click", function () {
-			var divContents = $("#dvContainer").html();
-			var printWindow = window.open('', '', 'height=400,width=800');
-			printWindow.document.write('<html><head><title>DIV Contents</title>');
-			printWindow.document.write('</head><body >');
-			printWindow.document.write(divContents);
-			printWindow.document.write('</body></html>');
-			printWindow.document.close();
-			printWindow.print();
-		});
-</script>
-
 </head>

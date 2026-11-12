@@ -5,7 +5,7 @@ this repository. It is intentionally uncommitted. Ruby is not added to your
 permanent PATH; activate it separately in each PowerShell terminal.
 
 Requirements: Windows x64, PowerShell, Git, and Internet access for initial
-installation and the existing theme's external browser assets. The installed
+installation and mathematical typesetting through MathJax. The installed
 versions are RubyInstaller+Devkit 3.3.13-1 (Ruby 3.3.13), Bundler 2.5.22,
 Jekyll 4.4.1, and WEBrick 1.9.1. The complete dependency versions are locked in
 the repository's `Gemfile.lock`.
@@ -107,9 +107,9 @@ source; it does not include uncommitted changes.
   require the bundled MSYS2 build tools; allow the installation to finish.
 - **Port 4000 is occupied:** stop the existing preview before starting another.
   The initial setup may already have a background preview running.
-- **CSS, fonts, or menu scripts are missing:** the existing theme uses external
-  CDNs and Google Fonts. Check Internet access and browser errors. Local site
-  generation alone does not make those external dependencies available offline.
+- **CSS, icons, or menu scripts are missing:** confirm `assets/vendor/` is present
+  in the generated site and refresh the browser. MathJax still uses an external
+  service and needs Internet access.
 - **Sass deprecation warnings:** the legacy styles use syntax deprecated by newer
   Sass releases. Review the build's final result; these warnings are not proof
   of a failed build. Updating theme styles belongs to a later feature step.

@@ -2,6 +2,30 @@
 require_relative "proposal-renderer"
 
 module SiteContent
+  def self.about!(data)
+    raise Proposals::FormatError, "about: provide named content fields" unless data.is_a?(Hash)
+    %w[title overview group_text program_text eligibility_text administration_text corrections_text].each do |field|
+      text!(data[field], "about.#{field}")
+    end
+    steps = data["application_steps"]
+    raise Proposals::FormatError, "about.application_steps: provide a nonempty list" unless steps.is_a?(Array) && !steps.empty?
+    steps.each { |step| text!(step, "about.application_steps") }
+    links = data["institutional_links"]
+    raise Proposals::FormatError, "about.institutional_links: provide a list" unless links.is_a?(Array)
+    links.each do |link|
+      raise Proposals::FormatError, "about.institutional_links: provide label and url" unless link.is_a?(Hash)
+      text!(link["label"], "about.institutional_links.label")
+      unless Proposals.public_url?(link["url"]) && link["url"].start_with?("https://")
+        raise Proposals::FormatError, "about.institutional_links.url: use an HTTPS institutional URL"
+      end
+    end
+    unless Proposals.public_email?(data["corrections_email"])
+      raise Proposals::FormatError, "about.corrections_email: use an institutional email address"
+    end
+  rescue URI::InvalidURIError
+    raise Proposals::FormatError, "about.institutional_links.url: invalid URL"
+  end
+
   def self.home!(data, source)
     raise Proposals::FormatError, "home: provide _data/home.yml" unless data.is_a?(Hash)
     text!(data["title"], "home.title")

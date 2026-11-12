@@ -25,7 +25,7 @@ rules, the future implementation plan, and the original proposal reference.
 The catalogue and archive support status/category/year/program filters. Homepage
 content, news and team profiles can be maintained in source files. Staff browser
 editing, QR codes, PDF generation and automated deployment remain planned.
-About currently has a simple public page.
+About provides editable group information and project application guidance.
 
 ## Baseline issues preserved during setup
 
@@ -236,3 +236,37 @@ Profiles automatically list the proposals whose supervisor entries reference the
 team ID, in the catalogue order and with explicit status labels. Profiles without
 linked proposals omit this section. Display-name corrections retain the stable
 team ID and profile URL.
+
+## About and application guidance
+
+The About page remains at `/about/`. Edit `_data/about.yml` for the group and
+program introduction, institutional links, application steps and corrections
+contact. Text is escaped; institutional URLs must use HTTPS. The shared
+`_includes/about/content.html` renders the editable content.
+
+Application guidance directs students to the Contact and How to apply fields on
+individual proposals. It does not impose one document checklist or route student
+applications to the staff address. Staff proposal submissions use the authoritative
+`submission_email` and `submission_instruction` from `_data/program.yml`.
+
+The group and BME program descriptions and institutional links were checked on
+2026-11-12 against the official group, ARTORG and BME program pages linked on About.
+The user confirmed `michael.single@unibe.ch` as the corrections/removal contact.
+It is separate from project application contacts and the staff submission mailbox.
+A missing or malformed corrections address stops the build. This content is
+maintained in files; browser editing comes in a later step.
+
+The stable About permalink and named content sections prepare the destination
+for the later QR feature. A future QR must derive its target from `/about/` with
+Jekyll's `absolute_url`; do not introduce a separately editable destination.
+There is currently no QR image, download button or placeholder.
+
+Verify content escaping, application/admin contact separation, institutional links,
+preview base URLs and absence of a QR placeholder with:
+
+```sh
+bundle exec ruby scripts/tests/about.rb
+```
+
+Browser/mobile visual review remains with the user while automated localhost
+access is denied by the saved permission setting. No production change is deployed.

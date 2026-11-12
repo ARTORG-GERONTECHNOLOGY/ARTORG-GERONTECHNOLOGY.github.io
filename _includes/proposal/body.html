@@ -8,7 +8,7 @@
 {% include proposal/section.html name="Requirements" id="requirements" %}
 <section class="proposal-section" aria-labelledby="supervisors">
   <h2 id="supervisors">Supervisors</h2>
-  <ul>{% for supervisor in page.supervisors %}<li>{{ supervisor.name | escape }}</li>{% endfor %}</ul>
+  <ul>{% for supervisor in page.supervisor_profiles %}<li>{% if supervisor.url %}<a href="{{ supervisor.url | relative_url | escape }}">{{ supervisor.name | escape }}</a>{% else %}{{ supervisor.name | escape }}{% endif %}</li>{% endfor %}</ul>
 </section>
 <section class="proposal-section" aria-labelledby="institutes">
   <h2 id="institutes">Institutes</h2>

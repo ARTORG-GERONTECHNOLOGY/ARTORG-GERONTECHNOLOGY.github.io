@@ -1,0 +1,8 @@
+<li class="team-card">
+  <article>
+    {% if include.person.portrait %}<img class="team-portrait" src="{{ include.person.portrait.src | relative_url | escape }}" alt="{{ include.person.portrait.alt | escape }}" loading="lazy">{% endif %}
+    <h2><a href="{{ include.person.url | relative_url | escape }}">{{ include.person.name | escape }}</a></h2>
+    {% if include.person.role and include.person.role != empty %}<p>{{ include.person.role | escape }}</p>{% endif %}
+    {% if include.person.email and include.person.email != empty %}<p><a href="mailto:{{ include.person.email | escape }}">{{ include.person.email | escape }}</a></p>{% endif %}
+  </article>
+</li>

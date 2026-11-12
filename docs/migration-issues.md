@@ -72,7 +72,10 @@ narrative fingerprints for all ten files.
 
 **After all implementation steps, remind the user to replace the random
 statuses, random older eligibility choices, and temporary workload splits with
-correct values. Review team/profile content too; do not introduce dummy names.**
+correct values. Review team/profile content too. On 2026-11-12 the user explicitly
+supplied Max Mustermann and Petra Musterfrau as temporary examples and approved Max
+as an additional writing/drawing supervisor. Replace these examples and review the
+supervisor assignment before release; no other dummy identities were authorized.**
 
 `bundle exec ruby scripts/validate-proposals.rb --strict` checks format and
 completeness for all ten proposals. `--release` additionally rejects the

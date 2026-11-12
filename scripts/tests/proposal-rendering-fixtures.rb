@@ -9,7 +9,7 @@ Dir.mktmpdir('proposal-fixture-') do |fixture|
   source = File.join(fixture, 'source')
   output = File.join(fixture, 'site')
   FileUtils.mkdir_p(source)
-  %w[_layouts _includes _data assets].each do |directory|
+  %w[_layouts _includes _data _team assets].each do |directory|
     FileUtils.cp_r(File.join(Proposals::ROOT, directory), source)
   end
   FileUtils.mkdir_p(File.join(source, '_posts'))

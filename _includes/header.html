@@ -9,6 +9,7 @@
         {% if page.url == item.url %}{% assign current = true %}
         {% elsif item.url == '/archive/' and page.catalogue.archive %}{% assign current = true %}
         {% elsif item.url == '/news/' and page.layout == 'news' %}{% assign current = true %}
+        {% elsif item.url == '/team/' and page.layout == 'team' %}{% assign current = true %}
         {% elsif item.url == '/posts/' and page.layout == 'post' %}{% assign current = true %}
         {% elsif item.url == '/posts/' and page.layout == 'catalogue' %}{% unless page.catalogue.archive %}{% assign current = true %}{% endunless %}
         {% endif %}

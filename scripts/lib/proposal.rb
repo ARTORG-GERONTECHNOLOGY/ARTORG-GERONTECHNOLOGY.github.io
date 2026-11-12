@@ -19,6 +19,19 @@ module Proposals
     !local_only && parsed.is_a?(URI::HTTP) && %w[http https].include?(parsed.scheme) && parsed.host && !parsed.host.empty? && parsed.userinfo.nil? && !value.match?(/[\s<>]/)
   end
 
+  def self.public_email?(value)
+    atom = "[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+"
+    label = "[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
+    value.is_a?(String) && value.length <= 254 && value.match?(/\A#{atom}(?:\.#{atom})*@(?:#{label}\.)+[A-Za-z]{2,63}\z/)
+  end
+
+  def self.team_ids(source = ROOT)
+    Dir[File.join(source, "_team/**/*.md")].filter_map do |path|
+      data = Document.read(path).metadata
+      data["team_id"] unless data["published"] == false
+    end
+  end
+
   class FormatError < StandardError; end
 
   # Reject ambiguous YAML instead of letting a later duplicate silently win.
@@ -112,8 +125,9 @@ module Proposals
   end
 
   class Validator
-    def initialize
+    def initialize(team_ids: Proposals.team_ids)
       @schema = SCHEMA
+      @team_ids = team_ids
     end
 
     def validate(document, mode: :publication, previous: nil)
@@ -244,6 +258,9 @@ module Proposals
         end
         text(entry["name"], "#{path}.name", required: true)
         text(entry["team_id"], "#{path}.team_id") if entry.key?("team_id")
+        if field == "supervisors" && entry["team_id"].is_a?(String) && !entry["team_id"].empty? && !@team_ids.include?(entry["team_id"])
+          error("#{path}.team_id", "no published team profile has ID #{entry['team_id'].inspect}")
+        end
         url(entry["url"], "#{path}.url") if links && !blank?(entry["url"])
       end
     end
@@ -261,9 +278,7 @@ module Proposals
 
     def email(value, field)
       return if blank?(value) && @draft
-      atom = "[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+"
-      label = "[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
-      valid = value.is_a?(String) && value.length <= 254 && value.match?(/\A#{atom}(?:\.#{atom})*@(?:#{label}\.)+[A-Za-z]{2,63}\z/)
+      valid = Proposals.public_email?(value)
       error(field, "must be an email address") unless valid
     end
 

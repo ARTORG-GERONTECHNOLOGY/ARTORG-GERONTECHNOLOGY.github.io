@@ -9,6 +9,7 @@ release_blockers:
 - Confirm the five randomly assigned eligibility choices for older proposals.
 - Confirm temporary workload splits for markerless tracking and seismographic gait.
 - Resolve the writing/drawing source reference to Figure 1; no figure was supplied.
+- Replace the user-supplied temporary Max Mustermann and Petra Musterfrau profiles and review Max's example supervisor assignment before release.
 proposals:
 - file: _posts/2026-05-05-project-ai-decision-support-for-personalized-brain-health-risk-profiling.md
   proposal_id: ger-ai-decision-support-for-personalized-brain-health-risk-profiling

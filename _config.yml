@@ -35,10 +35,18 @@ kramdown:
 permalink: pretty
 exclude: [vendor, templates, scripts, post_archive]
 collections:
+  team:
+    output: true
+    permalink: /team/:name/
   news:
     output: true
     permalink: /news/:name/
 defaults:
+  - scope:
+      path: ""
+      type: team
+    values:
+      layout: team
   - scope:
       path: ""
       type: news

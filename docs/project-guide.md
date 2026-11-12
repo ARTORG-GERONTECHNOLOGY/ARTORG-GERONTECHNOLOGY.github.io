@@ -23,9 +23,9 @@ with a blank template and separate draft/publication validation. The
 The workspace's `AGENTS.md`, `new-features.md`, and `template.docx` contain project
 rules, the future implementation plan, and the original proposal reference.
 The catalogue and archive support status/category/year/program filters. Homepage
-content and news can be maintained in source files. Team profiles, staff browser
+content, news and team profiles can be maintained in source files. Staff browser
 editing, QR codes, PDF generation and automated deployment remain planned.
-Team and About currently have simple public pages.
+About currently has a simple public page.
 
 ## Baseline issues preserved during setup
 
@@ -189,3 +189,50 @@ bundle exec ruby scripts/tests/home-news.rb
 The examples used by these checks are created in a temporary directory and never
 published to the real preview. Browser review remains with the supervising user
 because automated localhost access is denied by the saved permission setting.
+
+## Team profiles and supervisor links
+
+Team profiles live in `_team/<team_id>.md`; copy `templates/team.md` and fill in
+confirmed details. `team_id` is a stable lowercase/hyphen identifier matching the
+filename. It determines `/team/<team_id>/` and must not be renamed after linking
+or publication. `name`, boolean `active` and integer `display_order` are required.
+Role, public email, Markdown biography, research-interest list, portrait and
+labelled links can be omitted until confirmed. Roles are ordinary text, including
+PhD student or Postdoctoral researcher; never infer them from a person's name.
+Portraits require an existing site-relative image and meaningful alt text.
+
+Active profiles appear in display_order ascending, then name and stable ID order.
+At the user's request, `active: false` only removes a person from the Team listing;
+the profile and links from proposals remain accessible. This does not make the
+profile private. A profile without a portrait or biography has no dummy image or
+empty biography section. Biography rendering uses the same sanitized Markdown
+pipeline as news/proposals; author Liquid remains literal.
+
+To link a supervisor, keep their original name and add `team_id` to that supervisor
+entry in the proposal. Publication validation and the Jekyll build reject IDs
+without a published profile. Supervisors without a profile retain their original
+plain-text names. Linking is a substantive metadata change, so advance the
+proposal's `updated_at`; do not alter its ID, publication date or existing URL.
+
+The user explicitly supplied two temporary example profiles: Max Mustermann
+(Postdoc, first) and Petra Musterfrau (PhD student, second), with their biographies
+and interests. Emails are empty and portraits/links omitted as requested. Max is
+an additional supervisor on the writing/drawing proposal, alongside the retained
+Kevin Möri. Petra has no proposal references. This later explicit instruction
+permits only these supplied examples despite the earlier no-dummy-names rule.
+Replace these profiles and review Max's example supervisor assignment before
+release; this is recorded in the release blockers and final user reminder.
+
+Check the rendering, active/inactive handling, optional fields, IDs and links with:
+
+```sh
+bundle exec ruby scripts/tests/team.rb
+```
+
+The tests use temporary profiles outside the preview. Browser verification is
+still limited by the saved permission denying automated localhost access.
+
+Profiles automatically list the proposals whose supervisor entries reference their
+team ID, in the catalogue order and with explicit status labels. Profiles without
+linked proposals omit this section. Display-name corrections retain the stable
+team ID and profile URL.

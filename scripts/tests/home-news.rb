@@ -14,7 +14,7 @@ Dir.mktmpdir('home-news-fixture-') do |fixture|
   source = File.join(fixture, 'source')
   output = File.join(fixture, 'site')
   FileUtils.mkdir_p(source)
-  %w[_layouts _includes _data assets].each { |dir| FileUtils.cp_r(File.join(Proposals::ROOT, dir), source) }
+  %w[_layouts _includes _data _team assets].each { |dir| FileUtils.cp_r(File.join(Proposals::ROOT, dir), source) }
   %w[index.html news.html search.json feed.xml].each { |file| FileUtils.cp(File.join(Proposals::ROOT, file), source) }
   FileUtils.mkdir_p(File.join(source, '_posts'))
   FileUtils.mkdir_p(File.join(source, '_news'))

@@ -10,11 +10,13 @@ status: archived
 student_eligibility: bme_only
 supervisors:
 - name: Kevin Möri, MSc
+- name: Max Mustermann
+  team_id: max-musterman
 schema_version: 1
 template_version: 1
 proposal_id: ger-quantification-of-writing-and-drawing-from-sensor-data-in-people-with-parkinsons-disease
 created_at: '2026-05-05T13:26:14Z'
-updated_at: '2026-11-11T16:14:29Z'
+updated_at: '2026-11-12T12:23:46Z'
 priority: 100
 featured: false
 language: en

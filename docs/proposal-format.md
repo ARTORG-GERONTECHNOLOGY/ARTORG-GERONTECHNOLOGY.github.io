@@ -73,9 +73,9 @@ Omit `figure` when unused; otherwise supply `src`, meaningful `alt` text and
 paths. Actual file signatures, upload limits, sanitization and asset-existence
 checks are later steps, not guarantees of this metadata validator.
 
-`team_id` is optional on supervisors. Reference existence will be checked when
-the team collection becomes available in Step 8; names remain usable without
-profiles. No team data or staff biographies are invented in this step.
+`team_id` is optional on supervisors. Reference existence is checked against
+published team profiles during validation and the site build. Names remain usable
+without profiles; inactive profiles can still be linked.
 
 ## Identity, dates and ordering
 

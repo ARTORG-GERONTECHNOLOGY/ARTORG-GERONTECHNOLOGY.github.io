@@ -22,13 +22,15 @@
   <p><a href="mailto:{{ page.contact.email | escape }}">{{ page.contact.name | escape }}</a><br><span>{{ page.contact.email | escape }}</span></p>
   {% if page.contact.address and page.contact.address != empty %}<p>{{ page.contact.address | escape }}</p>{% endif %}
   {% if page.contact.phone and page.contact.phone != empty %}<p>{{ page.contact.phone | escape }}</p>{% endif %}
-  {% if page.proposal.application_html != empty %}<h3>How to apply</h3>{{ page.proposal.application_html }}{% endif %}
+  {% assign application_html = page.proposal.application_html | strip %}{% if application_html != empty %}<h3>How to apply</h3>{{ application_html }}{% endif %}
   {% if page.start_date_text and page.start_date_text != empty %}<h3>Start Date</h3><p>{{ page.start_date_text | escape }}</p>{% endif %}
   {% if page.workplace and page.workplace != empty %}<h3>Workplace</h3><p>{{ page.workplace | escape | newline_to_br }}</p>{% endif %}
 </section>
 <section class="proposal-section" aria-labelledby="eligibility">
   <h2 id="eligibility">Student eligibility</h2>
-  <p>{{ site.data.proposal_schema.eligibilities[page.student_eligibility] | escape }}</p>
+  {% if page.layout == 'proposal-print' %}
+  {% for choice in site.data.proposal_schema.eligibilities %}<p><span class="eligibility-box">{% if page.student_eligibility == choice[0] %}x{% endif %}</span> {{ choice[1] | escape }}</p>{% endfor %}
+  {% else %}<p>{{ site.data.proposal_schema.eligibilities[page.student_eligibility] | escape }}</p>{% endif %}
 </section>
 
 <footer class="proposal-program">

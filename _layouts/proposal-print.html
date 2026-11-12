@@ -1,0 +1,11 @@
+---
+---
+<!doctype html>
+<html lang="{{ page.language | escape }}">
+<head><meta charset="utf-8"><meta name="robots" content="noindex"><title>{{ page.title | escape }}</title><link rel="stylesheet" href="{{ '/css/proposal-print.css' | relative_url }}"></head>
+<body data-revision="{{ page.proposal.dates.updated_at.iso | escape }}">
+<p>{{ site.data.program.document_title | escape }}</p>
+<h1>{{ page.title | escape }}</h1>
+<p class="proposal-revision">{{ page.status | capitalize | escape }} · Published {{ page.proposal.dates.date.label | escape }} · Revision {{ page.updated_at | escape }}</p>
+{% include proposal/body.html %}
+</body></html>

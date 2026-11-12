@@ -15,6 +15,7 @@ layout: default
           <div><dt>Last updated</dt><dd><time itemprop="dateModified" datetime="{{ page.proposal.dates.updated_at.iso | escape }}">{{ page.proposal.dates.updated_at.label | escape }}</time></dd></div>
         </dl>
         <p class="proposal-read-time">{{ page.proposal.minutes }} minute read</p>
+        <!-- proposal-pdf-download -->
       </header>
       <div class="content-panel content proposal-content" itemprop="articleBody">
         {% include proposal/body.html %}

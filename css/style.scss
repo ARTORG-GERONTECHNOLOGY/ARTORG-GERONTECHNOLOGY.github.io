@@ -1112,3 +1112,12 @@ button, .site-navigation a { min-height: 44px; }
 .page-sharing p { font-size: 1.5rem; margin-top: 1rem; }
 .site-qr img { display: block; width: 280px; max-width: 100%; height: auto; background: white; margin: 1.5rem 0; }
 .site-qr { margin-top: 3rem; }
+@media print {
+  .site-header, .site-footer, .page-sharing, .skip-link, .proposal-navigation, .proposal-neighbours, .proposal-related, .proposal-pdf-download { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .page-content, .single.proposal-page .article, .single.proposal-page .proposal-content { width: 100%; max-width: none; padding: 0; margin: 0; box-shadow: none; border: 0; background: white; color: black; font-size: 10pt; }
+  .proposal-section h2 { break-after: avoid; }
+  .proposal-figure, .proposal-program { break-inside: avoid; }
+  .proposal-title { font-size: 16pt !important; }
+  a { color: black !important; }
+}

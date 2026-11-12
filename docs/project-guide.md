@@ -432,3 +432,69 @@ The generated PNG was decoded to the exact public URL and visually inspected;
 Ruby checks cover repeatability, URL changes, subpaths, square geometry, contrast
 and the white quiet zone. The supervising user confirmed a successful phone scan on 2026-11-12.
 Automated About-page browser inspection remains blocked by saved permission.
+
+## Downloadable proposal PDFs
+
+Every published proposal has a stable, revision-labelled PDF download after the
+PDF stage runs. This includes available, taken and archived proposals. PDFs use
+the same sanitized content and section order as the webpage, with A4 pages,
+12pt titles, 10pt body text, 9pt captions, eligibility boxes, institutional logos,
+program branding and page numbers. The administration/submission instruction is
+omitted from both formats at the user's request. Liberation Sans is the bundled,
+SIL OFL-licensed Arial-compatible font; its accented glyphs and pagination have
+been checked in generated PDFs.
+
+Install Node.js and pnpm 11.25.0, then run from the website root:
+
+```sh
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm exec playwright install chromium
+bundle exec jekyll build
+node scripts/generate-proposal-pdfs.mjs _site
+```
+
+Playwright 1.62.1 pins Chromium 151.0.7922.34 (revision 1234); MathJax 2.7.1 is
+also locked. On Linux the browser can require OS libraries; use Playwright's
+reported dependency instructions. The PDF generator was verified on Windows;
+macOS and Linux PDF generation have not yet been tested.
+
+For the prepared Windows environment, use the documented local override build
+and replace `_site` with `../.local/site`. Run the PDF stage last: rebuilding
+Jekyll can remove generated PDFs and download links. To preview completed PDFs,
+serve that finished output without rebuilding it:
+
+```sh
+bundle exec jekyll serve --skip-initial-build --no-watch
+```
+
+Append `--config _config.yml,../.local/jekyll.yml` for the prepared Windows
+preview. After editing content, stop the preview, rebuild Jekyll, regenerate
+PDFs, and start the preview again. PDFs and their links are build output and
+must not be committed. Production automation is addressed in the next step;
+this change does not deploy the site.
+
+The generator serves files privately on loopback, blocks outbound requests,
+loads the pinned local MathJax runtime with its Safe extension, and waits for
+fonts, images and maths before printing. Syntax highlighting is already produced
+by Jekyll/Rouge. PDF links point to the public website rather than the temporary
+rendering server. Missing assets stop generation; external figures must first
+be stored at a stable local media path. No scientific content or missing figure
+is invented. The writing/drawing proposal's missing Figure 1 remains a release
+checklist item.
+
+Download links appear only after all PDFs have been generated and their manifest
+revision is unchanged. Each link displays the proposal's substantive update
+revision. Public pages also have a secondary stylesheet for browser printing.
+
+Verification commands (Python requires `pypdf` for PDF text checks):
+
+```sh
+bundle exec ruby scripts/tests/print-layout.rb _site
+python scripts/tests/pdf-content.py _site
+node scripts/tests/pdf-rendering.mjs _site ../.local/pdf-fixture
+```
+
+The last command creates only an isolated verification fixture, not a real
+proposal. It exercises long content, a local image and mathematical notation,
+and confirms that missing figures fail generation. Visually inspect the PDFs
+with a PDF reader as well; text extraction alone cannot verify pagination.

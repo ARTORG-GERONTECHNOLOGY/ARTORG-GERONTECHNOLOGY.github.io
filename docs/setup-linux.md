@@ -45,17 +45,12 @@ All following commands run from the website repository root.
 
 ## Prepare local dependencies
 
-The current checkout has no committed Gemfile or lockfile. Use a platform-specific
-folder outside the repository so the Windows runtime and lockfile remain intact.
+Use the repository Gemfile and lockfile. Store installed gems and preview output
+in a platform-specific folder outside the repository.
 Run this file-creation block once when setting up this platform:
 
 ```sh
 mkdir -p ../.local/linux
-cat > ../.local/linux/Gemfile <<'EOF'
-source "https://rubygems.org"
-gem "jekyll", "4.4.1"
-gem "webrick", "1.9.1"
-EOF
 cat > ../.local/linux/jekyll.yml <<'EOF'
 url: "http://127.0.0.1:4000"
 baseurl: ""
@@ -68,7 +63,7 @@ After selecting Ruby, set these variables in each new terminal, from the reposit
 root, before running Bundler:
 
 ```sh
-export BUNDLE_GEMFILE="$PWD/../.local/linux/Gemfile"
+export BUNDLE_GEMFILE="$PWD/Gemfile"
 export BUNDLE_PATH="$PWD/../.local/linux/gems"
 export BUNDLE_USER_HOME="$PWD/../.local/linux/bundle-user"
 export JEKYLL_ENV=development
@@ -78,13 +73,13 @@ Install Bundler under your managed Ruby, without `sudo`, and install dependencie
 
 ```sh
 gem install bundler -v 2.5.22 --no-document
+bundle _2.5.22_ lock --add-platform ruby
 bundle _2.5.22_ install
 bundle check
 ```
 
-Keep the generated `../.local/linux/Gemfile.lock` for subsequent installs.
-Jekyll and WEBrick use the Windows setup's pinned versions; native gems and the
-resolved dependency lock are specific to this platform and remain unverified.
+Bundler adds this platform to the repository lockfile. Review that change before
+committing; this platform remains untested.
 
 ## Build and preview
 

@@ -2,9 +2,15 @@ document_title: "Master’s Thesis Proposal"
 program_name: "Master’s Program Biomedical Engineering"
 submission_email: "bme.artorg@unibe.ch"
 submission_instruction: "Please return this proposal to"
-# Source references only. Public logo assets are extracted in Step 4.
+# Original Word footer: BFH left, program title centre, Bern right.
 branding:
-  - name: "University of Bern"
-    source_part: "word/media/image1.png"
   - name: "Bern University of Applied Sciences"
     source_part: "word/media/image3.png"
+    asset: /assets/images/branding/bfh.png
+    width: 272
+    height: 322
+  - name: "University of Bern"
+    source_part: "word/media/image1.png"
+    asset: /assets/images/branding/university-of-bern.png
+    width: 1072
+    height: 827

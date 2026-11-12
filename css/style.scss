@@ -901,3 +901,38 @@ td{
 }
 
 @media print { .pageBreak { page-break-before: always; } .labelPdf { font-weight: bold; font-size: 20px; } .noPrintPdf { display: none; } } 
+
+// Proposal sections follow the shared Word template; site-wide design is separate.
+.single.proposal-page {
+  .article { float: none; width: 100%; max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .proposal-title { width: auto; margin: 0 0 1.5rem; font-size: clamp(2.4rem, 4vw, 4.2rem); line-height: 1.2; overflow-wrap: anywhere; }
+  .proposal-content { font-size: 18px; line-height: 1.7; }
+  .proposal-section { margin: 2.5rem 0; }
+  h2 { font-size: 2.6rem; line-height: 1.3; }
+  h3 { font-size: 2rem; }
+  a { text-decoration: underline; overflow-wrap: anywhere; }
+  a:focus-visible { outline: 3px solid #79d9c0; outline-offset: 4px; }
+  img { max-width: 100%; height: auto; }
+  .proposal-dates { display: flex; flex-wrap: wrap; gap: 1rem 3rem; font-size: 16px; }
+  .proposal-dates dd { margin: 0; }
+  .proposal-workload > div { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #7c9292; padding: .5rem 0; }
+  .proposal-workload dd { flex-shrink: 0; }
+  .proposal-program { display: flex; align-items: center; justify-content: space-between; gap: 2rem; background: white; color: #222; padding: 2rem; margin: 3rem 0; }
+  .proposal-program img { width: 80px; flex-shrink: 0; }
+  .proposal-program p { text-align: center; margin: 0; font-size: 16px; }
+  .proposal-related { text-align: left; }
+  .proposal-related h2 { text-align: left; margin-bottom: 1rem; }
+  .proposal-related ul { list-style: disc outside; padding-left: 2.5rem; margin: 0; }
+  .proposal-related li { margin-bottom: .75rem; }
+  .proposal-neighbours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; margin-top: 4rem; text-align: left; }
+  .proposal-previous { grid-column: 1; grid-row: 1; }
+  .proposal-next { grid-column: 2; grid-row: 1; }
+  .proposal-neighbours .proposal-nav-label { margin: 0 0 .5rem; }
+  .proposal-read-time, .proposal-categories, .proposal-document-type { font-size: 16px; }
+  .proposal-administration { border-top: 1px solid #7c9292; padding-top: 1rem; }
+  @media (max-width: 480px) { .proposal-program { flex-wrap: wrap; } .proposal-program p { order: 3; flex-basis: 100%; } }
+}
+.proposal-status { display: inline-block; padding: .2em .65em; border-radius: .25em; font-size: 16px; font-weight: bold; line-height: 1.5; }
+.proposal-status-available { background: #a3e2cd; color: #123e32; }
+.proposal-status-taken { background: #f4d79a; color: #503900; }
+.proposal-status-archived { background: #dedee2; color: #34343d; }

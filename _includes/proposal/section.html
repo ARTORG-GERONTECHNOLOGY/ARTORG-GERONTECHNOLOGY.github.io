@@ -1,0 +1,7 @@
+{% assign section_html = page.proposal.sections[include.name] %}
+{% if section_html and section_html != empty %}
+<section class="proposal-section" aria-labelledby="{{ include.id | escape }}">
+  <h2 id="{{ include.id | escape }}">{{ include.name | escape }}</h2>
+  {{ section_html }}
+</section>
+{% endif %}

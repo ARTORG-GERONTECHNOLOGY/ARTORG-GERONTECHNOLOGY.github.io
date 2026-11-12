@@ -1,0 +1,13 @@
+{% assign navigation = page.proposal_navigation %}
+{% if navigation.related.size > 0 %}
+<section class="proposal-related" aria-labelledby="related-projects">
+  <h2 id="related-projects">Available projects</h2>
+  <ul>{% for project in navigation.related %}<li>{% include proposal/project-link.html project=project %}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% if navigation.previous or navigation.next %}
+<nav class="proposal-neighbours" aria-label="Previous and next proposals">
+  {% if navigation.previous %}<div class="proposal-previous"><p class="proposal-nav-label">Previous proposal</p>{% include proposal/project-link.html project=navigation.previous %}</div>{% endif %}
+  {% if navigation.next %}<div class="proposal-next"><p class="proposal-nav-label">Next proposal</p>{% include proposal/project-link.html project=navigation.next %}</div>{% endif %}
+</nav>
+{% endif %}

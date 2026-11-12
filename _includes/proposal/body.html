@@ -1,0 +1,47 @@
+{% include proposal/section.html name="Background" id="background" %}
+{% include proposal/section.html name="Aim" id="aim" %}
+{% include proposal/section.html name="Materials and Methods" id="materials-and-methods" %}
+<section class="proposal-section" aria-labelledby="workload">
+  <h2 id="workload">Nature of the Thesis</h2>
+  <dl class="proposal-workload">{% for row in page.workload %}<div><dt>{{ row.activity | escape }}</dt><dd>{{ row.percentage | escape }}%</dd></div>{% endfor %}</dl>
+</section>
+{% include proposal/section.html name="Requirements" id="requirements" %}
+<section class="proposal-section" aria-labelledby="supervisors">
+  <h2 id="supervisors">Supervisors</h2>
+  <ul>{% for supervisor in page.supervisors %}<li>{{ supervisor.name | escape }}</li>{% endfor %}</ul>
+</section>
+<section class="proposal-section" aria-labelledby="institutes">
+  <h2 id="institutes">Institutes</h2>
+  <ul>{% for institute in page.institutes %}<li>{% if institute.url %}<a href="{% if institute.url contains '://' %}{{ institute.url | escape }}{% else %}{{ institute.url | relative_url | escape }}{% endif %}">{{ institute.name | escape }}</a>{% else %}{{ institute.name | escape }}{% endif %}</li>{% endfor %}</ul>
+</section>
+{% if page.figure %}
+<figure class="proposal-figure">
+  <img src="{% if page.figure.src contains '://' %}{{ page.figure.src | escape }}{% else %}{{ page.figure.src | relative_url | escape }}{% endif %}" alt="{{ page.figure.alt | escape }}">
+  <figcaption>{{ page.figure.caption | escape }}</figcaption>
+</figure>
+{% endif %}
+{% include proposal/section.html name="References" id="references" %}
+<section class="proposal-section" aria-labelledby="contact">
+  <h2 id="contact">Contact</h2>
+  <p><a href="mailto:{{ page.contact.email | escape }}">{{ page.contact.name | escape }}</a><br><span>{{ page.contact.email | escape }}</span></p>
+  {% if page.contact.address and page.contact.address != empty %}<p>{{ page.contact.address | escape }}</p>{% endif %}
+  {% if page.contact.phone and page.contact.phone != empty %}<p>{{ page.contact.phone | escape }}</p>{% endif %}
+  {% if page.proposal.application_html != empty %}<h3>How to apply</h3>{{ page.proposal.application_html }}{% endif %}
+  {% if page.start_date_text and page.start_date_text != empty %}<h3>Start Date</h3><p>{{ page.start_date_text | escape }}</p>{% endif %}
+  {% if page.workplace and page.workplace != empty %}<h3>Workplace</h3><p>{{ page.workplace | escape | newline_to_br }}</p>{% endif %}
+</section>
+<section class="proposal-section" aria-labelledby="eligibility">
+  <h2 id="eligibility">Student eligibility</h2>
+  <p>{{ site.data.proposal_schema.eligibilities[page.student_eligibility] | escape }}</p>
+</section>
+<section class="proposal-section proposal-administration" aria-labelledby="proposal-administration">
+  <h2 id="proposal-administration">Proposal administration</h2>
+  <p>{{ site.data.program.submission_instruction | escape }} <a href="mailto:{{ page.submission_email | escape }}">{{ page.submission_email | escape }}</a>.</p>
+  <p>Students: use the project contact and application instructions above.</p>
+</section>
+<footer class="proposal-program">
+  {% for brand in site.data.program.branding %}
+  <img src="{{ brand.asset | relative_url }}" alt="{{ brand.name | escape }}" width="{{ brand.width }}" height="{{ brand.height }}">
+  {% if forloop.first %}<p>{{ site.data.program.program_name | escape }}</p>{% endif %}
+  {% endfor %}
+</footer>

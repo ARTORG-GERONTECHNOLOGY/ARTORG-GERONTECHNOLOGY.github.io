@@ -35,7 +35,34 @@ approved temporary workload splits. Replace those choices before release.
 The handwriting proposal refers to a missing Figure 1, and an older gait proposal
 has a preserved filename/front-matter date mismatch; see the migration review.
 
-The theme also has duplicate jQuery/MathJax loading, a placeholder print button,
+The theme also has duplicate jQuery/MathJax loading, unused print scripts,
 limited search metadata, and inherited theme settings. The checked-in CNAME and
 production URL differ; local overrides leave both untouched. These issues are
 separate from installing the local build environment.
+## Shared proposal rendering
+
+Proposal pages follow the Word section order, including workload, affiliations,
+student eligibility and separate staff submission instructions. Optional figure,
+references, application, start-date and workplace information appears only when
+provided. Previous/next links carry status labels; recommended projects are available.
+
+The trusted Jekyll plugin uses `scripts/lib/proposal-renderer.rb` to render and
+sanitize Markdown before Liquid templates or excerpts see it. Author Liquid stays
+literal; metadata is escaped in shared includes. This renderer is the common basis
+for later preview and print work. The pinned repository Gemfile is required.
+Custom plugins require an ordinary Jekyll build; GitHub Pages safe-mode builds do
+not run them. Publishing the generated artifact will be handled in the deployment
+step; no production deployment has been made.
+
+Run from the repository root with its Ruby environment active:
+
+```sh
+bundle exec ruby scripts/tests/proposal-format.rb
+bundle exec jekyll build --config _config.yml,../.local/jekyll.yml --disable-disk-cache
+bundle exec ruby scripts/tests/proposal-migration.rb ../.local/site
+bundle exec ruby scripts/tests/proposal-rendering.rb ../.local/site
+bundle exec ruby scripts/tests/proposal-rendering-fixtures.rb
+```
+
+The missing Figure 1 and temporary migration choices remain recorded in
+[migration issues](migration-issues.md). A new layout does not resolve those gaps.

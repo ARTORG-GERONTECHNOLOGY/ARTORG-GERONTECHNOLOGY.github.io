@@ -8,7 +8,7 @@ Requirements: Windows x64, PowerShell, Git, and Internet access for initial
 installation and the existing theme's external browser assets. The installed
 versions are RubyInstaller+Devkit 3.3.13-1 (Ruby 3.3.13), Bundler 2.5.22,
 Jekyll 4.4.1, and WEBrick 1.9.1. The complete dependency versions are locked in
-`../.local/Gemfile.lock`.
+the repository's `Gemfile.lock`.
 
 From this repository directory, install/check the local dependencies:
 
@@ -75,15 +75,15 @@ git clone https://github.com/ARTORG-GERONTECHNOLOGY/ARTORG-GERONTECHNOLOGY.githu
 cd ARTORG-GERONTECHNOLOGY.github.io
 ```
 
-This initial setup is local: a clone alone does not contain the dependency
-manifest or helper scripts yet. Copy these small setup files from the prepared
+The repository contains the dependency manifest and lockfile. The preview
+helper scripts remain local. Copy these small setup files from the prepared
 workspace into a sibling `.local` directory: `setup.ps1`, `env.ps1`, `serve.ps1`,
-`Gemfile`, `Gemfile.lock`, and `jekyll.yml`. Do not copy Ruby, installed gems,
+and `jekyll.yml`. Do not copy Ruby, installed gems,
 caches, logs, or generated HTML; run `setup.ps1` to install them. Keep the website
 directory named `ARTORG-GERONTECHNOLOGY.github.io` for the preview helper.
 
 The build can also be reproduced from a clean source copy using the same local
-manifest and installed dependencies:
+installed dependencies (set `BUNDLE_GEMFILE` to the extracted Gemfile first):
 
 ```powershell
 git archive HEAD --format=zip --output=../.local/verification-source.zip

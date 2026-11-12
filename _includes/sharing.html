@@ -1,0 +1,7 @@
+<section class="page-sharing" aria-label="Share this page">
+<label for="page-share-link">Page link</label>
+<input id="page-share-link" type="url" readonly value="{{ page.url | absolute_url | escape }}">
+<button type="button" id="copy-page-link" hidden>Copy link</button>
+<p id="copy-link-status" role="status" aria-live="polite">Select the link to copy it.</p>
+</section>
+<script src="{{ '/js/sharing.js' | relative_url }}"></script>

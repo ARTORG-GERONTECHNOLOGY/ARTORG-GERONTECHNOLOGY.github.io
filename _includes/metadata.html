@@ -1,0 +1,15 @@
+{% assign meta = page.public_metadata %}
+<link rel="canonical" href="{{ page.url | absolute_url | escape }}">
+<meta property="og:title" content="{{ meta.title | default: page.title | default: site.title | escape }}">
+<meta property="og:description" content="{{ meta.description | default: site.description | escape }}">
+<meta property="og:url" content="{{ page.url | absolute_url | escape }}">
+<meta property="og:site_name" content="{{ site.title | escape }}">
+<meta property="og:type" content="{% if meta.article %}article{% else %}website{% endif %}">
+<meta name="twitter:card" content="{% if meta.image %}summary_large_image{% else %}summary{% endif %}">
+<meta name="twitter:title" content="{{ meta.title | default: page.title | default: site.title | escape }}">
+<meta name="twitter:description" content="{{ meta.description | default: site.description | escape }}">
+{% if meta.image %}<meta property="og:image" content="{{ meta.image.src | absolute_url | escape }}"><meta property="og:image:alt" content="{{ meta.image.alt | escape }}"><meta name="twitter:image" content="{{ meta.image.src | absolute_url | escape }}">{% endif %}
+{% if meta.article %}<meta property="article:published_time" content="{{ page.date | date_to_xmlschema }}"><meta property="article:modified_time" content="{{ page.updated_at | date_to_xmlschema }}">{% endif %}
+<link rel="alternate" type="application/rss+xml" title="Proposal updates" href="{{ '/feed.xml' | absolute_url | escape }}">
+<link rel="alternate" type="application/rss+xml" title="News updates" href="{{ '/news-feed.xml' | absolute_url | escape }}">
+{% if page.url == '/404.html' or page.url contains '/admin/' or page.url contains '/service/' or page.url contains '/api/' %}<meta name="robots" content="noindex">{% endif %}

@@ -361,3 +361,39 @@ The user subsequently requested removal of proposal-administration instructions
 from public proposal and About pages. The staff submission section and its search
 text are omitted. Source submission metadata and the staff template are retained
 for maintenance. This instruction overrides the original public template order.
+
+## Feeds, metadata and sharing
+
+`feed.xml` preserves the proposal RSS endpoint and its ten most recent proposals.
+Every item carries an availability category and a readable status prefix.
+`news-feed.xml` provides the ten most recent published announcements separately;
+its initial empty channel is valid. RSS autodiscovery links in page heads expose both feeds. Footer links open the
+Proposals and News pages, as requested by the user. Feeds retain initial publication dates and stable
+canonical GUID URLs. Deleted/unpublished content is absent from normal builds.
+
+Public pages have canonical URLs, page-specific descriptions, Open Graph and
+Twitter preview tags. Images appear in metadata only when real figure/hero/news/
+portrait metadata exists; no default example image is invented. Article publication
+and substantive update dates use their respective source values. Local previews
+use their configured local URL; production `_config.yml` and CNAME are unchanged.
+All canonical/feed/sitemap links use Jekyll's absolute_url filter.
+
+`sitemap.xml` lists public HTML pages and output-enabled collection documents,
+with known update dates where supplied. It excludes 404, service/admin routes,
+non-output collections, unpublished content and non-HTML build inputs. These
+indexing choices do not restrict access or make public Git content private.
+
+Copy link uses the Clipboard API only on a visitor's button click. It preserves
+the current query and fragment (including search/catalogue filters). On denial or
+unsupported browsers, the URL is selected with instructions for manual copying.
+Without JavaScript the labelled readonly URL remains available. This replaces
+third-party sharing; no tracking or social-network scripts are introduced.
+
+```sh
+bundle exec ruby scripts/tests/publishing.rb
+```
+
+The fixture checks XML/status data, canonical hosts and base paths, escaped preview
+metadata, excluded drafts/admin routes, article dates and sharing fallback markup.
+Actual browser clipboard success/denial, focus and mobile appearance still await
+user review because automated browser access is denied by saved permission.

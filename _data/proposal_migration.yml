@@ -1,0 +1,301 @@
+---
+migrated_at: '2026-11-11T16:14:29Z'
+created_at_policy: First recorded Git author timestamp along the detected rename history,
+  not a verified date of original research authorship.
+updated_at_policy: 'Actual migration time: the user confirmed eligibility, supervisors
+  and institute, and authorized assigning status metadata.'
+release_blockers:
+- Confirm all ten randomly assigned proposal statuses.
+- Confirm the five randomly assigned eligibility choices for older proposals.
+- Confirm temporary workload splits for markerless tracking and seismographic gait.
+- Resolve the writing/drawing source reference to Figure 1; no figure was supplied.
+proposals:
+- file: _posts/2026-05-05-project-ai-decision-support-for-personalized-brain-health-risk-profiling.md
+  proposal_id: ger-ai-decision-support-for-personalized-brain-health-risk-profiling
+  permalink: "/decsion/support/2026/05/05/project-ai-decision-support-for-personalized-brain-health-risk-profiling/"
+  publication_date: '2026-05-05T14:00:00+02:00'
+  source_commit: 311b579
+  source_sha256: 86638a711d5b77477a1d02b4ed05fd5d2533eda4693bef6d9e3d0743f2e6fe21
+  created_at_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
+  source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
+  status_randomly_assigned: true
+  narrative_sha256:
+    Background: ea8f21948ca3ffe5018c8239bebbbcfad0aba52b57120e2b8e0494d2040e20b8
+    Aim: 1f5eaecf9e2c4de78566a7e9febd40334190e025afa3002a4f3264f70e411292
+    Materials and Methods: 3762286e51c8fba547887c4bce3148333fed880a868ea86aee48c179b77f74ca
+    Requirements: 1642ceb3643fd49ac36fa40d67ea4350a9c37788c7168d40719bb301b08635b2
+  workload:
+  - activity: Data analysis and validation
+    percentage: 25
+  - activity: Development of the AI model/prototype
+    percentage: 50
+  - activity: Literature review
+    percentage: 25
+  contact:
+    name: Dr. Vassilis Skaramagkas
+    email: vasileios.skaramagkas@unibe.ch
+  application_instructions:
+- file: _posts/2026-05-05-project-gait-analysis-wrist-accelerometers.md
+  proposal_id: ger-gait-analysis-wrist-accelerometers
+  permalink: "/gait-analysis/2026/05/05/project-gait-analysis-wrist-accelerometers/"
+  publication_date: '2026-05-05T11:00:00+02:00'
+  source_commit: 311b579
+  source_sha256: 59c78449322f16c322d097484746bdd19398c541dea02ea6ad9b6611a478177f
+  created_at_evidence: 2025-09-01T11:39:19+02:00 281661fdd1a3c5e6cc2207a7d93ba3ed2702de39
+  source_latest_commit_evidence: 2026-05-05T15:40:51+02:00 22b87ebe91b6c9cae2bc72170136330346bd02eb
+  status_randomly_assigned: true
+  narrative_sha256:
+    Background: f64abc227c0e80e291f07271d194d6d46b00be859cc69bf9e6f6d58dd8d69206
+    Aim: 0c8a8c7c9819f4ed4ca6d64659c45334c5168a2504e85bfc4e6f1a3ad54ad247
+    Materials and Methods: 508336d909154ac57d93d5bed80af56c2829f5e675f618732686e4cd90575b2f
+    Requirements: 5ce9e6ab6327e3c73ec88e34f070d8875b794fc9c8fd5f96ae32f341d33d470b
+    References: aa3cc3b7b6e7ef574a1f99de77ae951a891b4cb27844f15e0d5d8c90132d6a01
+  workload:
+  - activity: Method development (signal processing algorithms, machine learning models)
+    percentage: 60
+  - activity: Data collection and analysis (acquisition, preprocessing, evaluation)
+    percentage: 40
+  contact:
+    name: Aaron Colombo, MSc
+    email: aaron.colombo@unibe.ch
+  application_instructions: Apply for this project by sending your CV, course transcripts,
+    and a short motivation letter (max. ¾ A4 page) to [aaron.colombo@unibe.ch](mailto:aaron.colombo@unibe.ch)
+    with "MT Gait Wrist - Firstname Lastname" as the subject.
+- file: _posts/2026-05-05-project-multimodal-digital-biomarkers-for-early-brain-health-monitoring.md
+  proposal_id: ger-multimodal-digital-biomarkers-for-early-brain-health-monitoring
+  permalink: "/biomarkers/2026/05/05/project-multimodal-digital-biomarkers-for-early-brain-health-monitoring/"
+  publication_date: '2026-05-05T14:00:00+02:00'
+  source_commit: 311b579
+  source_sha256: 0d0ed7fa561ff8c8ac24daf33d0adb380af69918813bd16cc601c8b8ae74a89d
+  created_at_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
+  source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
+  status_randomly_assigned: true
+  narrative_sha256:
+    Background: 92fdc18fa107b94de7a0e5ef430e95425f06efd2544216d72ef25af80bb23d7d
+    Aim: c644b5a919543432922d9a384ff2ff71c0297f0a410fe9a22682ddd8762a0fe5
+    Materials and Methods: 823820d332528c5836cef327033e0d59902fce1fb6912d2e20f403bfabcaf803
+    Requirements: 5de5c2e2bc46025c53f70da967d90942e4fde58c150424716459c66990fe17f3
+  workload:
+  - activity: Data analysis and feature engineering
+    percentage: 40
+  - activity: Development of algorithms/pipeline
+    percentage: 40
+  - activity: Literature review
+    percentage: 20
+  contact:
+    name: Dr. Vassilis Skaramagkas
+    email: vasileios.skaramagkas@unibe.ch
+  application_instructions:
+- file: _posts/2026-05-05-project-quantification-of-writing-and-drawing-from-sensor-data-in-people-with-Parkinsons-disease.md
+  proposal_id: ger-quantification-of-writing-and-drawing-from-sensor-data-in-people-with-parkinsons-disease
+  permalink: "/sensor-tracking/2026/05/05/project-quantification-of-writing-and-drawing-from-sensor-data-in-people-with-Parkinsons-disease/"
+  publication_date: '2026-05-05T14:00:00+02:00'
+  source_commit: 311b579
+  source_sha256: e6630b42572d2e250121bd5f66a71e260c36381005bb18a29c6a2851c5addee8
+  created_at_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
+  source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
+  status_randomly_assigned: true
+  narrative_sha256:
+    Background: 149d1ff133492ba415e5a438903db2f03b05610e8e1b07346476d3b08a79392a
+    Aim: d9bfad7b03a9bc545b1e7bc6a0dfe33b67a76846dc40a21cf680cb77152d3170
+    Materials and Methods: 7351b6962bbfbf7aebf0bf06c75c484f621de4b921b0c397b7cd89b8f3319c00
+    Requirements: f13f0cd5110efc9be0724a62177a0bbe87fa78b782c3d20c4a6431374bbc8243
+  workload:
+  - activity: Development of algorithms
+    percentage: 60
+  - activity: Data analysis
+    percentage: 40
+  contact:
+    name: Kevin Möri, MSc
+    email: kevin.moeri@unibe.ch
+  application_instructions:
+- file: _posts/2026-05-05-project-vital-signs-seismographic-signals.md
+  proposal_id: ger-vital-signs-seismographic-signals
+  permalink: "/sleep-analysis/2026/05/05/project-vital-signs-seismographic-signals/"
+  publication_date: '2026-05-05T11:00:00+02:00'
+  source_commit: 311b579
+  source_sha256: 87c6c8cb8716915bb1568929bbfbeead4d1798e14a031491179957a6be172029
+  created_at_evidence: 2025-04-30T14:57:12+02:00 7c5d0440032ff502b6475b677f7a94065dff88c4
+  source_latest_commit_evidence: 2026-05-05T15:47:58+02:00 532698b7212f29897c760055a721d38fd80f7868
+  status_randomly_assigned: true
+  narrative_sha256:
+    Background: 04456f40e284fe539c90dc32d687b3ad7d48650077b7d2323c2e8092e49057e3
+    Aim: e31f667f8638ddd084ab73a0c91279b8808d663501a956fe705d246375e9e6bb
+    Materials and Methods: c9e713fb725f4f731f6833b597f81395cae33bfa5347958aa9b1db3895457beb
+    Requirements: e2d0d29dc7accb41d2bb6f9b00172d3fa97a27e77cc21de60cba39eb88d30c29
+  workload:
+  - activity: Development of the algorithms
+    percentage: 60
+  - activity: Data analysis
+    percentage: 30
+  - activity: Data collection
+    percentage: 10
+  contact:
+    name: Noora Angelva, MSc
+    email: noora.angelva@unibe.ch
+  application_instructions:
+- file: _posts/2025-04-30-project-markerless-tracking-validation.md
+  proposal_id: ger-markerless-tracking-validation
+  permalink: "/post_archive/2025-04-30-project-markerless-tracking-validation/"
+  publication_date: '2025-04-30T14:00:00+02:00'
+  source_commit: 311b579
+  source_sha256: '090175b1c622f42e4f975306b2bd6c8c5e965575b299088c0115bac12b96d5a8'
+  created_at_evidence: 2025-04-30T14:26:39+02:00 152e8dcc454f36e145d1e2744fccf34715ce7025
+  source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
+  status_randomly_assigned: true
+  eligibility_randomly_assigned: true
+  workload_temporary: true
+  narrative_sha256:
+    Background: bbc6ebc9c7a0157151cf9f8edaaa4c70f47a6a79b06870575c59ad12088b6207
+    Aim: d3b30671a3788ef03bec8153e55b2bb670c54666e7f04f87f2bf39adc1ee2a55
+    Materials and Methods: 45d348d2de703d9aaf48302de8a0f33a96d9d69b787b794b1eacd4da002c615d
+    Requirements: 7a70e650ba1740656004801e4fce79bd80fcf74f2c066cc4bb1fbce5264f7e35
+  workload:
+  - activity: Literature review
+    percentage: 20
+  - activity: Model training
+    percentage: 50
+  - activity: Validation
+    percentage: 30
+  contact:
+    name: Kevin Möri, MSc
+    email: kevin.moeri@unibe.ch
+  application_instructions:
+- file: _posts/2025-09-01-project-arm-use-children-hemiparesis.md
+  proposal_id: ger-arm-use-children-hemiparesis
+  permalink: "/post_archive/2025-09-01-project-arm-use-children-hemiparesis/"
+  publication_date: '2025-09-01T11:00:00+02:00'
+  source_commit: 311b579
+  source_sha256: 5c4133a545f6969416086e1a07703cd3a19219e5e5f104676d8c999815dbd40f
+  created_at_evidence: 2025-09-01T11:56:16+02:00 52ae827bea331d07f5a94cd29792040ed4f905bb
+  source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
+  status_randomly_assigned: true
+  eligibility_randomly_assigned: true
+  workload_temporary: false
+  narrative_sha256:
+    Background: b378c055af791426ce9b0c2f22883b803ab2935dfb2498b03ad0174ad8589755
+    Aim: d293dd7055d48a047aa80974d2ba608b19dbebc015c866873605c1298fd62562
+    Materials and Methods: 2c05397cea57b457fad93bdc7fbc778a018d6642da621b1e866a04b5ba2b8d14
+    Requirements: f13f0cd5110efc9be0724a62177a0bbe87fa78b782c3d20c4a6431374bbc8243
+  workload:
+  - activity: Development of algorithms
+    percentage: 60
+  - activity: Data analysis
+    percentage: 40
+  contact:
+    name: Kevin Möri
+    email: kevin.moeri@unibe.ch
+    address: Freiburgstrasse 3, CH-3010 Bern
+  application_instructions:
+- file: _posts/2025-09-04-project-gait-analysis-using-seismographs.md
+  proposal_id: ger-gait-analysis-using-seismographs
+  permalink: "/post_archive/2025-09-04-project-gait-analysis-using-seismographs/"
+  publication_date: '2025-04-28T14:00:00+02:00'
+  source_commit: 311b579
+  source_sha256: 80142f9f4b09b28d8bb4bfcd102766ade81cd8bd447768f8fae27d139a524d36
+  created_at_evidence: 2025-04-28T17:31:21+02:00 de62d4c8e6998784608c0bed8487c0b2340aeffd
+  source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
+  status_randomly_assigned: true
+  eligibility_randomly_assigned: true
+  workload_temporary: true
+  narrative_sha256:
+    Background: b15ce354d4099347df96e4dafb3ef9e8a848eda0dbee2ebd37a631f1ef15fb0d
+    Aim: 2371e5b834388b417fdaff52f75229e100c1d2ff932f1aa3cadb5cd59a81f7d5
+    Materials and Methods: 3aaeee662559ea00dfa23afc142fdd54d116623763f0be55b885f5f433a8dd01
+    Requirements: d0d68b20deabe58a99a8b8fe96ef20bd2a7f8d97bd40605052f8b5a9f3d3899f
+  workload:
+  - activity: Algorithm development
+    percentage: 60
+  - activity: Data analysis and validation
+    percentage: 40
+  contact:
+    name: Michael Single, PhD
+    email: michael.single@unibe.ch
+  application_instructions:
+- file: _posts/2025-09-30-project-bcg-ai-sleep-stage.md
+  proposal_id: ger-bcg-ai-sleep-stage
+  permalink: "/post_archive/2025-09-30-project-bcg-ai-sleep-stage/"
+  publication_date: '2025-09-30T15:00:00+02:00'
+  source_commit: 311b579
+  source_sha256: 8e5689f73e079b0557e6ed24566b4a557542433640c4410cfb1a30744c3c61b1
+  created_at_evidence: 2025-09-30T15:37:44+02:00 638c76f0e2bca756d301d5009bc1ea8df12f23e4
+  source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
+  status_randomly_assigned: true
+  eligibility_randomly_assigned: true
+  workload_temporary: false
+  narrative_sha256:
+    Background: 81e2686ba44aa13fe216d215f66d96e01c6a51deeff9674cf48df46bc1ceaea3
+    Aim: 0427b1e32a3e707bdecb37feea505988eca098e05848bc903a7686c49facaa9d
+    Materials and Methods: a71963fdf6867577e906760540e2790aacec928903ee4cac5261d93ade3910d1
+    Requirements: c017cd1f256ee5a732a8f466b713d2b95c0e57bd4b994b479c668e27cf6a17f6
+  workload:
+  - activity: data analysis and preprocessing
+    percentage: 30
+  - activity: algorithm development and optimization
+    percentage: 60
+  - activity: clinical validation and deployment testing
+    percentage: 10
+  contact:
+    name: Matilde Castelli
+    email: matilde.castelli@unibe.ch
+  application_instructions: Apply for this project by sending an email to [matilde.castelli@unibe.ch](mailto:matilde.castelli@unibe.ch).
+- file: _posts/2026-05-05-project-eyetracker-emotion-pd.md
+  proposal_id: ger-eyetracker-emotion-pd
+  permalink: "/post_archive/2026-05-05-project-eyetracker-emotion-pd/"
+  publication_date: '2026-05-05T11:00:00+02:00'
+  source_commit: 311b579
+  source_sha256: 40b6aa3692f309edc182daba268856c8b2f0c27d95ac6fcc7b05ccdc2736421d
+  created_at_evidence: 2025-09-01T11:46:35+02:00 391e71f200de27feca435dcc3acfedcb80894e0e
+  source_latest_commit_evidence: 2026-05-05T15:38:35+02:00 cb877e2000b05f10992a7630771ad1b08f08d649
+  status_randomly_assigned: true
+  eligibility_randomly_assigned: true
+  workload_temporary: false
+  narrative_sha256:
+    Background: 8e88a2271469eff359f9d01c51e1eca0f2eb97becc124be558572e5ea9f72cde
+    Aim: 83a1d96c4df608c730daa5fb97c2c66eff8db2404e1b01451a5e8f89c1352a2f
+    Materials and Methods: 3800b3e771fba15a0c63c9af483667be4379599e7733d22f53aa6d5b9fe32f28
+    Requirements: 8eb6f28f55f0b900e7ff4c6cb129d6a7c1a5117d0c8e390079dc40e4f846f005
+    References: f97fa871e0af17408421828140d091df7250c1b85c5e9cc0645e3ea399cbaf53
+  workload:
+  - activity: Data preprocessing & dataset construction
+    percentage: 50
+  - activity: Statistical modelling & interpretation
+    percentage: 50
+  contact:
+    name: Aaron Colombo, MSc
+    email: aaron.colombo@unibe.ch
+  application_instructions: Apply for this project by sending your CV, course transcripts,
+    and a short motivation letter (max. ¾ A4 page) to [aaron.colombo@unibe.ch](mailto:aaron.colombo@unibe.ch)
+    with "MT Eye Emotion PD - Firstname Lastname" as the subject.
+older_sources:
+- file: post_archive/2025-04-30-project-markerless-tracking-validation.md
+  sha256: ae513acc6299f578fe6f58595e7b6c5ff08df201e1c2f99d69ca057c70c34d93
+  existing_url: "/post_archive/2025-04-30-project-markerless-tracking-validation/"
+  decision: Migration authorized by supervising user; temporary status/eligibility/workload
+    choices require correction before release.
+  migrated_file: _posts/2025-04-30-project-markerless-tracking-validation.md
+- file: post_archive/2025-09-01-project-arm-use-children-hemiparesis.md
+  sha256: 40633f5a03b567172789ec4c93051396fda37d40a49a484ca07ff13841b2613c
+  existing_url: "/post_archive/2025-09-01-project-arm-use-children-hemiparesis/"
+  decision: Migration authorized by supervising user; temporary status/eligibility/workload
+    choices require correction before release.
+  migrated_file: _posts/2025-09-01-project-arm-use-children-hemiparesis.md
+- file: post_archive/2025-09-04-project-gait-analysis-using-seismographs.md
+  sha256: e5f67e67178bcdf358f5448d01e4465d9919d1405cdf9ce8b6355e79e35b9b13
+  existing_url: "/post_archive/2025-09-04-project-gait-analysis-using-seismographs/"
+  decision: Migration authorized by supervising user; temporary status/eligibility/workload
+    choices require correction before release.
+  migrated_file: _posts/2025-09-04-project-gait-analysis-using-seismographs.md
+- file: post_archive/2025-09-30-project-bcg-ai-sleep-stage.md
+  sha256: 7a737cbd8219de7e1bcbc2e659a4c6993b8211406d1137018023e0fda713bd09
+  existing_url: "/post_archive/2025-09-30-project-bcg-ai-sleep-stage/"
+  decision: Migration authorized by supervising user; temporary status/eligibility/workload
+    choices require correction before release.
+  migrated_file: _posts/2025-09-30-project-bcg-ai-sleep-stage.md
+- file: post_archive/2026-05-05-project-eyetracker-emotion-pd.md
+  sha256: e1133076222ed3ff44d76e1d1940bed1a5758a25c9a27a67990bd9c3ad091729
+  existing_url: "/post_archive/2026-05-05-project-eyetracker-emotion-pd/"
+  decision: Migration authorized by supervising user; temporary status/eligibility/workload
+    choices require correction before release.
+  migrated_file: _posts/2026-05-05-project-eyetracker-emotion-pd.md
+older_migrated_at: '2026-11-11T16:28:39Z'

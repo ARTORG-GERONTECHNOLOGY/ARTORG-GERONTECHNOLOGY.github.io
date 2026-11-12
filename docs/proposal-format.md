@@ -1,8 +1,9 @@
 # Proposal format and validation
 
-This is the reusable format for new proposals. The five current proposals and five
-older sources have not been migrated. Their scientific content, dates and URLs
-are unchanged, and strict validation is not yet part of the Jekyll build.
+This is the reusable format for proposals. All ten source proposals have been
+migrated into `_posts/` and are validated strictly. Scientific content,
+publication dates and existing URLs are preserved. Validation is a separate
+command, not yet part of Jekyll.
 
 ## Start a proposal
 
@@ -17,7 +18,8 @@ normal Jekyll rendering but does not conceal a file committed to GitHub.
 
 When the proposal is ready for publication, remove `published: false` (or set it
 to `true`), validate it, and use `_posts/YYYY-MM-DD-project-<slug>.md`. Do not
-publish new-format proposals yet: the shared page rendering arrives in Step 4.
+publish new-format proposals yet: a compatibility appendix preserves moved details,
+and the complete shared page rendering arrives in Step 4.
 
 ## Metadata and narrative
 
@@ -99,7 +101,9 @@ Run these commands from the website repository root:
 
 ```sh
 bundle exec ruby scripts/tests/proposal-format.rb
+bundle exec ruby scripts/tests/proposal-migration.rb
 bundle exec ruby scripts/validate-proposals.rb
+bundle exec ruby scripts/validate-proposals.rb --release
 bundle exec ruby scripts/validate-proposals.rb --draft ../private-proposal.md
 bundle exec ruby scripts/validate-proposals.rb ../ready-proposal.md
 ```
@@ -108,11 +112,14 @@ Draft validation permits incomplete fields and workload totals. Supplied values
 must still have valid types and choices. Publication validation requires all
 mandatory information and rejects `published: false`.
 
-Without paths, the validator checks versioned `_posts/` files and reports legacy
-files as skipped. A file opts into the new format by declaring `schema_version`,
-`template_version` or `proposal_id`. Explicit paths are always validated.
-`--strict` rejects unversioned files too; enable it for the reviewed proposal set
-after migration. Do not mistake skipped legacy files for validated proposals.
+Without paths, the validator checks every `_posts/` file. Strict validation is now
+the default: unversioned files are errors rather than skipped legacy content.
+`--strict` remains available for explicit build commands. All ten proposals,
+including the five formerly in `post_archive/`, belong to the validated set.
+`--release` additionally rejects outstanding issues in
+`_data/proposal_migration.yml`, including the randomly assigned statuses and older
+eligibility choices, temporary workload splits, and missing source figure.
+Update that record only after resolving the issues.
 Failures include the file, field/section and reason, and return a nonzero exit code.
 
 The shared Ruby implementation is `scripts/lib/proposal.rb`:

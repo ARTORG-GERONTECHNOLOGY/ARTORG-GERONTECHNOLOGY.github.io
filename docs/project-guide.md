@@ -2,17 +2,17 @@
 
 ## Content and source layout
 
-New proposals use the [shared proposal format](proposal-format.md), with a blank
-template and separate draft/publication validation. Existing proposals await
-migration.
+All ten proposals use the [shared proposal format](proposal-format.md),
+with a blank template and separate draft/publication validation. The
+[migration review](migration-issues.md) records confirmations and remaining issues.
 
-- `_posts/`: five current proposal Markdown files, with publication dates and
+- `_posts/`: all ten migrated proposal Markdown files, with publication dates and
   categories in YAML front matter. Edit scientific text carefully and preserve
   filenames, dates, and existing public URLs.
-- `post_archive/`: five older source proposals. Folder membership does not prove
-  that a proposal is taken or archived. The current default Jekyll build renders
-  these files as standalone HTML pages under `/post_archive/<filename>/`; they
-  are absent from the proposal catalogue and do not form a status-aware archive.
+- `post_archive/`: former source location, now excluded from source copying.
+  Its five proposals moved into `_posts/` with explicit permalinks preserving
+  their existing `/post_archive/<filename>/` addresses. Status is metadata, not
+  inferred from the former folder.
 - `_layouts/`, `_includes/`: Liquid page structures and shared theme fragments.
 - `_data/`: supporting structured data.
 - `index.html`, `posts.html`, `posts-by-categories.html`: homepage and listings.
@@ -27,11 +27,13 @@ and automated deployment are not implemented by this setup.
 
 ## Baseline issues preserved during setup
 
-The five current and five older proposals are retained without content or status
-changes. Legacy metadata lacks the planned immutable IDs, eligibility, and
-availability fields. Some sources lack explicit supervisors/institutions, the
-handwriting proposal refers to a missing Figure 1, and an older gait proposal has
-a filename/front-matter date mismatch. These require review during migration.
+All ten proposals retain their scientific prose, filenames, publication dates
+and existing public URLs. Metadata now includes immutable IDs, eligibility,
+supervisors and institutes. Statuses for all ten and eligibility for the five
+older proposals were randomized at the user's request. Two older proposals have
+approved temporary workload splits. Replace those choices before release.
+The handwriting proposal refers to a missing Figure 1, and an older gait proposal
+has a preserved filename/front-matter date mismatch; see the migration review.
 
 The theme also has duplicate jQuery/MathJax loading, a placeholder print button,
 limited search metadata, and inherited theme settings. The checked-in CNAME and

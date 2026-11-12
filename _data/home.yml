@@ -1,0 +1,14 @@
+title: ARTORG GER
+introduction: Research Projects and Project Descriptions
+hero_image:
+links:
+  - label: Browse available proposals
+    url: /posts/
+  - label: About the group
+    url: /about/
+sections:
+  introduction: true
+  proposals: true
+  news: true
+proposal_limit: 5
+news_limit: 5

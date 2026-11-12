@@ -1,42 +1,34 @@
 ---
 layout: default
 ---
-
-
-<div class="container-fluid index">
-    <div class="row">
-
-        <div class="col-md-12 main content-panel">
-            <h1 class="header author-header" itemprop="headline">{{ site.title | escape }}</h1>
-
-            <div class="author-text">
-                {{ site.title_description | escape }}
-            </div>
-
-          </div>
-          <div class="col-md-12 main content-panel">
-
-            <div class="articles">
-
-              <h2>Available Project Proposals</h2>
-
-              <ul>
-                  {% for post in site.data.available_proposals limit: site.post_limit %}
-
-                      <li>
-                          <a href="{{ post.url | prepend: site.baseurl }}">{{ post.title | escape }}</a>
-                          <small>{{ post.dates.date.label | escape }}</small>
-                      </li>
-
-                  {% else %}<li>No available proposals at the moment.</li>{% endfor %}
-                  <li>
-                      <small><i><a href="{{ site.baseurl }}/posts/">more...</a></i></small>
-                  </li>
-              </ul>
-
-            </div>
-
-        </div>
-
-    </div>
+<div class="homepage">
+  <header class="home-heading"><h1>{{ site.data.home.title | escape }}</h1></header>
+  {% if site.data.home.sections.introduction %}
+  <section class="home-introduction content-panel" aria-label="Introduction">
+    <p>{{ site.data.home.introduction | escape | newline_to_br }}</p>
+    {% if site.data.home.hero_image %}<img class="home-hero" src="{{ site.data.home.hero_image.src | relative_url | escape }}" alt="{{ site.data.home.hero_image.alt | escape }}">{% endif %}
+    {% if site.data.home.links.size > 0 %}<ul class="home-links">{% for link in site.data.home.links %}<li><a href="{% if link.url contains '://' %}{{ link.url | escape }}{% else %}{{ link.url | relative_url | escape }}{% endif %}">{{ link.label | escape }}</a></li>{% endfor %}</ul>{% endif %}
+  </section>
+  {% endif %}
+  {% if site.data.home.sections.proposals %}
+  <section class="home-proposals content-panel" aria-labelledby="home-proposals-title">
+    <h2 id="home-proposals-title">Available Project Proposals</h2>
+    <ul class="home-projects">{% for project in site.data.home_proposals limit: site.data.home.proposal_limit %}
+      <li>
+        <h3><a href="{{ project.url | relative_url | escape }}">{{ project.title | escape }}</a></h3>
+        <p><span class="proposal-status proposal-status-available">Available</span>{% if project.featured %} <span class="featured-label">Featured</span>{% endif %} <span>{{ project.eligibility_label | escape }}</span></p>
+        <p>{{ project.summary | escape }}</p>
+        <p class="news-date">Published <time datetime="{{ project.dates.date.iso | escape }}">{{ project.dates.date.label | escape }}</time></p>
+      </li>
+    {% else %}<li>No available proposals at the moment.</li>{% endfor %}</ul>
+    <p><a href="{{ '/posts/' | relative_url }}">Browse all available proposals</a></p>
+  </section>
+  {% endif %}
+  {% if site.data.home.sections.news %}
+  <section class="home-news content-panel" aria-labelledby="home-news-title">
+    <h2 id="home-news-title">News</h2>
+    <ul class="news-cards">{% for item in site.data.news_items limit: site.data.home.news_limit %}{% include news/card.html item=item %}{% else %}<li>No announcements have been published yet.</li>{% endfor %}</ul>
+    <p><a href="{{ '/news/' | relative_url }}">All news</a></p>
+  </section>
+  {% endif %}
 </div>

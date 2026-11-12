@@ -34,3 +34,13 @@ kramdown:
 
 permalink: pretty
 exclude: [vendor, templates, scripts, post_archive]
+collections:
+  news:
+    output: true
+    permalink: /news/:name/
+defaults:
+  - scope:
+      path: ""
+      type: news
+    values:
+      layout: news

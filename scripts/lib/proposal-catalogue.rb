@@ -10,6 +10,7 @@ module Proposals
         "proposal_id" => entry.fetch("proposal_id"), "title" => entry.fetch("title"),
         "url" => entry.fetch("permalink"), "summary" => entry.fetch("summary"),
         "status" => entry.fetch("status"), "priority" => entry.fetch("priority"),
+        "featured" => entry.fetch("featured"),
         "categories" => entry.fetch("categories"), "student_eligibility" => entry.fetch("student_eligibility"),
         "eligibility_label" => SCHEMA.fetch("eligibilities").fetch(entry.fetch("student_eligibility")),
         "category_labels" => entry.fetch("proposal").fetch("category_labels"),
@@ -17,6 +18,13 @@ module Proposals
         "dates" => entry.fetch("proposal").fetch("dates")
       }
     end
+  end
+
+  def self.home_proposals(entries)
+    # Entries already have canonical catalogue order; partitioning preserves it.
+    available = entries.select { |entry| entry.fetch("status") == "available" }
+    featured, others = available.partition { |entry| entry.fetch("featured") }
+    featured + others
   end
 
   def self.catalogue_groups(entries, mode)

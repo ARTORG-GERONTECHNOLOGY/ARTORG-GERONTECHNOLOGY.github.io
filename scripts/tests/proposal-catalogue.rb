@@ -51,8 +51,8 @@ home = Nokogiri::HTML5(File.read(File.join(output, "index.html"), encoding: "UTF
     end
   end
 end
-home_urls = home.css(".articles li > a").map { |link| link["href"] }
-check.call(home_urls == ordered.select { |entry| entry.fetch("status") == "available" }.first(5).map { |entry| entry.fetch("url") }, "Homepage differs from available catalogue")
+home_urls = home.css(".home-projects h3 a").map { |link| link["href"] }
+check.call(home_urls == Proposals.home_proposals(ordered).first(5).map { |entry| entry.fetch("url") }, "Homepage differs from ordered available/featured projects")
 fixture = [
   {"proposal_id"=>"newer", "priority"=>5, "date"=>"2026-01-01T12:00:00Z"},
   {"proposal_id"=>"older", "priority"=>0, "date"=>"2020-01-01T12:00:00Z"},

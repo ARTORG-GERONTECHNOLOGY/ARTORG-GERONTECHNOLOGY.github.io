@@ -21,9 +21,10 @@ module Proposals
       @baseurl = baseurl.to_s.sub(%r{/\z}, "")
     end
 
-    def markdown(source)
+    def markdown(source, allow_section_headings: false)
       html = Kramdown::Document.new(source.to_s, input: "GFM", syntax_highlighter: "rouge", math_engine: "mathjax").to_html
-      clean = Sanitize.fragment(html, HTML_RULES)
+      rules = allow_section_headings ? HTML_RULES.merge(elements: HTML_RULES.fetch(:elements) + ["h2"]) : HTML_RULES
+      clean = Sanitize.fragment(html, rules)
       return clean if @baseurl.empty?
       fragment = Nokogiri::HTML5.fragment(clean)
       fragment.css("a[href], img[src]").each do |node|
@@ -34,13 +35,17 @@ module Proposals
       fragment.to_html
     end
 
+    def date(value)
+      time = Proposals.time(value)
+      {"iso" => time.iso8601, "label" => ZURICH.to_local(time).strftime("%-d %B %Y")}
+    end
+
     def render(document)
       errors = Validator.new.validate(document)
       raise FormatError, errors.join("; ") unless errors.empty?
       sections = document.sections.to_h { |name, body| [name, markdown(body)] }.reject { |_name, html| html.strip.empty? }
       dates = %w[date created_at updated_at].to_h do |field|
-        time = Proposals.time(document.metadata.fetch(field))
-        [field, {"iso" => time.iso8601, "label" => ZURICH.to_local(time).strftime("%-d %B %Y")}]
+        [field, date(document.metadata.fetch(field))]
       end
       {
         "sections" => sections, "application_html" => markdown(document.metadata["application_instructions"]), "dates" => dates,

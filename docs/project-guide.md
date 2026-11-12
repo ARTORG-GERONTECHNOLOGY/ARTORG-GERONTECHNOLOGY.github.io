@@ -22,9 +22,10 @@ with a blank template and separate draft/publication validation. The
 
 The workspace's `AGENTS.md`, `new-features.md`, and `template.docx` contain project
 rules, the future implementation plan, and the original proposal reference.
-The catalogue and archive support status/category/year/program filters. Editable
-team/news content, staff editing, QR codes, PDF generation and automated deployment
-remain planned. News, Team and About currently have simple public pages.
+The catalogue and archive support status/category/year/program filters. Homepage
+content and news can be maintained in source files. Team profiles, staff browser
+editing, QR codes, PDF generation and automated deployment remain planned.
+Team and About currently have simple public pages.
 
 ## Baseline issues preserved during setup
 
@@ -131,8 +132,8 @@ JavaScript. Combined query filters need JavaScript, as explained on those pages.
 The frontend scripts only hide/show existing static cards; no public server or
 repository access is needed. An empty result gives a visible explanation.
 
-The homepage now uses the same available-only ordered data. Its editable content
-and news features remain in Step 7. No proposal metadata was changed in Step 6.
+The homepage uses the same available-only ordered data, with featured projects
+shown first as described below. No proposal metadata was changed in Step 6.
 
 Checks:
 
@@ -142,3 +143,49 @@ node scripts/tests/catalogue-filters.cjs
 ```
 
 These are domain/artifact checks, not evidence of browser or keyboard inspection.
+
+## Homepage content and news
+
+Edit `_data/home.yml` for the homepage title, plain introductory text, introductory
+links, optional hero image and display limits. `sections.introduction`,
+`sections.proposals` and `sections.news` are independent true/false switches.
+The page title remains visible even when all sections are hidden. Keep
+`hero_image` empty to omit it; an image requires an existing site-relative `src`
+and meaningful `alt` text. Local asset paths preserve the configured base URL.
+
+The supervising user chose existing introductory text, no image and no sample
+announcements. News therefore shows an honest empty state. Featured available
+proposals appear before other available proposals; priority ascending,
+publication descending and immutable ID order are preserved within both groups.
+Taken and archived proposals never enter the homepage's available section. The
+catalogue keeps its normal order; marking a project featured does not reorder it.
+
+To add real news, copy `templates/news.md` into `_news/<descriptive-slug>.md`.
+Fill in `title`, `summary`, publication `date`, `updated_at`, and Markdown body.
+Use timestamps with timezones, for example `2026-11-12T09:00:00Z`. An update cannot
+precede publication. Start body sections with `##` headings. Optional `image`
+requires a stable site-relative asset path and alt text, just like the hero image.
+News detail pages use `/news/<descriptive-slug>/`. Keep the slug stable after
+publication. Listings sort by publication descending, with URL as the tie-breaker;
+editing an older announcement does not move it to the top.
+
+News has its own output collection, listing, detail layout and homepage section.
+It is separate from proposal `_posts/`, catalogue, homepage proposal highlights
+and the existing proposal RSS feed. Broader search/news-feed work is planned in
+later steps. Markdown uses the same sanitized renderer as proposals and does not
+evaluate author Liquid. Metadata is escaped in the layouts.
+
+`published: false` and future publication dates are excluded from normal builds.
+They do not make files private in a public Git repository. Keep private drafts
+outside this repository. The `_news/.gitkeep` file only retains the empty folder.
+This step provides file-based maintenance; browser editing is a later step.
+
+Verify the settings, ordering, optional images, safe rendering and separation with:
+
+```sh
+bundle exec ruby scripts/tests/home-news.rb
+```
+
+The examples used by these checks are created in a temporary directory and never
+published to the real preview. Browser review remains with the supervising user
+because automated localhost access is denied by the saved permission setting.

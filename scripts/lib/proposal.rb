@@ -13,6 +13,12 @@ module Proposals
   SCHEMA = YAML.safe_load_file(File.join(ROOT, "_data/proposal_schema.yml"))
   CATEGORIES = YAML.safe_load_file(File.join(ROOT, "_data/proposal_categories.yml"))
 
+  def self.public_url?(value, local_only: false)
+    return true if value.is_a?(String) && value.start_with?("/") && !value.start_with?("//") && !value.match?(/[\\\s%?#<>]/) && value.split("/").none? { |part| %w[. ..].include?(part) }
+    parsed = URI.parse(value) if value.is_a?(String)
+    !local_only && parsed.is_a?(URI::HTTP) && %w[http https].include?(parsed.scheme) && parsed.host && !parsed.host.empty? && parsed.userinfo.nil? && !value.match?(/[\s<>]/)
+  end
+
   class FormatError < StandardError; end
 
   # Reject ambiguous YAML instead of letting a later duplicate silently win.
@@ -308,11 +314,7 @@ module Proposals
 
     def url(value, field, local_only: false)
       return if blank?(value) && @draft
-      if value.is_a?(String) && value.start_with?("/") && !value.start_with?("//") && !value.match?(/[\\\s%?#<>]/) && value.split("/").none? { |part| %w[. ..].include?(part) }
-        return
-      end
-      parsed = URI.parse(value) if value.is_a?(String)
-      valid = !local_only && parsed.is_a?(URI::HTTP) && %w[http https].include?(parsed.scheme) && parsed.host && !parsed.host.empty? && parsed.userinfo.nil? && !value.match?(/[\s<>]/)
+      valid = Proposals.public_url?(value, local_only: local_only)
       error(field, local_only ? "must be a safe site-relative path starting with /" : "must be an HTTP(S) URL or a safe site-relative path") unless valid
     rescue URI::InvalidURIError
       error(field, "is not a valid URL")

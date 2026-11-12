@@ -1049,3 +1049,26 @@ button, .site-navigation a { min-height: 44px; }
   .catalogue-empty { padding: 2rem; background: $medium; border: 1px solid #91b5aa; }
   @media (max-width: 480px) { .catalogue-card { padding: 1.5rem; } }
 }
+
+/* Homepage content and the separate announcement collection. */
+.homepage { max-width: 960px; margin: 0 auto; }
+.home-heading h1 { font-size: clamp(2.8rem, 4vw, 4.2rem); line-height: 1.2; color: #b9efc8; margin: 0 0 2rem; }
+.homepage h2 { font-size: 2.6rem; margin: 0 0 2rem; }
+.homepage h3, .news-card h3 { font-size: 2.2rem; line-height: 1.35; margin: 0 0 1rem; }
+.home-introduction { font-size: 1.8rem; }
+.home-links { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 1rem 2rem; margin: 1.5rem 0 0; }
+.home-links a { display: inline-block; padding: .5rem 0; text-decoration: underline; }
+.home-projects, .news-cards { list-style: none; padding: 0; margin: 0 0 2rem; }
+.home-projects > li, .news-card { padding: 1.5rem 0; border-bottom: 1px solid #6d7972; }
+.home-projects > li:first-child, .news-card:first-child { padding-top: 0; }
+.home-projects a, .news-card a { overflow-wrap: anywhere; text-decoration: underline; }
+.featured-label { display: inline-block; padding: .2em .65em; font-size: 16px; font-weight: 700; color: #21211e; background: #c7dfb1; border-radius: .25em; }
+.news-date { font-size: 1.5rem; color: #d1d8d1; }
+.home-hero, .news-image, .news-card img { display: block; max-width: 100%; height: auto; border-radius: .4rem; margin: 1.5rem 0; }
+.news-dates { display: flex; flex-wrap: wrap; gap: 1rem 3rem; font-size: 1.5rem; }
+.news-dates dd { margin: 0; }
+.news-body { overflow-wrap: anywhere; }
+.news-body h2 { font-size: 2.6rem; margin: 2rem 0 1rem; }
+.news-body img { max-width: 100%; height: auto; }
+.news-body pre { overflow-x: auto; background: #21211e; color: white; }
+.news-body ul { list-style: disc; }

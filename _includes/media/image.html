@@ -1,0 +1,1 @@
+<img class="{{ include.class | escape }}" src="{% if include.image.src contains '://' %}{{ include.image.src | escape }}{% else %}{{ include.image.src | relative_url | escape }}{% endif %}" alt="{{ include.image.alt | escape }}" loading="lazy">

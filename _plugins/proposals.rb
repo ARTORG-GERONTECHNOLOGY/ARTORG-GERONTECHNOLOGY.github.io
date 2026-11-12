@@ -2,6 +2,7 @@
 
 require_relative "../scripts/lib/proposal-renderer"
 require_relative "../scripts/lib/proposal-catalogue"
+require_relative "../scripts/lib/media"
 
 Jekyll::Hooks.register :site, :post_read do |site|
   team_ids = site.collections.fetch("team", nil)&.docs&.map { |profile| profile.data["team_id"] } || []
@@ -13,6 +14,7 @@ Jekyll::Hooks.register :site, :post_read do |site|
     raise Jekyll::Errors::FatalException, failures.map { |path, errors| "#{path}: #{errors.join('; ')}" }.join("\n")
   end
   posts.each do |post|
+    post.data["public_attachments"] = Media.proposal!(post.data, site.source)
     post.data["proposal"] = renderer.render(documents.fetch(post.path))
     post.data["render_with_liquid"] = false
     # Excerpts and feeds only see sanitized HTML, never executable author Liquid.

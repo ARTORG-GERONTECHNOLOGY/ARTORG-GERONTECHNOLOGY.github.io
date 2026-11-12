@@ -3,7 +3,7 @@ layout: default
 ---
 <article class="standard-page content-panel team-profile">
   <h1>{{ page.name | escape }}</h1>
-  {% if page.portrait %}<img class="team-portrait" src="{{ page.portrait.src | relative_url | escape }}" alt="{{ page.portrait.alt | escape }}">{% endif %}
+  {% if page.portrait %}{% include media/image.html image=page.portrait class="team-portrait" %}{% endif %}
   {% if page.role and page.role != empty %}<p class="team-role">{{ page.role | escape }}</p>{% endif %}
   {% if page.email and page.email != empty %}<p><a href="mailto:{{ page.email | escape }}">{{ page.email | escape }}</a></p>{% endif %}
   {% if page.bio_html != empty %}<div class="team-bio">{{ page.bio_html }}</div>{% endif %}

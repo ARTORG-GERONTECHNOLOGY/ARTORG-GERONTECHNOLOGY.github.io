@@ -1,0 +1,8 @@
+max_file_bytes: 10485760
+max_proposal_bytes: 26214400
+types:
+  .png: image/png
+  .jpg: image/jpeg
+  .jpeg: image/jpeg
+  .webp: image/webp
+  .pdf: application/pdf

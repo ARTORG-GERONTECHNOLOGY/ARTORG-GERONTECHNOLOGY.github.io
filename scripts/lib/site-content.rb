@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require_relative "proposal-renderer"
+require_relative "media"
 
 module SiteContent
   def self.about!(data)
@@ -58,9 +59,9 @@ module SiteContent
     return if value.nil?
     raise Proposals::FormatError, "image: provide src and alt or omit the image" unless value.is_a?(Hash)
     text!(value["alt"], "image.alt")
-    unless Proposals.public_url?(value["src"], local_only: true) && File.file?(File.join(source, value["src"].sub(%r{^/}, "")))
-      raise Proposals::FormatError, "image.src: use an existing site-relative asset path"
-    end
+    result = Media.asset!(source, value["src"])
+    raise Proposals::FormatError, "Image must use PNG, JPEG or WebP" if result["mime_type"] == "application/pdf"
+
   rescue URI::InvalidURIError
     raise Proposals::FormatError, "image.src: use an existing site-relative asset path"
   end

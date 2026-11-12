@@ -6,7 +6,7 @@ layout: default
   {% if site.data.home.sections.introduction %}
   <section class="home-introduction content-panel" aria-label="Introduction">
     <p>{{ site.data.home.introduction | escape | newline_to_br }}</p>
-    {% if site.data.home.hero_image %}<img class="home-hero" src="{{ site.data.home.hero_image.src | relative_url | escape }}" alt="{{ site.data.home.hero_image.alt | escape }}">{% endif %}
+    {% if site.data.home.hero_image %}{% include media/image.html image=site.data.home.hero_image class="home-hero" %}{% endif %}
     {% if site.data.home.links.size > 0 %}<ul class="home-links">{% for link in site.data.home.links %}<li><a href="{% if link.url contains '://' %}{{ link.url | escape }}{% else %}{{ link.url | relative_url | escape }}{% endif %}">{{ link.label | escape }}</a></li>{% endfor %}</ul>{% endif %}
   </section>
   {% endif %}

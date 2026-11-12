@@ -19,6 +19,8 @@ Dir.mktmpdir('proposal-fixture-') do |fixture|
   document.metadata['figure'] = { 'src'=>'/assets/images/branding/bfh.png', 'alt'=>'Fixture <figure>', 'caption'=>'Caption & Unicode — ü' }
   document.metadata['start_date_text'] = 'By arrangement'
   document.metadata['workplace'] = "Bern\nResearch group"
+  document.metadata['attachments'] = [{'title'=>'Fixture download — ü','url'=>'/assets/images/branding/bfh.png','mime_type'=>'image/png'}]
+  document.metadata['media'] = [{'kind'=>'video','title'=>'Fixture video','url'=>'https://example.org/video.mp4','poster'=>'/assets/images/branding/bfh.png','transcript'=>'Transcript fixture'}]
   document.metadata['application_instructions'] = 'Apply with a **CV**. {% include secret.html %}'
   document.body = "## Background\n{{ site.title }} {% include secret.html %}\n<script>alert(2)</script><img src=\"https://example.org/a.png\" onerror=\"alert(3)\">\n\n## Aim\nShort aim.\n\n## Materials and Methods\nScientific method.\n\n## Requirements\n- Programming\n\n## References\nA citation — étude.\n"
   File.write(File.join(source, '_posts/2026-01-01-project-fixture.md'), document.serialize)
@@ -32,6 +34,8 @@ Dir.mktmpdir('proposal-fixture-') do |fixture|
   raise 'Optional section order' unless article.css('.proposal-content h2').map(&:text).index('References') > article.css('.proposal-content h2').map(&:text).index('Institutes')
   %w[How\ to\ apply Start\ Date Workplace].each { |heading| raise "Missing #{heading}" unless article.css('h3').map(&:text).include?(heading) }
   raise 'Unsafe image attribute' if article.at_css('[onerror]')
+  raise 'Download attributes/label missing' unless article.at_css('#proposal-attachments').parent.at_css('a')['download'] && article.at_css('#proposal-attachments').parent.text.include?('PNG,')
+  raise 'Video accessibility/playback controls' unless article.at_css('video')['controls'] && !article.at_css('video').key?('autoplay') && article.at_css('details').text.include?('Transcript fixture')
   raise 'Metadata escaping' unless page.at_css('title').text == document.metadata.fetch('title') && article.at_css('h1').text == document.metadata.fetch('title')
   raise 'Excerpt executed author Liquid' unless File.read(File.join(output,document.metadata.fetch('permalink').sub(%r{^/},''),'index.html')).include?('{% include secret.html %}')
   catalogue = Nokogiri::HTML5(File.read(File.join(output, 'posts/index.html')))

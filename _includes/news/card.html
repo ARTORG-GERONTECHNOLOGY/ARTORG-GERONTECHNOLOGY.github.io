@@ -1,6 +1,6 @@
 <li class="news-card">
   <article>
-    {% if include.item.image %}<img src="{{ include.item.image.src | relative_url | escape }}" alt="{{ include.item.image.alt | escape }}" loading="lazy">{% endif %}
+    {% if include.item.image %}{% include media/image.html image=include.item.image class="" %}{% endif %}
     <h3><a href="{{ include.item.url | relative_url | escape }}">{{ include.item.title | escape }}</a></h3>
     <p class="news-date"><time datetime="{{ include.item.news_dates.date.iso | escape }}">{{ include.item.news_dates.date.label | escape }}</time></p>
     <p>{{ include.item.summary | escape }}</p>

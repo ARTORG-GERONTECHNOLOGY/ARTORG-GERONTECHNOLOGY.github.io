@@ -1093,3 +1093,7 @@ button, .site-navigation a { min-height: 44px; }
 .about-content ul { list-style: disc; padding-left: 2.5rem; }
 .about-content ol { padding-left: 2.5rem; }
 .about-content li { margin-bottom: .75rem; }
+.proposal-media-item { margin: 2rem 0; }
+.proposal-media-item video { display: block; width: 100%; max-height: 70vh; background: #21211e; }
+.proposal-media-item details { margin: 1rem 0; }
+.proposal-figure figcaption { font-size: 1.6rem; margin: 1rem 0; }

@@ -8,7 +8,7 @@ layout: default
     <div><dt>Updated</dt><dd><time datetime="{{ page.news_dates.updated_at.iso | escape }}">{{ page.news_dates.updated_at.label | escape }}</time></dd></div>
   </dl>
   <p class="news-summary">{{ page.summary | escape }}</p>
-  {% if page.image %}<img class="news-image" src="{{ page.image.src | relative_url | escape }}" alt="{{ page.image.alt | escape }}">{% endif %}
+  {% if page.image %}{% include media/image.html image=page.image class="news-image" %}{% endif %}
   <div class="news-body">{{ page.news_html }}</div>
   <p><a href="{{ '/news/' | relative_url }}">All news</a></p>
 </article>

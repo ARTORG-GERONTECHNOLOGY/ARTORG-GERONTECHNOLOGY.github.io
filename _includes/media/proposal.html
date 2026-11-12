@@ -1,0 +1,12 @@
+{% if page.public_attachments.size > 0 %}
+<section aria-labelledby="proposal-attachments"><h2 id="proposal-attachments">Attachments</h2>
+<ul>{% for file in page.public_attachments %}<li><a href="{% if file.url contains '://' %}{{ file.url | escape }}{% else %}{{ file.url | relative_url | escape }}{% endif %}"{% unless file.url contains '://' %} download{% endunless %}>{{ file.title | escape }}</a> ({{ file.type_label | escape }}, {{ file.size_label | escape }})</li>{% endfor %}</ul></section>
+{% endif %}
+{% if page.media.size > 0 %}<section aria-labelledby="proposal-media"><h2 id="proposal-media">Media</h2>
+{% for item in page.media %}<div class="proposal-media-item">
+<h3>{{ item.title | escape }}</h3>
+{% if item.kind == 'video' %}<video controls preload="none" poster="{% if item.poster contains '://' %}{{ item.poster | escape }}{% else %}{{ item.poster | relative_url | escape }}{% endif %}" aria-label="{{ item.title | escape }}">
+<source src="{{ item.url | escape }}">{% if item.captions %}<track kind="captions" src="{{ item.captions | escape }}" srclang="{{ page.language | escape }}" label="Captions">{% endif %}
+<a href="{{ item.url | escape }}">Open video</a></video>
+<details><summary>Video transcript</summary><p>{{ item.transcript | escape | newline_to_br }}</p></details>{% endif %}
+<p><a href="{{ item.url | escape }}">Open {{ item.title | escape }}</a></p></div>{% endfor %}</section>{% endif %}

@@ -14,12 +14,8 @@
   <h2 id="institutes">Institutes</h2>
   <ul>{% for institute in page.institutes %}<li>{% if institute.url %}<a href="{% if institute.url contains '://' %}{{ institute.url | escape }}{% else %}{{ institute.url | relative_url | escape }}{% endif %}">{{ institute.name | escape }}</a>{% else %}{{ institute.name | escape }}{% endif %}</li>{% endfor %}</ul>
 </section>
-{% if page.figure %}
-<figure class="proposal-figure">
-  <img src="{% if page.figure.src contains '://' %}{{ page.figure.src | escape }}{% else %}{{ page.figure.src | relative_url | escape }}{% endif %}" alt="{{ page.figure.alt | escape }}">
-  <figcaption>{{ page.figure.caption | escape }}</figcaption>
-</figure>
-{% endif %}
+{% if page.figure %}{% include media/figure.html figure=page.figure %}{% endif %}
+{% include media/proposal.html %}
 {% include proposal/section.html name="References" id="references" %}
 <section class="proposal-section" aria-labelledby="contact">
   <h2 id="contact">Contact</h2>

@@ -151,7 +151,8 @@ links, optional hero image and display limits. `sections.introduction`,
 `sections.proposals` and `sections.news` are independent true/false switches.
 The page title remains visible even when all sections are hidden. Keep
 `hero_image` empty to omit it; an image requires an existing site-relative `src`
-and meaningful `alt` text. Local asset paths preserve the configured base URL.
+and meaningful `alt` text. Local asset paths preserve the configured base URL. Step 10 also supports explicit
+HTTPS image URLs; remote content is not inspected by the build.
 
 The supervising user chose existing introductory text, no image and no sample
 announcements. News therefore shows an honest empty state. Featured available
@@ -270,3 +271,48 @@ bundle exec ruby scripts/tests/about.rb
 
 Browser/mobile visual review remains with the user while automated localhost
 access is denied by the saved permission setting. No production change is deployed.
+
+## Public media and attachment support
+
+Store public assets at stable paths under `assets/media/proposals/<proposal_id>/`,
+`assets/media/team/<team_id>/` or `assets/media/news/<slug>/`. No real media or
+proposal prose was added in Step 10. The missing writing/drawing Figure 1 remains
+on the release checklist. Removing a reference never deletes its file.
+
+A proposal's optional `figure` keeps its existing src/alt/caption format. Images
+are responsive and lazy loaded. An attachment entry has `title`, `url`,
+`mime_type`, and optional `size` in bytes for local assets. The build derives local
+sizes and checks any supplied size. External attachments require an explicit
+HTTPS URL, supported MIME type and declared byte size. Links show type and size;
+local links carry the download attribute. A browser may open remote downloads in
+its own viewer, so ordinary links are retained.
+
+Optional `media` entries have `kind: link` or `kind: video`, `title` and an explicit
+HTTPS `url`. Use a direct video-file URL for inline playback, or `kind: link` for a hosted
+player page. Video additionally requires a `poster` image path and plain-text
+`transcript`; optional `captions` is an HTTPS WebVTT track URL. Video uses controls,
+preload none and no autoplay, with a normal link fallback. Host large videos
+externally rather than committing them. Use persistent public URLs, not Actions
+artifact links. External content is not fetched or inspected by the build.
+
+`_data/media.yml` defines PNG/JPEG/WebP/PDF MIME types, 10 MiB per-file and 25 MiB
+per-proposal defaults. The shared `scripts/lib/media.rb` checks local real paths,
+extensions, declared MIME types, magic-byte signatures and sizes. These checks are
+not a full image/PDF decoder or malware scanner. Proposal totals count unique
+local figure/poster/attachment paths and declared external attachment sizes;
+remote image/video bytes are not downloaded or included in that upload budget.
+The same byte validator can be called by the future trusted upload service;
+there is no browser upload endpoint in this step. Restart the local server after
+changing the media-rule configuration. Home, news and team image
+references also use the shared asset checks.
+
+Verification:
+
+```sh
+bundle exec ruby scripts/tests/media.rb
+bundle exec ruby scripts/tests/proposal-rendering-fixtures.rb
+```
+
+Temporary fixture assets exercise downloads and video markup without appearing
+on the real website. Browser/mobile playback and visual checks still require
+user review because automated localhost access is denied by saved permission.

@@ -257,10 +257,8 @@ It is separate from project application contacts and the staff submission mailbo
 A missing or malformed corrections address stops the build. This content is
 maintained in files; browser editing comes in a later step.
 
-The stable About permalink and named content sections prepare the destination
-for the later QR feature. A future QR must derive its target from `/about/` with
-Jekyll's `absolute_url`; do not introduce a separately editable destination.
-There is currently no QR image, download button or placeholder.
+About displays the downloadable website QR image implemented in Step 13. Its
+destination is the configured public website root, not the About page or localhost.
 
 Verify content escaping, application/admin contact separation, institutional links,
 preview base URLs and absence of a QR placeholder with:
@@ -397,3 +395,40 @@ The fixture checks XML/status data, canonical hosts and base paths, escaped prev
 metadata, excluded drafts/admin routes, article dates and sharing fallback markup.
 Actual browser clipboard success/denial, focus and mobile appearance still await
 user review because automated browser access is denied by saved permission.
+
+
+## Downloadable website QR
+
+The About page displays `assets/images/site-qr.png` and a PNG download link with
+visible destination text. A Jekyll post-write hook generates the image directly
+in the public output, after cleanup; no generated PNG is committed to source.
+The normal `bundle exec jekyll build`/`serve` sequence includes generation.
+
+The destination comes from the website repository's `_config.yml` URL/baseurl,
+so local preview overrides cannot accidentally create a localhost QR that phones
+cannot open. Keep the existing production configuration unchanged unless the
+public address actually changes. No independent editable QR destination exists.
+The PNG uses high error correction, black modules on white, integer-pixel scaling
+and a four-module quiet zone. Rebuilding regenerates it when the URL changes.
+The generator and PNG dependencies are pinned in Gemfile/Gemfile.lock.
+
+For explicit generation or later CI reuse, run from the website root:
+
+```sh
+bundle exec ruby scripts/generate-site-qr.rb --output ../.local/site/assets/images/site-qr.png
+bundle exec ruby scripts/tests/site-qr.rb
+```
+
+The script optionally accepts `--config PATH`. Verification-only Python packages
+are not required to build the website. Automatic decoding was verified on Windows
+with Pillow 13.0.0 and zxing-cpp 2.3.0, installed outside the repository. With these
+packages on Python's path:
+
+```sh
+python scripts/tests/decode-site-qr.py ../.local/site/assets/images/site-qr.png https://artorg-gerontechnology.github.io/
+```
+
+The generated PNG was decoded to the exact public URL and visually inspected;
+Ruby checks cover repeatability, URL changes, subpaths, square geometry, contrast
+and the white quiet zone. The supervising user confirmed a successful phone scan on 2026-11-12.
+Automated About-page browser inspection remains blocked by saved permission.

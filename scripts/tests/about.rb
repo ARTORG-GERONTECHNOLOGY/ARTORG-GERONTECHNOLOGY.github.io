@@ -30,7 +30,7 @@ Dir.mktmpdir('about-fixture-') do |fixture|
  check.call(html.css('#about-staff').empty?, 'Staff administration section remains public')
  check.call(section.call('about-corrections').at_css('a')['href']=='mailto:corrections@example.org','Corrections contact not configurable')
  check.call(html.css('.about-content a[href^="/preview/"]').length==3,'Internal links ignore base URL')
- check.call(html.css('.about-content img, .about-content canvas').empty?,'Placeholder QR or image displayed')
+ check.call(html.css('.about-content img, .about-content canvas').empty?,'Unexpected image inside About prose')
  check.call(html.css('.about-content h2').map { |h| h['id'] }.uniq.length==3,'Section heading anchors not unique')
  links=section.call('about-group').css('a').map { |link| link['href'] }
  check.call(links==about['institutional_links'].map { |link| link['url'] },'Institutional links lost')

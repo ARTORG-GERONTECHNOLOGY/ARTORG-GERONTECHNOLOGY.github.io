@@ -1020,3 +1020,32 @@ button, .site-navigation a { min-height: 44px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Proposal catalogue: static status pages share the same ordered cards. */
+.proposal-catalogue {
+  h1 { margin: 0 0 1.5rem; font-size: clamp(2.8rem, 4vw, 4.2rem); line-height: 1.25; color: #b9efc8; }
+  h2 { font-size: 2.6rem; margin: 3rem 0 1.5rem; }
+  .catalogue-status-links, .catalogue-view-links { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.5rem 0; }
+  .catalogue-status-links a, .catalogue-view-links a { display: inline-block; padding: .65rem 1.2rem; min-height: 44px; border: 1px solid #91b5aa; border-radius: .4rem; }
+  a[aria-current="page"] { color: #21211e; background: #b9efc8; font-weight: 700; }
+  .catalogue-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1.5rem; margin: 2rem 0; padding: 1.5rem; background: $medium; border-radius: .5rem; }
+  .catalogue-filters > div { flex: 1 1 160px; min-width: 0; }
+  label { display: block; }
+  select { display: block; width: 100%; min-height: 44px; padding: .6rem; color: #21211e; background: white; border: 2px solid #91b5aa; border-radius: .3rem; font: inherit; }
+  select:focus-visible { outline: 3px solid #b9efc8; outline-offset: 3px; }
+  .catalogue-clear { padding: .6rem 1.2rem; min-height: 44px; border: 1px solid #91b5aa; border-radius: .3rem; color: #dfece6; background: $darker; }
+  .catalogue-group-links ul { display: flex; flex-wrap: wrap; gap: .75rem 2rem; padding-left: 0; list-style: none; }
+  .catalogue-group-links a { display: inline-block; padding: .5rem 0; text-decoration: underline; }
+  .catalogue-cards { list-style: none; padding: 0; margin: 0; }
+  .catalogue-card { padding: 2rem; margin-bottom: 2rem; background: $medium; border-left: 4px solid $light-blue; border-radius: .5rem; }
+  .catalogue-card h3 { font-size: 2.2rem; line-height: 1.35; margin: 0 0 1.25rem; }
+  .catalogue-card a { overflow-wrap: anywhere; text-decoration: underline; }
+  .catalogue-card p { margin-bottom: 1rem; }
+  .catalogue-eligibility { display: inline-block; margin: .5rem 0 .5rem .5rem; }
+  .catalogue-categories { color: #d1d8d1; font-size: 1.5rem; }
+  .catalogue-dates { display: flex; flex-wrap: wrap; gap: .5rem 2rem; font-size: 1.5rem; margin: 0; }
+  .catalogue-dates > div { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .catalogue-dates dd { margin: 0; }
+  .catalogue-empty { padding: 2rem; background: $medium; border: 1px solid #91b5aa; }
+  @media (max-width: 480px) { .catalogue-card { padding: 1.5rem; } }
+}

@@ -22,9 +22,9 @@ with a blank template and separate draft/publication validation. The
 
 The workspace's `AGENTS.md`, `new-features.md`, and `template.docx` contain project
 rules, the future implementation plan, and the original proposal reference.
-Status controls, editable team/news content, staff editing, QR codes, PDF generation
-and automated deployment remain planned. Archive, News, Team and About currently
-have simple public pages linked from the main navigation.
+The catalogue and archive support status/category/year/program filters. Editable
+team/news content, staff editing, QR codes, PDF generation and automated deployment
+remain planned. News, Team and About currently have simple public pages.
 
 ## Baseline issues preserved during setup
 
@@ -102,3 +102,43 @@ access to localhost is denied by a saved permission. Check 320, 375, 768, 1024 a
 1440-pixel widths, long titles, 200% zoom, keyboard focus, skip link, Menu open/close,
 Escape, and absence of horizontal page scrolling. Also check navigation with
 JavaScript disabled. Static checks do not establish browser behaviour.
+
+## Proposal catalogue and archive
+
+The catalogue now has static Available, Taken and Archived routes, text status
+badges, shared cards with eligibility and separate created/published/updated dates,
+and list/year/category views. These pages are built from the same priority,
+publication-date and immutable-ID ordering as the available homepage list.
+Grouping keeps that order within each year or category. Status/group links work
+without JavaScript. Original proposal detail URLs remain unchanged.
+
+The catalogue initially shows available proposals; Archive initially shows both
+Taken and Archived, with separate choices for each. All Status includes available, taken
+and archived proposals in both browsing areas. Program filtering follows the
+supervising user's decision: BME includes `bme_only` and `bme_and_aim`; AIM includes
+only `bme_and_aim`. The shared mapping is in `_data/proposal_schema.yml`.
+
+Filters combine status, category, publication year and student program. Counts
+count each proposal once, even when it belongs to several category groups.
+Selections are stored in the URL; refresh, shared links and browser Back/Forward
+restore them. Switching status or grouping keeps other selected filters. Clear
+filters restores the default for the current page (available for the catalogue,
+both taken/archived for the Archive landing page). Unknown filter values show a
+clear-filter message instead of silently displaying different results.
+
+Static status pages, grouping links and group anchors remain useful without
+JavaScript. Combined query filters need JavaScript, as explained on those pages.
+The frontend scripts only hide/show existing static cards; no public server or
+repository access is needed. An empty result gives a visible explanation.
+
+The homepage now uses the same available-only ordered data. Its editable content
+and news features remain in Step 7. No proposal metadata was changed in Step 6.
+
+Checks:
+
+```sh
+bundle exec ruby scripts/tests/proposal-catalogue.rb ../.local/site
+node scripts/tests/catalogue-filters.cjs
+```
+
+These are domain/artifact checks, not evidence of browser or keyboard inspection.

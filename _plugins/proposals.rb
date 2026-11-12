@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../scripts/lib/proposal-renderer"
+require_relative "../scripts/lib/proposal-catalogue"
 
 Jekyll::Hooks.register :site, :post_read do |site|
   renderer = Proposals::Renderer.new(baseurl: site.baseurl)
@@ -19,6 +20,10 @@ Jekyll::Hooks.register :site, :post_read do |site|
     post.instance_variable_set(:@excerpt, nil)
   end
   ordered = Proposals.ordered(posts.map(&:data))
+  catalogue = Proposals.catalogue(ordered)
+  site.data["proposal_catalogue"] = catalogue
+  site.data["available_proposals"] = catalogue.select { |project| project.fetch("status") == "available" }
+  site.data["proposal_years"] = catalogue.map { |project| project.fetch("year") }.uniq.sort.reverse
   posts.each do |post|
     index = ordered.index { |data| data.fetch("proposal_id") == post.data.fetch("proposal_id") }
     link = lambda { |data| data && {"title" => data.fetch("title"), "url" => data.fetch("permalink"), "status" => data.fetch("status")} }

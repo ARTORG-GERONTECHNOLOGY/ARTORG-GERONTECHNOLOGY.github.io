@@ -4,6 +4,13 @@ statuses: [available, taken, archived]
 eligibilities:
   bme_only: "Only BME students"
   bme_and_aim: "BME students and AIM students"
+eligibility_filters:
+  - id: bme
+    label: BME students
+    values: [bme_only, bme_and_aim]
+  - id: aim
+    label: AIM students
+    values: [bme_and_aim]
 required_text: [title, proposal_id, summary, language, student_eligibility, status, submission_email]
 required_sections: [Background, Aim, Materials and Methods, Requirements]
 optional_sections: [References]

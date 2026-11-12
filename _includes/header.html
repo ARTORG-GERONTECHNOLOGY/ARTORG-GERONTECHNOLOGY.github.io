@@ -5,7 +5,12 @@
     <button id="navigation-toggle" class="navigation-toggle" type="button" data-toggle="collapse" data-target="#primary-navigation" aria-controls="primary-navigation" aria-expanded="false" hidden><span class="navigation-action">Menu</span> <span aria-hidden="true">☰</span></button>
     <nav id="primary-navigation" class="site-navigation" aria-label="Main navigation">
       <ul>{% for item in site.data.navigation %}
-        {% assign current = false %}{% if page.url == item.url %}{% assign current = true %}{% elsif item.url == '/posts/' and page.layout == 'post' %}{% assign current = true %}{% elsif item.url == '/posts/' and page.url == '/posts-by-categories/' %}{% assign current = true %}{% endif %}
+        {% assign current = false %}
+        {% if page.url == item.url %}{% assign current = true %}
+        {% elsif item.url == '/archive/' and page.catalogue.archive %}{% assign current = true %}
+        {% elsif item.url == '/posts/' and page.layout == 'post' %}{% assign current = true %}
+        {% elsif item.url == '/posts/' and page.layout == 'catalogue' %}{% unless page.catalogue.archive %}{% assign current = true %}{% endunless %}
+        {% endif %}
         <li><a href="{{ item.url | relative_url }}"{% if current %} aria-current="page"{% endif %}>{{ item.title | escape }}</a></li>
       {% endfor %}</ul>
     </nav>

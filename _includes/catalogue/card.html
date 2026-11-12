@@ -1,0 +1,14 @@
+{% assign project = include.project %}
+<li class="catalogue-card" data-proposal-id="{{ project.proposal_id | escape }}" data-status="{{ project.status | escape }}" data-categories="{{ project.categories | jsonify | escape }}" data-year="{{ project.year | escape }}" data-eligibility="{{ project.student_eligibility | escape }}"{% unless page.catalogue.statuses contains project.status %} hidden{% endunless %}>
+  <article aria-labelledby="{{ include.group_id | escape }}-{{ project.proposal_id | escape }}">
+    <h3 id="{{ include.group_id | escape }}-{{ project.proposal_id | escape }}"><a href="{{ project.url | relative_url }}">{{ project.title | escape }}</a></h3>
+    <p><span class="proposal-status proposal-status-{{ project.status | escape }}">{{ project.status | capitalize | escape }}</span> <span class="catalogue-eligibility">{{ project.eligibility_label | escape }}</span></p>
+    <p>{{ project.summary | escape }}</p>
+    <p class="catalogue-categories">{{ project.category_labels | join: ', ' | escape }}</p>
+    <dl class="catalogue-dates">
+      <div><dt>Published</dt><dd><time datetime="{{ project.dates.date.iso | escape }}">{{ project.dates.date.label | escape }}</time></dd></div>
+      <div><dt>Created</dt><dd><time datetime="{{ project.dates.created_at.iso | escape }}">{{ project.dates.created_at.label | escape }}</time></dd></div>
+      <div><dt>Updated</dt><dd><time datetime="{{ project.dates.updated_at.iso | escape }}">{{ project.dates.updated_at.label | escape }}</time></dd></div>
+    </dl>
+  </article>
+</li>

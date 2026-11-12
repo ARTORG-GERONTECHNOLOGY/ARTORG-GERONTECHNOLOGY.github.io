@@ -15,6 +15,7 @@ Dir.mktmpdir('proposal-fixture-') do |fixture|
   FileUtils.mkdir_p(File.join(source, '_posts'))
   document = Proposals::Document.read(Dir[File.join(Proposals::ROOT, '_posts/*.md')].first)
   document.metadata['title'] = 'Überblick <script>alert(1)</script> & études'
+  document.metadata['status'] = 'archived'
   document.metadata['figure'] = { 'src'=>'/assets/images/branding/bfh.png', 'alt'=>'Fixture <figure>', 'caption'=>'Caption & Unicode — ü' }
   document.metadata['start_date_text'] = 'By arrangement'
   document.metadata['workplace'] = "Bern\nResearch group"
@@ -33,5 +34,8 @@ Dir.mktmpdir('proposal-fixture-') do |fixture|
   raise 'Unsafe image attribute' if article.at_css('[onerror]')
   raise 'Metadata escaping' unless page.at_css('title').text == document.metadata.fetch('title') && article.at_css('h1').text == document.metadata.fetch('title')
   raise 'Excerpt executed author Liquid' unless File.read(File.join(output,document.metadata.fetch('permalink').sub(%r{^/},''),'index.html')).include?('{% include secret.html %}')
+  catalogue = Nokogiri::HTML5(File.read(File.join(output, 'posts/index.html')))
+  raise 'Empty catalogue state missing' if catalogue.at_css('.catalogue-empty').key?('hidden')
+  raise 'Archived proposal visible by default' unless catalogue.css('.catalogue-card').all? { |card| card.key?('hidden') }
   puts 'PASS isolated Jekyll fixture: optional figure/caption, application/start/workplace, Unicode, escaped metadata, literal author Liquid, sanitized HTML and preview base URL.'
 end

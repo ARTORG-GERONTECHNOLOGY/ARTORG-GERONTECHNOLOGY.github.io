@@ -18,17 +18,17 @@ layout: default
 
             <div class="articles">
 
-              <h2>Latest Project Proposals</h2>
+              <h2>Available Project Proposals</h2>
 
               <ul>
-                  {% for post in site.posts limit: site.post_limit %}
+                  {% for post in site.data.available_proposals limit: site.post_limit %}
 
                       <li>
                           <a href="{{ post.url | prepend: site.baseurl }}">{{ post.title | escape }}</a>
-                          <small>{{ post.date | date: "%B %-d, %Y" }}</small>
+                          <small>{{ post.dates.date.label | escape }}</small>
                       </li>
 
-                  {% endfor %}
+                  {% else %}<li>No available proposals at the moment.</li>{% endfor %}
                   <li>
                       <small><i><a href="{{ site.baseurl }}/posts/">more...</a></i></small>
                   </li>

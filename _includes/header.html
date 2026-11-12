@@ -13,7 +13,7 @@
         {% elsif item.url == '/posts/' and page.layout == 'post' %}{% assign current = true %}
         {% elsif item.url == '/posts/' and page.layout == 'catalogue' %}{% unless page.catalogue.archive %}{% assign current = true %}{% endunless %}
         {% endif %}
-        <li><a href="{{ item.url | relative_url }}"{% if current %} aria-current="page"{% endif %}>{{ item.title | escape }}</a></li>
+        <li><a href="{{ item.url | relative_url }}"{% if current %} aria-current="page"{% endif %}>{% if item.url == '/search/' %}<i class="fa fa-search" aria-hidden="true"></i>{% endif %}{{ item.title | escape }}</a></li>
       {% endfor %}</ul>
     </nav>
   </div>

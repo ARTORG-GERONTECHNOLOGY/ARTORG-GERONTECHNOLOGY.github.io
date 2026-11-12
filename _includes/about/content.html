@@ -13,11 +13,7 @@
     <p>{{ site.data.about.eligibility_text | escape }}</p>
     <p><a href="{{ '/team/' | relative_url }}">Meet the team</a>. Each proposal lists its supervisors and project contact.</p>
   </section>
-  <section aria-labelledby="about-staff">
-    <h2 id="about-staff">For staff: submitting a proposal</h2>
-    <p>{{ site.data.about.administration_text | escape }}</p>
-    <p>{{ site.data.program.submission_instruction | escape }} <a href="mailto:{{ site.data.program.submission_email | escape }}">{{ site.data.program.submission_email | escape }}</a>.</p>
-  </section>
+
   {% if site.data.about.corrections_email %}
   <section aria-labelledby="about-corrections">
     <h2 id="about-corrections">Website corrections and removal requests</h2>

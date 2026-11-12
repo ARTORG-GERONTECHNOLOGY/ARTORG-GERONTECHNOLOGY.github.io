@@ -16,7 +16,7 @@ with a blank template and separate draft/publication validation. The
 - `_layouts/`, `_includes/`: Liquid page structures and shared theme fragments.
 - `_data/`: supporting structured data.
 - `index.html`, `posts.html`, `posts-by-categories.html`: homepage and listings.
-- `search.html`, `search.json`, `js/jekyll-search.js`: browser search.
+- `search.html`, `search.json`, `js/search-engine.js`, `js/global-search.js`: global browser search.
 - `css/`, `js/`, `favicons/`: styles, scripts, and browser icons.
 - `feed.xml`, `404.html`: RSS and recovery navigation.
 
@@ -37,7 +37,7 @@ approved temporary workload splits. Replace those choices before release.
 The handwriting proposal refers to a missing Figure 1, and an older gait proposal
 has a preserved filename/front-matter date mismatch; see the migration review.
 
-Search still has limited metadata, and some inherited theme settings remain. The checked-in CNAME and
+Some inherited theme settings remain. The checked-in CNAME and
 production URL differ; local overrides leave both untouched. These issues are
 separate from installing the local build environment.
 
@@ -172,8 +172,8 @@ editing an older announcement does not move it to the top.
 
 News has its own output collection, listing, detail layout and homepage section.
 It is separate from proposal `_posts/`, catalogue, homepage proposal highlights
-and the existing proposal RSS feed. Broader search/news-feed work is planned in
-later steps. Markdown uses the same sanitized renderer as proposals and does not
+and the existing proposal RSS feed. News and profiles are included in global search; a separate news feed is planned
+in a later step. Markdown uses the same sanitized renderer as proposals and does not
 evaluate author Liquid. Metadata is escaped in the layouts.
 
 `published: false` and future publication dates are excluded from normal builds.
@@ -316,3 +316,48 @@ bundle exec ruby scripts/tests/proposal-rendering-fixtures.rb
 Temporary fixture assets exercise downloads and video markup without appearing
 on the real website. Browser/mobile playback and visual checks still require
 user review because automated localhost access is denied by saved permission.
+
+
+## Global search
+
+The normal Search link/icon opens `/search/`, with ordinary browsing links when
+JavaScript is disabled. `search.json` serializes the complete index with `jsonify`.
+The index explicitly includes published proposals, public team profiles, published
+news and Home/About information. Private/administration routes and templates are
+not indexed. Inactive profiles remain searchable because the user chose to retain
+their public profile pages. Future/unpublished news follows normal build settings.
+
+The proposal index includes scientific text, application instructions, categories,
+tags, supervisors/institutes, contact details, eligibility and dates. News and
+people stay distinct from proposals. Search results default to available proposals;
+Include taken and archived proposals expands this scope without hiding other
+content types. The content-type filter can restrict results to projects, people,
+news or information.
+
+The former bundled search script is retained but no longer loaded. Its unsafe
+HTML substitution and incomplete options wiring are replaced by a pure matching
+engine and DOM rendering through textContent. Titles rank above metadata and body
+matches; Unicode accents/punctuation are normalized. All query tokens must match,
+with a bounded one-edit typo fallback for words of at least four characters.
+Queries are never interpreted as regular expressions. Results have type/status
+labels and contextual snippets, with ten initially shown and More results adding
+ten at a time. Enter submits and focuses the first result; result links use native
+Enter navigation. Escape in the search controls clears the query and returns focus
+to the input. More results focuses the first newly shown result.
+
+URLs store `q`, `type` and `include_unavailable=1`. Reload/shared links and Back/
+Forward restore the state. Typed changes replace the current URL; submitting or
+changing filters adds a history entry. Failed HTTP/JSON loading shows an explicit
+message, Retry button and browsing guidance. No results is distinct from a fetch
+failure. No external search service or runtime server is required.
+
+Run `node scripts/tests/search.cjs` for matching/ranking regressions and build the
+site to inspect/parse `search.json`. The existing news fixture and migration tests
+check content-type separation and retained proposal URLs. Browser keyboard/fetch
+failure interaction and mobile visual review remain with the user because saved
+permissions deny automated localhost browser access.
+
+The user subsequently requested removal of proposal-administration instructions
+from public proposal and About pages. The staff submission section and its search
+text are omitted. Source submission metadata and the staff template are retained
+for maintenance. This instruction overrides the original public template order.

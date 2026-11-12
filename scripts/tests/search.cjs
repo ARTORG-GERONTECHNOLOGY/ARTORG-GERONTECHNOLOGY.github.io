@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict'),engine=require('../../js/search-engine.js');
+const items=[{type:'proposal',title:'Gait analysis — ü "quoted"',text:'Research data',url:'/a',status:'available'},{type:'proposal',title:'Taken gait',text:'Analysis',url:'/b',status:'taken'},{type:'team',title:'A person',text:'Gait analysis research',url:'/c'},{type:'news',title:'News',text:'Gait analysis announcement',url:'/d'},{type:'page',title:'About',text:'Research information',url:'/e'}];
+assert.equal(engine.search(items,'gait')[0].url,'/a');
+assert.equal(engine.search(items,'gait').length,3);
+assert.equal(engine.search(items,'gait',{includeUnavailable:true}).length,4);
+assert.equal(engine.search(items,'gait',{type:'team'}).length,1);
+assert.equal(engine.search(items,'analysi').length,3);
+assert.equal(engine.search(items,'analyzis')[0].url,'/a');
+assert.equal(engine.search(items,'u quoted')[0].url,'/a');
+assert.deepEqual(engine.search(items,'[.*'),[]);
+assert.deepEqual(engine.search(items,''),[]);
+assert.equal(engine.search(Array.from({length:25},(_,i)=>({type:'page',title:'Research '+i,url:'/x'+i,text:''})),'research').length,25);
+assert.ok(engine.snippet({text:'x'.repeat(300)},'x').length<210);
+console.log('Search ranking, all content types, availability, fuzzy/Unicode/literal handling, untruncated results and snippets pass.');

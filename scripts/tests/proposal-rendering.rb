@@ -3,7 +3,7 @@ require_relative '../lib/proposal-renderer'
 require 'nokogiri'
 
 output = ARGV[0] ? File.expand_path(ARGV[0]) : File.expand_path('../../../.local/site', __dir__)
-expected = ['Background', 'Aim', 'Materials and Methods', 'Nature of the Thesis', 'Requirements', 'Supervisors', 'Institutes', 'Contact', 'Student eligibility', 'Proposal administration']
+expected = ['Background', 'Aim', 'Materials and Methods', 'Nature of the Thesis', 'Requirements', 'Supervisors', 'Institutes', 'Contact', 'Student eligibility']
 count = 0
 check = lambda do |condition, message|
   raise message unless condition

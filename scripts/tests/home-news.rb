@@ -56,7 +56,7 @@ Dir.mktmpdir('home-news-fixture-') do |fixture|
   check.call(listing.css('.news-card h3 a').map { |link| link['href'] } == expected_news, 'News listing differs from homepage')
   check.call(site.posts.docs.length == 4 && site.data['proposal_catalogue'].length == 4, 'News entered proposal posts/catalogue')
   search = JSON.parse(File.read(File.join(output,'search.json')))
-  check.call(search.length == 4 && search.none? { |item| item.fetch('url').include?('/news/') }, 'News entered legacy proposal-only search before search step')
+  check.call(search.count { |item| item['type'] == 'proposal' } == 4 && search.count { |item| item['type'] == 'news' } == 3, 'Search collection types mixed or lost')
   feed = REXML::Document.new(File.read(File.join(output,'feed.xml')))
   check.call(REXML::XPath.match(feed,'//item').length == 4, 'News entered proposal feed')
   detail = Nokogiri::HTML5(File.read(File.join(output,'news/new-a/index.html')))

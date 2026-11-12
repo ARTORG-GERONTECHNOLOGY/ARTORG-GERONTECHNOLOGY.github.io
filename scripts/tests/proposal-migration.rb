@@ -76,7 +76,7 @@ if ARGV[0]
     end
   end
   index = JSON.parse(File.read(File.join(output, "search.json")))
-  assert(index.map { |entry| entry.fetch("url") }.sort == records.map { |entry| entry.fetch("permalink") }.sort, "Search URLs changed")
+  assert(index.select { |entry| entry["type"] == "proposal" }.map { |entry| entry.fetch("url") }.sort == records.map { |entry| entry.fetch("permalink") }.sort, "Search URLs changed")
   feed = REXML::Document.new(File.read(File.join(output, "feed.xml")))
   assert(REXML::XPath.match(feed, "/rss/channel/item").length == [records.length, 10].min, "Proposal feed count differs from published set")
   %w[templates scripts].each { |folder| assert(!File.exist?(File.join(output, folder)), "Internal source leaked: #{folder}") }

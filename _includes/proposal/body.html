@@ -30,11 +30,7 @@
   <h2 id="eligibility">Student eligibility</h2>
   <p>{{ site.data.proposal_schema.eligibilities[page.student_eligibility] | escape }}</p>
 </section>
-<section class="proposal-section proposal-administration" aria-labelledby="proposal-administration">
-  <h2 id="proposal-administration">Proposal administration</h2>
-  <p>{{ site.data.program.submission_instruction | escape }} <a href="mailto:{{ page.submission_email | escape }}">{{ page.submission_email | escape }}</a>.</p>
-  <p>Students: use the project contact and application instructions above.</p>
-</section>
+
 <footer class="proposal-program">
   {% for brand in site.data.program.branding %}
   <img src="{{ brand.asset | relative_url }}" alt="{{ brand.name | escape }}" width="{{ brand.width }}" height="{{ brand.height }}">

@@ -1097,3 +1097,12 @@ button, .site-navigation a { min-height: 44px; }
 .proposal-media-item video { display: block; width: 100%; max-height: 70vh; background: #21211e; }
 .proposal-media-item details { margin: 1rem 0; }
 .proposal-figure figcaption { font-size: 1.6rem; margin: 1rem 0; }
+#global-search input[type=search], #global-search select { display: block; width: 100%; padding: .8rem; margin: .75rem 0 1.5rem; color: #21211e; background: white; border-radius: .4rem; }
+#global-search button { color: #dfece6; background: #21211e; border: 1px solid #91b5aa; border-radius: .4rem; padding: .6rem 1.5rem; }
+.search-availability { display: block; margin: 1.5rem 0; }
+#search-results { list-style: none; margin: 2rem 0; padding: 0; }
+#search-results li { padding: 1.5rem 0; border-bottom: 1px solid #6d7972; }
+#search-results h2 { font-size: 2.2rem; margin: 0 0 1rem; line-height: 1.35; }
+.search-result-label { font-size: 1.5rem; color: #b9efc8; }
+
+.site-navigation .fa-search { margin-right: .5em; }

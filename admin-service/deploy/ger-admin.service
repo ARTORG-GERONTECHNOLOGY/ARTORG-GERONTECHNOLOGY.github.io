@@ -1,0 +1,25 @@
+# Hosting template: adjust installation paths and ADMIN_ORIGIN before activation.
+[Unit]
+Description=GER administration access service
+After=network.target
+
+[Service]
+Type=simple
+User=ger-admin
+Group=ger-admin
+WorkingDirectory=/opt/ger/admin-service
+ExecStart=/usr/local/bin/node /opt/ger/admin-service/start.mjs
+Environment=NODE_ENV=production
+Environment=ADMIN_ORIGIN=https://admin.example.test
+Environment=ADMIN_ACCESS_FILE=/run/secrets/ger-admin-access.json
+Environment=ADMIN_TRUST_LOOPBACK_PROXY=1
+Environment=ADMIN_PORT=4100
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

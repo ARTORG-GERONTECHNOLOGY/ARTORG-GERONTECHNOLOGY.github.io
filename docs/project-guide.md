@@ -24,7 +24,8 @@ The workspace's `AGENTS.md`, `new-features.md`, and `template.docx` contain proj
 rules, the future implementation plan, and the original proposal reference.
 The catalogue and archive support status/category/year/program filters. Homepage
 content, news and team profiles can be maintained in source files. Staff browser
-editing and automated deployment remain planned. QR codes and proposal PDF
+editing and automated deployment remain planned. The separate administration
+access service is described below. QR codes and proposal PDF
 generation are implemented.
 About provides editable group information and project application guidance.
 
@@ -567,3 +568,13 @@ bundle exec ruby scripts/validate-proposals.rb --release
 That release check deliberately fails while recorded source-data issues remain.
 The ordinary validation command accepts the user-approved temporary values so
 development can continue. Neither command publishes or deploys the website.
+
+## Private administration access
+
+[Administration service guide](../admin-service/README.md) describes Step 16:
+shared private-link entry, two-hour protected sessions, logout, rotation and
+revocation. Replacing or revoking the link signs everyone out on their next
+request. The service and all secret files are separate from the public site;
+service source is excluded from Jekyll output. Staff editing and GitHub writes
+are later steps. Local access is prepared; live HTTPS hosting and production
+credentials remain separate, unperformed operations.

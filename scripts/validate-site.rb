@@ -26,6 +26,7 @@ ruby_check.call('scripts/validate-proposals.rb')
   ruby_check.call("scripts/tests/#{name}.rb")
 end
 %w[catalogue-filters search].each { |name| run.call(node, "scripts/tests/#{name}.cjs") }
+run.call(node, '--test', 'admin-service/test/access.test.mjs')
 # Use the same Bundler/Jekyll command locally and on the CI runner.
 run.call(RbConfig.ruby, '-S', 'bundle', 'exec', 'jekyll', 'build', '--config', options[:config],
          '--destination', options[:output], '--disable-disk-cache')

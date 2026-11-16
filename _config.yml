@@ -34,7 +34,7 @@ kramdown:
 
 permalink: pretty
 # Preserve the inherited file named "¨" in source, but do not publish it.
-exclude: [vendor, templates, scripts, post_archive, node_modules, package.json, pnpm-lock.yaml, "¨"]
+exclude: [vendor, templates, scripts, post_archive, node_modules, package.json, pnpm-lock.yaml, admin-service, "¨"]
 collections:
   team:
     output: true

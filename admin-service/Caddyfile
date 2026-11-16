@@ -1,0 +1,19 @@
+# Deployment template only. Set ADMIN_HOST to the actual administration hostname.
+# Run a dedicated Caddy instance and the service on the same host; keep port 4100 private.
+{
+	# Runtime/proxy-error logs can also contain request URLs; suppress them here.
+	log {
+		output discard
+	}
+}
+{$ADMIN_HOST} {
+	log {
+		output discard
+	}
+	# Suppress all admin access logging, including query strings and cookies.
+	# Do not enable debug logging or request dumps for this origin.
+	log_skip
+	header Referrer-Policy no-referrer
+	header Cache-Control no-store
+	reverse_proxy 127.0.0.1:4100
+}

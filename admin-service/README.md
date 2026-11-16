@@ -1,16 +1,18 @@
 # Administration access service
 
-Steps 16–17 provide private-link entry, protected sessions and a GitHub content
-save API. The staff editing screen is a later step. GitHub integration is
+Steps 16–18 provide private-link entry, protected sessions, a GitHub content
+save API and the proposal editor. GitHub integration is
 disabled until explicitly configured; the local access demo needs no GitHub
 credentials. The public website remains static and separate.
 
-Use Node **24.22.1**. There are no third-party runtime packages. Run checks from
+Use Node **24.22.1**, the repository's locked Ruby gems and its pinned Playwright,
+Chromium and MathJax dependencies (see the local setup guide). Run checks from
 the website repository root:
 
 ```sh
 node --test admin-service/test/access.test.mjs
 node --test admin-service/test/content.test.mjs
+node --test admin-service/test/editor.test.mjs
 ```
 
 ## Private access configuration
@@ -86,8 +88,9 @@ The prepared local-only demo uses `http://localhost:4100`, a private state file
 at `../.local/admin-private/access.json` and a private entry link at
 `../.local/admin-private/link.txt`. These paths are outside the website repository.
 Open the address from that link file in your browser. Successful entry redirects
-to `/admin/` without the token. The current screen explicitly says proposal
-editing is not yet available and offers Sign out.
+to `/admin/` without the token. The proposal list supports editing, preview and
+Markdown draft download. With GitHub disabled, Save proposal is disabled;
+the service does not write to the local checkout as a substitute.
 
 For this loopback-only development mode, set `ADMIN_ALLOW_LOCAL_HTTP=1` and
 `NODE_ENV=development`. This mode refuses production/non-loopback origins and
@@ -248,3 +251,45 @@ API references: [atomic commit operation](https://docs.github.com/en/graphql/ref
 [App installation tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation),
 [App permissions](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app),
 [App tokens and workflow triggers](https://docs.github.com/en/actions/concepts/security/github_token).
+
+## Proposal editor (Step 18)
+
+After private-link entry, select a proposal or choose **New proposal**. The form
+uses the same categories and proposal rules as the public website. Workload
+percentages must total 100%; required publication fields are checked beside the
+fields and in an error list. Creation, initial publication and last substantive
+edit dates are separate. New proposals receive a stable ID and URL; initial
+publication is assigned on the first successful publication save. An existing
+proposal keeps its ID, URL, filename and creation/publication dates.
+
+**Write** edits structured fields and Markdown sections. **Preview** uses the
+shared Kramdown renderer and proposal body includes in a temporary trusted
+Jekyll workspace. Author Liquid is displayed literally, never evaluated. The
+workspace contains trusted layouts/assets, no author plugins or configuration.
+HTML is sanitized before controlled server-side MathJax rendering; resulting
+SVG maths and styles are displayed in a script-disabled sandboxed iframe. The
+wide-screen split option shows both views; refresh Preview after editing.
+
+**Check proposal** reports missing/invalid fields without saving. **Download
+Markdown draft** saves unfinished work to the operator's computer, marked
+`published: false`. Reopen it with **Open downloaded Markdown**. Its revision
+annotation retains the original branch/file revisions so an old downloaded
+working copy cannot silently overwrite later edits. It contains no access
+credentials. These draft files must not be committed to the public repository.
+There is no server draft store, browser persistent storage or automatic draft
+recovery. The current tab holds the working copy and warns before leaving.
+After expiry, sign in using the private link in another tab and retry in the
+original tab to preserve your work.
+
+**Save proposal** submits the complete publication candidate to the Step 17
+atomic save gate. Confirmed saves update the displayed file/branch revisions;
+stale saves are rejected and ambiguous failures are never automatically retried.
+Failed requests retain all form fields and offer download/reload guidance.
+Saving is disabled in local review; isolated fake-provider checks exercise
+creation, edits, conflicts and draft rejection without remote writes. The
+local checkout is not used as a write destination.
+
+Existing figure/download paths can be edited; existing embedded media metadata
+is retained. File upload and media selection are Step 19. Public pages remain
+static; preview and editing require the separate trusted administration service.
+No live GitHub connection, public hosting or publication has been activated.

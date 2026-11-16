@@ -104,9 +104,27 @@ module Proposals
       "#{YAML.dump(metadata)}---\n#{body}"
     end
 
+    # Reuse the AST section boundaries; nested/fenced headings remain prose.
+    # Only changed sections are replaced, preserving untouched scientific bytes.
+    def replace_sections(values)
+      allowed = SCHEMA.fetch('required_sections') + SCHEMA.fetch('optional_sections')
+      raise FormatError, 'Unknown narrative section' unless values.is_a?(Hash) && (values.keys - allowed).empty? && values.values.all? { |value| value.is_a?(String) }
+      raise FormatError, section_errors.join('; ') unless section_errors.empty?
+      lines = body.lines
+      replacements = @section_ranges.filter_map do |name, first, finish|
+        next unless values.key?(name) && values[name] != sections[name]
+        [first, finish, values[name].end_with?("\n") ? values[name] : values[name] + "\n\n"]
+      end
+      replacements.reverse_each { |first, finish, value| lines[first...finish] = [value] }
+      updated = lines.join
+      (values.keys - sections.keys).each { |name| updated += "\n## #{name}\n\n#{values[name]}\n" unless values[name].strip.empty? }
+      self.body = updated
+    end
+
     private
 
     def parse_sections
+      @section_ranges = []
       lines = body.lines
       ast = Kramdown::Document.new(body, input: "GFM").root
       headings = ast.children.select { |node| node.type == :header && node.options[:level] == 2 }
@@ -125,6 +143,7 @@ module Proposals
         finish = next_heading ? next_heading.options.fetch(:location) - 1 : lines.length
         @section_errors << "Duplicate section: #{name}" if sections.key?(name)
         @sections[name] = lines[(line + 1)...finish].join unless sections.key?(name)
+        @section_ranges << [name, line + 1, finish]
       end
       # Section names inside fences, nested lists, tables or quotes are not sections.
       ast.children.select { |node| node.type == :header && node.options[:level] == 1 }.each do |_node|

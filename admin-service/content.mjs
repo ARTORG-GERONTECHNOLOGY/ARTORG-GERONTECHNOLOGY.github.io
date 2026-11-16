@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { policy, editable, asset, sha, conflict, ContentError } from './content-policy.mjs';
+import { policy, editable, asset, sha, blobSha, conflict, ContentError } from './content-policy.mjs';
 
 // Treat a BOM as source text so read/edit/save preserves the original bytes.
 const decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
@@ -72,7 +72,7 @@ export class ContentStore {
     await this.validate(next, snapshot.files);
     await authorize();
     const committed = await this.provider.commit(snapshot.head, payload.changes);
-    return {commit: committed, branch: policy.contentBranch, state: 'committed_validation_pending', live: false, requiredCheck: policy.requiredCheck,
+    return {commit: committed, files: payload.changes.map(item => ({path: item.path, sha: blobSha(Buffer.from(item.content, 'utf8'))})), branch: policy.contentBranch, state: 'committed_validation_pending', live: false, requiredCheck: policy.requiredCheck,
       publication: policy.publication};
   }
 }

@@ -1,0 +1,12 @@
+---
+---
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposal preview</title></head>
+<body><main class="single proposal-page"><article class="article">
+<header class="proposal-header">
+<p class="proposal-document-type">{{ site.data.program.document_title | escape }}</p><h1 class="proposal-title">{{ page.title | escape }}</h1>
+<p><span class="proposal-status proposal-status-{{ page.status | escape }}">{{ page.status | capitalize | escape }}</span></p>
+<p class="proposal-categories">{{ page.proposal.category_labels | join: ', ' | escape }}</p>
+<dl class="proposal-dates"><div><dt>Published</dt><dd>{{ page.proposal.dates.date.label | escape }}</dd></div><div><dt>Created</dt><dd>{{ page.proposal.dates.created_at.label | escape }}</dd></div><div><dt>Last updated</dt><dd>{{ page.proposal.dates.updated_at.label | escape }}</dd></div></dl>
+</header><div class="content-panel content proposal-content">{% include proposal/body.html %}</div>
+</article></main></body></html>

@@ -55,9 +55,9 @@ test('shared-link sessions, failure cases, transport and logging', async () => {
     let result = await request('/admin/', {headers: {cookie}});
     assert.equal(result.status, 200);
     const html = await result.text();
-    assert.ok(html.includes('Proposal editing is not available yet.'));
+    assert.ok(html.includes('Proposal editor'));
     assert.ok(!html.includes(token));
-    assert.ok(!html.includes('<script'));
+    assert.ok(html.includes('<script defer src="/admin/editor.js"></script>'));
     assert.equal(result.headers.get('cache-control'), 'no-store');
     assert.equal(result.headers.get('referrer-policy'), 'no-referrer');
     assert.ok(result.headers.get('content-security-policy').includes("default-src 'none'"));

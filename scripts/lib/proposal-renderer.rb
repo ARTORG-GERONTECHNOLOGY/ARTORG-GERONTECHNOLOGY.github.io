@@ -17,9 +17,10 @@ module Proposals
     }.freeze
     ZURICH = TZInfo::Timezone.get("Europe/Zurich")
 
-    def initialize(baseurl: "", team_ids: Proposals.team_ids)
+    def initialize(baseurl: "", team_ids: Proposals.team_ids, categories: CATEGORIES)
       @baseurl = baseurl.to_s.sub(%r{/\z}, "")
       @team_ids = team_ids
+      @categories = Proposals.categories!(categories)
     end
 
     def markdown(source, allow_section_headings: false)
@@ -41,16 +42,17 @@ module Proposals
       {"iso" => time.iso8601, "label" => ZURICH.to_local(time).strftime("%-d %B %Y")}
     end
 
-    def render(document)
-      errors = Validator.new(team_ids: @team_ids).validate(document)
+    def render(document, mode: :publication)
+      errors = Validator.new(team_ids: @team_ids, categories: @categories).validate(document, mode: mode)
       raise FormatError, errors.join("; ") unless errors.empty?
       sections = document.sections.to_h { |name, body| [name, markdown(body)] }.reject { |_name, html| html.strip.empty? }
       dates = %w[date created_at updated_at].to_h do |field|
-        [field, date(document.metadata.fetch(field))]
+        value = document.metadata[field]
+        [field, mode == :draft && value.to_s.strip.empty? ? {"iso" => '', "label" => 'Not set'} : date(value)]
       end
       {
         "sections" => sections, "application_html" => markdown(document.metadata["application_instructions"]), "dates" => dates,
-        "category_labels" => document.metadata.fetch("categories").map { |id| CATEGORIES.find { |category| category.fetch("id") == id }.fetch("label") },
+        "category_labels" => Array(document.metadata['categories']).map { |id| @categories.find { |category| category.fetch("id") == id }.fetch("label") },
         "minutes" => [document.body.split.length / 180, 1].max,
         "narrative_html" => sections.map { |name, html| "<h2>#{CGI.escapeHTML(name)}</h2>\n#{html}" }.join("\n")
       }

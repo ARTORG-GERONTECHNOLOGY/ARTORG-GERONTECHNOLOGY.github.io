@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposal administration · ARTORG GER</title><link rel="stylesheet" href="/admin/style.css"><script defer src="/admin/editor.js"></script></head>
+<body class="editor-mode"><main>
+<header><p class="brand">ARTORG · Gerontechnology and Rehabilitation</p><h1>Administration</h1><p>Your administration session is active.</p>
+<form id="logout" method="post" action="/admin/logout"><input type="hidden" name="csrf" value="__CSRF__"><button type="submit">Sign out</button></form></header>
+<h2>Proposals</h2><p id="connection" role="status">Loading proposals…</p>
+<p>Work in this tab is temporary. Download unfinished Markdown before closing or signing out. Drafts are not stored on the server.</p>
+<div class="actions"><button id="new-proposal" type="button">New proposal</button><label class="file-button">Open downloaded Markdown <input id="open-draft" type="file" accept=".md,text/markdown"></label></div>
+<div class="table-wrap"><table><caption>Existing proposals</caption><thead><tr><th>Proposal</th><th>Status</th><th>Priority</th><th>Created</th><th>Last edited</th><th>Save state</th></tr></thead><tbody id="proposal-list"></tbody></table></div>
+<section id="editor" hidden aria-labelledby="editor-title"><h2 id="editor-title">Proposal editor</h2>
+<p id="save-state" role="status" aria-live="polite">No unsaved changes</p>
+<div class="actions" role="tablist" aria-label="Proposal editing view"><button id="write-tab" role="tab" aria-selected="true" aria-controls="write-panel" type="button">Write</button><button id="preview-tab" role="tab" aria-selected="false" aria-controls="preview-panel" type="button">Preview</button></div>
+<label class="split-option"><input id="split-view" type="checkbox"> Show Write and Preview side by side on wide screens</label>
+<div id="editor-panels"><section id="write-panel" role="tabpanel" aria-labelledby="write-tab"><form id="proposal-form" novalidate></form></section>
+<section id="preview-panel" role="tabpanel" aria-labelledby="preview-tab" hidden><h3>Proposal preview</h3><p id="preview-state">Preview has not been generated.</p><button id="refresh-preview" type="button">Refresh preview</button><iframe id="preview-frame" title="Rendered proposal preview" sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe></section></div>
+<section id="errors" aria-live="polite" aria-labelledby="errors-title" hidden><h3 id="errors-title">Please check these fields</h3><ul id="error-list"></ul></section>
+<p class="public-notice">Saving a proposal sends its content to a public GitHub repository. Do not include private drafts or student personal information. A successful save is committed with checks pending; it is not a confirmation that the website is live.</p>
+<div class="actions"><button id="validate" type="button">Check proposal</button><button id="download" type="button">Download Markdown draft</button><button id="save" type="button">Save proposal</button><button id="reload" type="button" hidden>Reload latest proposal</button></div>
+</section><noscript><p>The proposal form requires JavaScript. You can still sign out using the button above.</p></noscript>
+</main></body></html>

@@ -3,6 +3,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
 import { chromium } from 'playwright';
+import { typesetMath } from './lib/browser-math.mjs';
 
 const require = createRequire(import.meta.url);
 const args = process.argv.slice(2);
@@ -74,15 +75,7 @@ try {
       await document.fonts.ready;
       if (Array.from(document.images).some(image => !image.naturalWidth)) throw Error('Missing image');
     });
-    await page.evaluate(() => {
-      window.MathJax = {messageStyle: 'none', showMathMenu: false, extensions: ['Safe.js'], Safe: {safeProtocols: {http: true, https: true, file: false, javascript: false}}};
-    });
-    await page.addScriptTag({url: origin + '/__pdf_mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML'});
-    await page.waitForFunction(() => window.MathJax && window.MathJax.isReady && window.MathJax.Extension.Safe);
-    await page.evaluate(() => Promise.race([
-      new Promise(resolve => MathJax.Hub.Queue(resolve)),
-      new Promise((_, reject) => setTimeout(() => reject(Error('Math rendering timed out')), 30000))
-    ]));
+    await typesetMath(page, origin + '/__pdf_mathjax/MathJax.js');
     await page.evaluate(({publicUrl, baseurl, pageUrl}) => {
       const publicPage = new URL(pageUrl.replace(/^\//, ''), publicUrl);
       for (const link of document.querySelectorAll('a[href]')) {

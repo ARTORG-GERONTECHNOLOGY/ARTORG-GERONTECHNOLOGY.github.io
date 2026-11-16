@@ -80,7 +80,7 @@ module Media
       size = result["size"] || item["size"]
       raise Proposals::FormatError, "Attachment exceeds per-file size limit" if size > RULES.fetch("max_file_bytes")
       files[item.fetch("url")] = size
-      item.merge("size" => size, "type_label" => item.fetch("mime_type").split('/').last.upcase, "size_label" => format("%.1f KB", size / 1024.0))
+      attachment_view(item, size)
     end
     (data["media"] || []).each do |item|
       raise Proposals::FormatError, "Media needs a title" unless item.is_a?(Hash) && item["title"].is_a?(String) && !item["title"].strip.empty?
@@ -99,6 +99,10 @@ module Media
     end
     raise Proposals::FormatError, "Proposal exceeds combined media size limit" if files.values.compact.sum > RULES.fetch("max_proposal_bytes")
     attachments
+  end
+
+  def self.attachment_view(item, size)
+    item.merge('size' => size, 'type_label' => item.fetch('mime_type').split('/').last.upcase, 'size_label' => size ? format('%.1f KB', size / 1024.0) : 'download')
   end
 
 end

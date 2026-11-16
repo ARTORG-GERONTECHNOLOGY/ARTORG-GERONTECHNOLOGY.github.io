@@ -4,6 +4,7 @@ import { isIP } from 'node:net';
 import fs from 'node:fs/promises';
 import { readAccess } from './config.mjs';
 import { ContentError } from './content-policy.mjs';
+import { ProposalEditor } from './editor.mjs';
 
 const cookieName = '__Host-ger_admin';
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -13,7 +14,7 @@ const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<'
 const headers = {
   'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY', 'X-Robots-Tag': 'noindex, nofollow, noarchive',
-  'Content-Security-Policy': "default-src 'none'; style-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src data: https:; font-src data:; connect-src 'self'; frame-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
 };
 
@@ -24,6 +25,7 @@ function page(title, body) {
 }
 
 export function createAdministration(config, {now = Date.now, log = () => {}, content = null} = {}) {
+  const editor = new ProposalEditor(content);
   const sessions = new Map();
   const limits = new Map();
   let generation;
@@ -42,7 +44,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
   const server = http.createServer(async (req, res) => {
     let route = 'invalid';
     const send = (status, content, type = 'text/html; charset=utf-8', extra = {}) => {
-      res.writeHead(status, {...headers, ...(!config.local ? {'Strict-Transport-Security': 'max-age=31536000'} : {}), 'Content-Type': type, ...extra});
+      res.writeHead(status, {...headers, ...(route === '/admin/access' ? {'Content-Security-Policy': "default-src 'none'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'"} : {}), ...(!config.local ? {'Strict-Transport-Security': 'max-age=31536000'} : {}), 'Content-Type': type, ...extra});
       res.end(content);
       // No URLs, query strings, cookies, headers, verifier digests or exception values.
       log({event: 'admin_request', route, status});
@@ -59,7 +61,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
       if ((req.url || '').length > 2048) return denied(400);
       const url = new URL(req.url, config.origin);
       if (url.origin !== config.origin) return denied(400);
-      route = url.pathname.startsWith('/admin/api/content') ? 'content' : new Set(['/admin/access', '/admin/', '/admin/api/session', '/admin/logout', '/admin/style.css']).has(url.pathname) ? url.pathname : 'not_found';
+      route = url.pathname.startsWith('/admin/api/editor') ? 'editor' : url.pathname === '/admin/editor.js' ? 'editor_script' : url.pathname.startsWith('/admin/api/content') ? 'content' : new Set(['/admin/access', '/admin/', '/admin/api/session', '/admin/logout', '/admin/style.css']).has(url.pathname) ? url.pathname : 'not_found';
       const forwarded = req.headers['x-forwarded-for'];
       const ip = trusted && typeof forwarded === 'string' && isIP(forwarded) ? forwarded : remote;
       if (limited('global', 2000, 60)) return denied(429, {'Retry-After': '60'});
@@ -100,17 +102,18 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
         if (req.method !== 'POST' || req.headers.origin !== config.origin) return denied(403);
         const contentType = req.headers['content-type']?.split(';')[0];
         const apiSave = route === 'content' && url.pathname === '/admin/api/content/save';
-        if (contentType !== (apiSave ? 'application/json' : 'application/x-www-form-urlencoded')) return denied(415);
+        const jsonRequest = apiSave || route === 'editor';
+        if (contentType !== (jsonRequest ? 'application/json' : 'application/x-www-form-urlencoded')) return denied(415);
         const chunks = []; let length = 0;
         for await (const chunk of req) {
           length += chunk.length;
-          if (length > (apiSave ? 1024 * 1024 : 8192)) return denied(413);
+          if (length > (jsonRequest ? 1024 * 1024 : 8192)) return denied(413);
           chunks.push(chunk);
         }
         let data;
         try { data = new TextDecoder('utf-8', {fatal: true}).decode(Buffer.concat(chunks)); }
         catch { return denied(400); }
-        const csrf = apiSave ? [req.headers['x-csrf-token']] : new URLSearchParams(data).getAll('csrf');
+        const csrf = jsonRequest ? [req.headers['x-csrf-token']] : new URLSearchParams(data).getAll('csrf');
         if (csrf.length !== 1 || !/^[a-f0-9]{64}$/.test(csrf[0]) || !equal(csrf[0], session.csrf)) return denied(403);
         // Re-read after an asynchronous request body: rotation/expiry wins races.
         await authorize();
@@ -118,7 +121,12 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
           sessions.delete(digest(id));
           return send(303, '', undefined, {'Location': '/admin/', 'Set-Cookie': clearCookie});
         }
-        if (apiSave) {
+        if (route === 'editor' && url.pathname === '/admin/api/editor/prepare') {
+          let payload;
+          try { payload = JSON.parse(data); } catch { throw new ContentError(400, 'invalid_json', 'The editor request is not valid JSON.'); }
+          return json(200, await editor.prepare(payload, authorize));
+        }
+        if (apiSave || route === 'editor' && url.pathname === '/admin/api/editor/save') {
           if (!content) throw new ContentError(503, 'saving_not_configured', 'GitHub saving is not configured. No save was made.');
           let payload;
           try { payload = JSON.parse(data); } catch { throw new ContentError(400, 'invalid_json', 'The save request is not valid JSON.'); }
@@ -127,6 +135,8 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
         return send(404, page('Page unavailable', '<p>This administration page is unavailable.</p>'));
       }
       if (req.method === 'HEAD') return denied(405, {'Allow': 'GET'});
+      if (route === 'editor_script') return send(200, await fs.readFile(new URL('./editor.js', import.meta.url), 'utf8'), 'text/javascript; charset=utf-8');
+      if (route === 'editor' && url.pathname === '/admin/api/editor/bootstrap') return json(200, await editor.bootstrap(authorize));
       if (route === '/admin/api/session') return send(200, JSON.stringify({authenticated: true, csrf: session.csrf, expiresAt: new Date(session.expires).toISOString()}), 'application/json');
       if (route === 'content') {
         if (!content) throw new ContentError(503, 'saving_not_configured', 'GitHub saving is not configured.');
@@ -137,9 +147,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
         }
       }
       if (route === '/admin/') {
-        return send(200, page('Administration', '<p class="status">Your administration session is active.</p><p>Proposal editing is not available yet.</p><p>Access ends at <time>'
-          + escape(new Date(session.expires).toISOString()) + '</time>. Anyone with the shared link can enter this area.</p><form method="post" action="/admin/logout"><input type="hidden" name="csrf" value="'
-          + session.csrf + '"><button type="submit">Sign out</button></form>'));
+        return send(200, (await fs.readFile(new URL('./editor.html', import.meta.url), 'utf8')).replace('__CSRF__', session.csrf));
       }
       return send(404, page('Page unavailable', '<p>This administration page is unavailable.</p>'));
     } catch (error) {

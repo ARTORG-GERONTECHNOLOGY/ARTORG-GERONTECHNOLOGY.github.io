@@ -576,7 +576,8 @@ shared private-link entry, two-hour protected sessions, logout, rotation and
 revocation. Replacing or revoking the link signs everyone out on their next
 request. The service and all secret files are separate from the public site;
 service source is excluded from Jekyll output. Content read/create/update
-operations use the Step 17 protected API; the staff editing screen is a later step.
+operations use the Step 17 protected API. The Step 18 proposal editor provides
+structured fields, Write/Preview views and downloaded Markdown drafts.
 Local access is prepared; live HTTPS hosting and production
 credentials remain separate, unperformed operations.
 

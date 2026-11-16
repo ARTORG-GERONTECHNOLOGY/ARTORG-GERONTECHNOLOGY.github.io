@@ -1,0 +1,55 @@
+name: Validate website
+
+'on':
+  pull_request:
+  push:
+    branches: ['**']
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUNDLE_FROZEN: 'true'
+
+concurrency:
+  group: validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Website validation
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: Check out proposed changes
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1
+        with:
+          ruby-version: '3.3.13'
+          bundler: '2.5.22'
+          bundler-cache: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.22.1'
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12.14'
+      - name: Install locked Ruby dependencies
+        run: bundle install
+      - name: Install pinned pnpm
+        run: npm install --global pnpm@11.25.0 --ignore-scripts
+      - name: Install locked PDF dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install pinned Chromium
+        run: pnpm exec playwright install chromium
+      - name: Install verification dependencies
+        run: python -m pip install --disable-pip-version-check -r scripts/requirements-validation.txt
+      - name: Validate content and final static output
+        run: bundle exec ruby scripts/validate-site.rb

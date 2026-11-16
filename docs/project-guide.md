@@ -24,7 +24,8 @@ The workspace's `AGENTS.md`, `new-features.md`, and `template.docx` contain proj
 rules, the future implementation plan, and the original proposal reference.
 The catalogue and archive support status/category/year/program filters. Homepage
 content, news and team profiles can be maintained in source files. Staff browser
-editing, QR codes, PDF generation and automated deployment remain planned.
+editing and automated deployment remain planned. QR codes and proposal PDF
+generation are implemented.
 About provides editable group information and project application guidance.
 
 ## Baseline issues preserved during setup
@@ -44,7 +45,8 @@ separate from installing the local build environment.
 ## Shared proposal rendering
 
 Proposal pages follow the Word section order, including workload, affiliations,
-student eligibility and separate staff submission instructions. Optional figure,
+student eligibility. Staff submission instructions are retained in source metadata
+and omitted from public pages and PDFs at the user's request. Optional figure,
 references, application, start-date and workplace information appears only when
 provided. Previous/next links carry status labels; recommended projects are available.
 
@@ -431,7 +433,7 @@ python scripts/tests/decode-site-qr.py ../.local/site/assets/images/site-qr.png 
 The generated PNG was decoded to the exact public URL and visually inspected;
 Ruby checks cover repeatability, URL changes, subpaths, square geometry, contrast
 and the white quiet zone. The supervising user confirmed a successful phone scan on 2026-11-12.
-Automated About-page browser inspection remains blocked by saved permission.
+Local browser access was enabled and verified during Step 14.
 
 ## Downloadable proposal PDFs
 
@@ -470,8 +472,8 @@ bundle exec jekyll serve --skip-initial-build --no-watch
 Append `--config _config.yml,../.local/jekyll.yml` for the prepared Windows
 preview. After editing content, stop the preview, rebuild Jekyll, regenerate
 PDFs, and start the preview again. PDFs and their links are build output and
-must not be committed. Production automation is addressed in the next step;
-this change does not deploy the site.
+must not be committed. The validation command below automates this build sequence;
+publication and deployment remain separate operations.
 
 The generator serves files privately on loopback, blocks outbound requests,
 loads the pinned local MathJax runtime with its Safe extension, and waits for
@@ -498,3 +500,70 @@ The last command creates only an isolated verification fixture, not a real
 proposal. It exercises long content, a local image and mathematical notation,
 and confirms that missing figures fail generation. Visually inspect the PDFs
 with a PDF reader as well; text extraction alone cannot verify pagination.
+
+## Validate changes before publication
+
+Step 15 is prepared for local use. At the user's request, activating the checks
+on GitHub and changing branch protection are deferred. No workflow has been run
+on GitHub and no repository protection settings have been changed.
+
+From the website root, after installing the Ruby and PDF dependencies above:
+
+```sh
+python -m pip install -r scripts/requirements-validation.txt
+bundle exec ruby scripts/validate-site.rb --output ../.local/ci-site
+```
+
+This builds a separate candidate website and stops with an error if any check
+fails. It leaves the local preview untouched. Without `--output`, the command
+uses `_site`. `--config FILES` accepts Jekyll's comma-separated configuration
+files. `NODE` and `PYTHON` can point to specific executable paths when they are
+not on PATH. Run through Bundler so child checks use the same Ruby environment.
+
+The command validates proposal fields and sections, workload totals, timestamps,
+safe content rendering, filters/search, team/news/About behavior, Jekyll output,
+local links and assets, generated JSON/XML, feeds and sitemap, QR decoding, and
+all proposal PDFs and revision-labelled download links. It also exercises an
+isolated long/figure/math PDF and confirms missing figures fail generation.
+Temporary copies prove that invalid status metadata, broken assets, malformed
+search JSON, accidentally copied Word sources and incomplete PDFs are rejected.
+The original proposals and working preview are not modified by those fixtures.
+
+The final output inspection rejects service/source/private folders, source Word
+files, common temporary files, symlinks, private-key headers and known GitHub
+token patterns. This is a targeted safeguard, not a complete secret scanner or
+an assessment of whether scientific or personal information belongs in public.
+The five historical `/post_archive/.../` proposal pages remain valid public
+URLs; their original source folder is still excluded. CSS source maps are
+intentional browser assets. The inherited stray source file named `¨` is now
+excluded from the public output without deleting the original.
+
+The GitHub workflow is `.github/workflows/validate.yml`. Once separately
+authorized and pushed, it is configured to run for pull requests, branch pushes,
+merge-queue candidates and manual requests. It calls this same validation
+command, with no separate publishing implementation. The check name to require
+later is **Website validation**; keep that job name stable. Activation requires
+a successful GitHub run followed by an authorized branch rule requiring that
+check before merging. Merely committing this file locally does not enable it.
+
+The workflow uses Windows 2025, matching the locally verified Windows setup:
+Ruby 3.3.13, Bundler 2.5.22, Node 24.22.1, Python 3.12.14 and pnpm 11.25.0.
+Ruby and Node packages use their existing lockfiles; verification-only Python
+packages have exact versions in `scripts/requirements-validation.txt`. Actions
+are pinned to full commit SHAs. The token has only repository read access,
+checkout does not retain Git credentials, and no production secrets, deployment
+environment, write permissions or deployment/upload action is provided.
+Workflow checks guard these constraints and the shared command. A hosted GitHub
+run remains unverified until activation; macOS/Linux validation is unverified.
+
+Passing technical checks does not resolve the migration review's temporary
+statuses, eligibility, workloads, example team profiles or missing Figure 1.
+Before a real release, resolve those recorded issues and run:
+
+```sh
+bundle exec ruby scripts/validate-proposals.rb --release
+```
+
+That release check deliberately fails while recorded source-data issues remain.
+The ordinary validation command accepts the user-approved temporary values so
+development can continue. Neither command publishes or deploys the website.

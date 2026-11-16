@@ -1,7 +1,6 @@
 {
   "name": "ger-proposal-pdfs",
   "private": true,
-  "type": "module",
   "scripts": {
     "pdfs": "node scripts/generate-proposal-pdfs.mjs"
   },

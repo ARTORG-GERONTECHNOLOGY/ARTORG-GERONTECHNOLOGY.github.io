@@ -1,0 +1,4 @@
+# Verification tools only; none are copied into the public website.
+pypdf==6.21.4
+Pillow==13.0.0
+zxing-cpp==2.3.0

@@ -22,11 +22,11 @@ run = lambda do |*command|
 end
 ruby_check = ->(file, *arguments) { run.call(RbConfig.ruby, file, *arguments) }
 ruby_check.call('scripts/validate-proposals.rb')
-%w[validation-workflow proposal-format proposal-rendering-fixtures media home-news team about publishing site-qr].each do |name|
+%w[validation-workflow proposal-format proposal-rendering-fixtures proposal-lifecycle media home-news team about publishing site-qr].each do |name|
   ruby_check.call("scripts/tests/#{name}.rb")
 end
 %w[catalogue-filters search].each { |name| run.call(node, "scripts/tests/#{name}.cjs") }
-run.call(node, '--test', 'admin-service/test/access.test.mjs', 'admin-service/test/content.test.mjs', 'admin-service/test/editor.test.mjs', 'admin-service/test/media.test.mjs')
+run.call(node, '--test', 'admin-service/test/access.test.mjs', 'admin-service/test/content.test.mjs', 'admin-service/test/editor.test.mjs', 'admin-service/test/media.test.mjs', 'admin-service/test/lifecycle.test.mjs')
 # Use the same Bundler/Jekyll command locally and on the CI runner.
 run.call(RbConfig.ruby, '-S', 'bundle', 'exec', 'jekyll', 'build', '--config', options[:config],
          '--destination', options[:output], '--disable-disk-cache')

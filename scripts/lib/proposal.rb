@@ -217,6 +217,9 @@ module Proposals
         error("Requirements", "must contain at least one list item") unless has_list
       end
       if previous
+        if data['status'] != previous.metadata['status'] && !@schema.fetch('status_transitions').fetch(previous.metadata['status'], []).include?(data['status'])
+          error('status', 'is not an allowed transition')
+        end
         @schema.fetch("immutable_fields").each do |field|
           error(field, "cannot change on an existing proposal") unless data[field] == previous.metadata[field]
         end

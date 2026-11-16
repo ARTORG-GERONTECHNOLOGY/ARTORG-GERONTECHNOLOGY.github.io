@@ -47,9 +47,9 @@ export class ContentStore {
     if (!file) throw new ContentError(404, 'not_found', 'The content was not found.');
     return {baseCommit: snapshot.head, path, sha: file.sha, content: decoder.decode(file.bytes), live: false};
   }
-  async save(payload, authorize, {assets = []} = {}) {
+  async save(payload, authorize, {assets = [], deletions = [], limit = policy.maxChanges} = {}) {
     if (!payload || Object.keys(payload).some(key => !['baseCommit', 'changes'].includes(key)) || !sha(payload.baseCommit)) throw new ContentError(428, 'revision_required', 'Reload the content to obtain its current revision before saving.');
-    if (!Array.isArray(payload.changes) || !payload.changes.length || payload.changes.length > policy.maxChanges) throw new ContentError(422, 'invalid_changes', 'Provide a bounded set of content changes.');
+    if (!Array.isArray(payload.changes) || !payload.changes.length || payload.changes.length > limit) throw new ContentError(422, 'invalid_changes', 'Provide a bounded set of content changes.');
     const paths = new Set();
     for (const item of payload.changes) {
       if (!item || Object.keys(item).some(key => !['path', 'sha', 'content'].includes(key)) || !editable(item.path) || typeof item.content !== 'string'
@@ -60,6 +60,11 @@ export class ContentStore {
     if (snapshot.head !== payload.baseCommit) throw conflict(snapshot.head, payload.changes.map(item => item.path));
     const next = new Map(snapshot.files);
     const changes = [...payload.changes];
+    for (const item of deletions) {
+      if (!editable(item.path) || !item.path.startsWith('_posts/') || paths.has(item.path.toLowerCase())) throw new ContentError(422,'invalid_deletion','Only current proposals can be deleted.');
+      if (!snapshot.files.has(item.path) || snapshot.files.get(item.path).sha !== item.sha) throw conflict(snapshot.head,[item.path]);
+      paths.add(item.path.toLowerCase()); next.delete(item.path); changes.push({...item,delete:true});
+    }
     for (const item of assets) {
       if (!asset(item.path) || !/^assets\/media\/proposals\/[a-z0-9-]+\/[a-z0-9-]+-[a-f0-9]{16}\.(png|jpe?g|webp|pdf)$/.test(item.path) || !Buffer.isBuffer(item.bytes) || paths.has(item.path.toLowerCase())) throw new ContentError(422, 'invalid_media', 'Use a validated proposal upload.');
       paths.add(item.path.toLowerCase());
@@ -76,12 +81,12 @@ export class ContentStore {
       next.set(item.path, {bytes});
     }
     if (new Set([...next.keys()].map(path => path.toLowerCase())).size !== next.size) throw new ContentError(422, 'invalid_path', 'Filenames must be unique without case differences.');
-    if (changes.length > policy.maxChanges || [...next.values()].reduce((sum,file)=>sum+file.bytes.length,0) > policy.maxSnapshotBytes) throw new ContentError(413, 'save_limit', 'The save exceeds the file count or repository inspection limit.');
+    if (changes.length > limit || [...next.values()].reduce((sum,file)=>sum+file.bytes.length,0) > policy.maxSnapshotBytes) throw new ContentError(413, 'save_limit', 'The save exceeds the file count or repository inspection limit.');
     if (!changed) throw new ContentError(422, 'no_changes', 'There are no changes to save.');
     await this.validate(next, snapshot.files);
     await authorize();
     const committed = await this.provider.commit(snapshot.head, changes);
-    return {commit: committed, files: changes.map(item => ({path: item.path, sha: blobSha(item.bytes || Buffer.from(item.content, 'utf8'))})), branch: policy.contentBranch, state: 'committed_validation_pending', live: false, requiredCheck: policy.requiredCheck,
+    return {commit: committed, files: changes.map(item => ({path: item.path, sha: item.delete ? null : blobSha(item.bytes || Buffer.from(item.content, 'utf8'))})), branch: policy.contentBranch, state: 'committed_validation_pending', live: false, requiredCheck: policy.requiredCheck,
       publication: policy.publication};
   }
 }

@@ -12,12 +12,21 @@ const manifestPath = path.join(output, 'pdf-manifest.json');
 const snapshot = await fs.readFile(manifestPath, 'utf8');
 const manifest = JSON.parse(snapshot);
 const entries = manifest.proposals;
-if (!Array.isArray(entries) || !entries.length) throw Error('Build Jekyll before generating proposal PDFs.');
+if (!Array.isArray(entries)) throw Error('Build Jekyll before generating proposal PDFs.');
+if(entries.some(entry=>!entry||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.id)||entry.pdf!=='/assets/pdf/'+entry.id+'.pdf')||new Set(entries.map(entry=>entry.id)).size!==entries.length)throw Error('Invalid PDF manifest inventory.');
 const safePath = relative => {
   const target = path.resolve(output, '.' + relative);
   if (!target.startsWith(output + path.sep)) throw Error('Output path escapes build directory.');
   return target;
 };
+// Only the generated PDF inventory is cleaned; shared source media is retained.
+const pdfDirectory=safePath('/assets/pdf');
+await fs.mkdir(pdfDirectory,{recursive:true});
+const realOutput=await fs.realpath(output);
+if(await fs.realpath(pdfDirectory)!==path.join(realOutput,'assets','pdf'))throw Error('PDF directory must stay inside the real build output.');
+const expectedPDFs=new Set(entries.map(entry=>entry.id+'.pdf'));
+for(const name of await fs.readdir(pdfDirectory))if(/^[a-z0-9]+(?:-[a-z0-9]+)*\.pdf$/.test(name)&&!expectedPDFs.has(name))await fs.unlink(path.join(pdfDirectory,name));
+for(const name of expectedPDFs)if(await fs.lstat(path.join(pdfDirectory,name)).then(info=>info.isSymbolicLink(),()=>false))throw Error('PDF destinations cannot be symbolic links.');
 const htmlSnapshots = new Map();
 for (const entry of entries) {
   for (const url of [entry.page_url, entry.print_url.slice(manifest.baseurl.length)]) {

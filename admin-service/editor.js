@@ -4,6 +4,8 @@
   let bootstrap, state, csrf, dirty = false, busy = false, leaving = false;
   const fields = new Map();
   let mediaFiles=[],mediaRules;
+  let orderDirty=false,orderPaths=[],draggedPath,deleteTarget,listNeedsReload=false;
+  const listMessage=text=>{$('list-state').textContent=text;};
   const formatDate = value => value ? new Intl.DateTimeFormat('en-GB', {dateStyle:'medium', timeStyle:'short', timeZone:'Europe/Zurich'}).format(new Date(value)) : 'Not yet published';
   function node(tag, text, attributes = {}) { const item = document.createElement(tag); if (text !== undefined) item.textContent = text; for (const [name,value] of Object.entries(attributes)) item.setAttribute(name,value); return item; }
   function message(text) { $('save-state').textContent = text; }
@@ -92,6 +94,7 @@
     return result;
   }
   async function action(name) {
+    if(name==='publish'&&orderDirty){message('Save or reset the proposed order before saving proposal edits. Your working copy is retained.');return;}
     if(!state||busy)return; busy=true; message(name==='preview'?'Preparing preview…':'Preparing proposal…');
     try {
       const payload={...values(),operation:name};
@@ -113,7 +116,7 @@
     } catch(error) { errors(error.data?.errors||{});message(error.message+' Your working copy remains in this tab.');if(error.status===409)$('reload').hidden=false; }
     finally {busy=false;}
   }
-  async function open(item) {if(busy)return;if(dirty&&!confirm('Discard the current working copy? Download Markdown first if you want to keep it.'))return;populate(item,{path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit});}
+  async function open(item) {if(busy)return;if(orderDirty||listNeedsReload){listMessage('Save/reset the proposed order and reload a stale list before opening a proposal.');return;}if(dirty&&!confirm('Discard the current working copy? Download Markdown first if you want to keep it.'))return;populate(item,{path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit});}
   async function loadMedia() {
     const response=await fetch('/admin/api/media/list',{credentials:'same-origin'});if(!response.ok)throw new Error('The media list is unavailable. Please try again.');
     const value=await response.json();mediaFiles=value.files;mediaRules=value.rules;
@@ -157,18 +160,64 @@
       try{await loadMedia();}catch(error){$('connection').textContent+=' '+error.message;}
     } catch(error){$('connection').textContent=error.message;}
   }
-  function renderList() {
+  function renderList(focusPath,focusKind='handle') {
+    if(!orderDirty)orderPaths=bootstrap.proposals.map(item=>item.path);
     $('proposal-list').replaceChildren();
-    for(const item of bootstrap.proposals){const tr=node('tr');const td=node('td');const button=node('button',item.metadata.title,{type:'button',class:'link-button'});button.addEventListener('click',()=>open(item));td.append(button);tr.append(td);for(const text of [item.metadata.status,item.metadata.priority,formatDate(item.metadata.created_at),formatDate(item.metadata.updated_at),'Committed source'])tr.append(node('td',String(text)));$('proposal-list').append(tr);}
+    for(const [index,path] of orderPaths.entries()){
+      const item=bootstrap.proposals.find(entry=>entry.path===path);const tr=node('tr');const td=node('td');const button=node('button',item.metadata.title,{type:'button',class:'link-button'});button.addEventListener('click',()=>open(item));td.append(button);tr.append(td);
+      for(const text of [item.metadata.status,orderDirty?(index+1)*10:item.metadata.priority,formatDate(item.metadata.created_at),formatDate(item.metadata.updated_at),orderDirty?'Order not saved':'Committed source'])tr.append(node('td',String(text)));
+      const actions=node('td');const toolbar=node('div',undefined,{class:'actions'});
+      for(const status of (bootstrap.transitions?.[item.metadata.status]||[])){
+        const action=node('button',status==='available'?'Reopen':status==='archived'?'Archive':'Mark taken',{type:'button',class:'secondary'});
+        action.addEventListener('click',()=>lifecycleAction(item,'status',status));toolbar.append(action);
+      }
+      const up=node('button','↑ Move up',{type:'button','aria-label':'Move up: '+item.metadata.title});up.disabled=index===0;up.addEventListener('click',()=>moveOrder(path,index-1,'up'));
+      const down=node('button','↓ Move down',{type:'button','aria-label':'Move down: '+item.metadata.title});down.disabled=index===orderPaths.length-1;down.addEventListener('click',()=>moveOrder(path,index+1,'down'));
+      const handle=node('button','↕ Drag',{type:'button',draggable:'true','aria-label':'Drag to reorder: '+item.metadata.title});
+      handle.addEventListener('dragstart',event=>{if(dirty||busy){event.preventDefault();listMessage('Save or download your working proposal before reordering.');return;}draggedPath=path;event.dataTransfer.setData('text/plain',path);event.dataTransfer.effectAllowed='move';});
+      handle.addEventListener('dragend',()=>{draggedPath=null;});tr.addEventListener('dragover',event=>{if(draggedPath){event.preventDefault();event.dataTransfer.dropEffect='move';}});tr.addEventListener('drop',event=>{event.preventDefault();if(draggedPath)moveOrder(draggedPath,index);draggedPath=null;});
+      const remove=node('button','Delete…',{type:'button',class:'secondary'});remove.addEventListener('click',()=>{
+        if(!listActionAllowed())return;deleteTarget=item;$('delete-name').textContent=item.metadata.title;
+        $('confirm-delete').disabled=!bootstrap.canPublish;$('archive-instead').disabled=!(bootstrap.transitions?.[item.metadata.status]||[]).includes('archived');
+        $('delete-dialog').showModal();
+      });toolbar.append(up,down,handle,remove);actions.append(toolbar);tr.append(actions);$('proposal-list').append(tr);
+      if(focusPath===path){const target=focusKind==='up'?up:focusKind==='down'?down:handle;(target.disabled?handle:target).focus();}
+    }
+    $('save-order').disabled=!orderDirty||!bootstrap.canPublish||listNeedsReload;$('reset-order').disabled=!orderDirty;
   }
+  function listActionAllowed(){if(busy)return false;if(listNeedsReload){listMessage('Reload the list to obtain its latest revision before another action.');return false;}if(dirty||orderDirty){listMessage('Keep your working copy: save or download proposal edits and close the editor; save or reset ordering before another list action.');return false;}return true;}
+  function moveOrder(path,target,focusKind='handle'){if(busy||dirty||listNeedsReload){listMessage('Save or download your working proposal and reload a stale list before reordering.');return;}const index=orderPaths.indexOf(path);if(index<0||target<0||target>=orderPaths.length||index===target)return;orderPaths.splice(index,1);orderPaths.splice(target,0,path);orderDirty=true;renderList(path,focusKind);listMessage('Proposed order changed. Save order to commit it; content-update dates stay unchanged.');}
+  async function lifecycleAction(item,action,status){
+    if(!listActionAllowed())return;
+    if(!bootstrap.canPublish&&action==='status'){populate(item,{path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit});fields.get('status').input.value=status;changed();message('Status staged for local preview. GitHub saving remains disabled.');return;}
+    busy=true;listMessage('Saving proposal change…');
+    try{
+      await api('lifecycle',{action,path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit,...(status?{status}:{}),...(action==='delete'?{confirmation:item.metadata.proposal_id}:{})});
+      listNeedsReload=true;
+      try{await refreshAfterListSave();listMessage('Committed; checks/build pending. Production publication is not yet confirmed.');}
+      catch{listMessage('Committed; checks/build pending. The list could not refresh. Reload the list before another action.');}
+    }catch(error){if(error.status===409)listNeedsReload=true;listMessage(error.message+' The working copy is retained. Reload the list after comparing any newer changes.');}finally{busy=false;}
+  }
+  async function refreshAfterListSave(){
+    bootstrap=await api('bootstrap');orderDirty=false;listNeedsReload=false;renderList();
+    if(state){const current=bootstrap.proposals.find(item=>item.path===state.context.path);if(current)populate(current,{path:current.path,sha:current.sha,baseCommit:bootstrap.baseCommit});else{$('editor').hidden=true;state=null;dirty=false;}}
+  }
+  $('save-order').addEventListener('click',async()=>{if(busy||!orderDirty||listNeedsReload)return;if(dirty){listMessage('Reset the proposed order before saving proposal edits. Both working copies are retained.');return;}busy=true;try{await api('lifecycle',{action:'order',baseCommit:bootstrap.baseCommit,order:orderPaths});orderDirty=false;listNeedsReload=true;try{await refreshAfterListSave();listMessage('Order committed; checks/build pending. Content-update dates were preserved.');}catch{renderList();listMessage('Order committed; checks/build pending. Reload the list before another action.');}}catch(error){if(error.status===409)listNeedsReload=true;listMessage(error.message+' The proposed order is retained; reset/reload only after comparing newer changes.');}finally{busy=false;}});
+  $('reload-list').addEventListener('click',async()=>{if(busy)return;if(orderDirty&&!confirm('Discard the proposed order and load the latest list? Your proposal form will be kept.'))return;busy=true;try{bootstrap=await api('bootstrap');orderDirty=false;listNeedsReload=false;renderList();listMessage('Latest list loaded. Any working proposal retains its original revision so newer edits cannot be overwritten.');}catch(error){listMessage(error.message);}finally{busy=false;}});
+  $('reset-order').addEventListener('click',()=>{if(busy)return;orderDirty=false;renderList();listMessage('The proposed order was reset.');});
+  $('cancel-delete').addEventListener('click',()=>$('delete-dialog').close());
+  $('archive-instead').addEventListener('click',()=>{const item=deleteTarget;$('delete-dialog').close();if(item)lifecycleAction(item,'status','archived');});
+  $('confirm-delete').addEventListener('click',()=>{const item=deleteTarget;$('delete-dialog').close();if(item)lifecycleAction(item,'delete');});
+  $('delete-dialog').addEventListener('close',()=>{deleteTarget=null;});
   $('proposal-form').addEventListener('input',changed); $('proposal-form').addEventListener('change',changed);
-  $('new-proposal').addEventListener('click',async()=>{if(busy)return;if(dirty&&!confirm('Discard the current working copy? Download Markdown first to keep it.'))return;try{const value=await api('prepare',{operation:'new'});populate(value,{baseCommit:bootstrap.baseCommit,sha:null});}catch(error){message(error.message);}});
-  $('open-draft').addEventListener('change',async event=>{const file=event.target.files[0];if(!file||busy)return;if(file.size>131072){alert('Choose a Markdown file smaller than 128 KiB.');return;}if(dirty&&!confirm('Replace the current working copy?'))return;try{const value=await api('prepare',{operation:'parse',source:await file.text()});populate(value,{baseCommit:bootstrap.baseCommit,sha:null,...value.context});}catch(error){message(error.message);}event.target.value='';});
+  $('close-editor').addEventListener('click',()=>{if(busy)return;if(dirty&&!confirm('Close and discard this working proposal? Download Markdown and temporary files first to keep unfinished work.'))return;$('editor').hidden=true;state=null;dirty=false;fields.clear();listMessage('Editor closed. Downloaded files are kept; temporary uploads remain available only while this session is active.');});
+  $('new-proposal').addEventListener('click',async()=>{if(busy)return;if(orderDirty){listMessage('Save or reset the proposed order first.');return;}if(dirty&&!confirm('Discard the current working copy? Download Markdown first to keep it.'))return;try{const value=await api('prepare',{operation:'new'});populate(value,{baseCommit:bootstrap.baseCommit,sha:null});}catch(error){message(error.message);}});
+  $('open-draft').addEventListener('change',async event=>{const file=event.target.files[0];if(!file||busy)return;if(orderDirty){listMessage('Save or reset the proposed order first.');event.target.value='';return;}if(file.size>131072){alert('Choose a Markdown file smaller than 128 KiB.');return;}if(dirty&&!confirm('Replace the current working copy?'))return;try{const value=await api('prepare',{operation:'parse',source:await file.text()});populate(value,{baseCommit:bootstrap.baseCommit,sha:null,...value.context});}catch(error){message(error.message);}event.target.value='';});
   $('write-tab').addEventListener('click',()=>tabs('write'));$('preview-tab').addEventListener('click',()=>{tabs('preview');action('preview');});$('split-view').addEventListener('change',()=>tabs($('preview-tab').getAttribute('aria-selected')==='true'?'preview':'write'));
   for(const tab of [$('write-tab'),$('preview-tab')])tab.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();(tab===$('write-tab')?$('preview-tab'):$('write-tab')).focus();}});
   $('refresh-preview').addEventListener('click',()=>action('preview'));$('validate').addEventListener('click',()=>action('compose'));$('download').addEventListener('click',()=>action('download'));$('save').addEventListener('click',()=>action('publish'));
   $('reload').addEventListener('click',()=>{if(confirm('Reload the latest source? Download your working Markdown first; reloading will discard it.')){leaving=true;location.reload();}});
-  $('logout').addEventListener('submit',event=>{if(dirty&&!confirm('Sign out and discard this tab’s working copy? Download Markdown first to keep it.'))event.preventDefault();else leaving=true;});
-  addEventListener('beforeunload',event=>{if(dirty&&!leaving){event.preventDefault();event.returnValue='';}});
+  $('logout').addEventListener('submit',event=>{if((dirty||orderDirty)&&!confirm('Sign out and discard this tab’s working copy and proposed order? Download Markdown first to keep proposal edits.'))event.preventDefault();else leaving=true;});
+  addEventListener('beforeunload',event=>{if((dirty||orderDirty)&&!leaving){event.preventDefault();event.returnValue='';}});
   start();
 })();

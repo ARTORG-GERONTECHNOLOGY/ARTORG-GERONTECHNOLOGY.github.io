@@ -10,6 +10,7 @@ import { GitHubContent } from '../github.mjs';
 import { ContentStore, validateContent } from '../content.mjs';
 import { policy, editable, asset, blobSha } from '../content-policy.mjs';
 import { createAdministration } from '../service.mjs';
+import { ProposalEditor } from '../editor.mjs';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const hash = value => createHash('sha1').update(value).digest('hex');
@@ -65,10 +66,12 @@ async function fixture() {
       assert.equal(input.branch.repositoryNameWithOwner, policy.repository);
       assert.equal(input.branch.refName, 'refs/heads/' + policy.contentBranch);
       assert.equal(input.message.headline, 'Update staff content');
-      assert.ok(!input.force && !input.fileChanges.deletions);
+      assert.ok(!input.force);
+      assert.ok((input.fileChanges.deletions||[]).every(item=>editable(item.path)&&item.path.startsWith('_posts/')));
       if (fake.race) { fake.head = hash('concurrent-change'); fake.race = false; }
       if (input.expectedHeadOid !== fake.head || fake.fail) return response({errors: [{type: 'STALE_DATA'}]});
       const next = new Map(fake.files);
+      for(const deletion of input.fileChanges.deletions||[])next.delete(deletion.path);
       for (const addition of input.fileChanges.additions) {
         assert.ok(editable(addition.path)||asset(addition.path)); const bytes = Buffer.from(addition.contents, 'base64'); next.set(addition.path, {bytes, sha: blobSha(bytes)});
       }
@@ -246,6 +249,18 @@ test('content HTTP routes require session, Origin and CSRF and never expose App 
     assert.equal(revoked.status, 401); assert.equal(f.fake.mutations, attempts);
     assert.equal((await request('/admin/api/media/file?id='+uploaded.id,{headers:{cookie}})).status,401);
   } finally { await new Promise(resolve => server.close(resolve)); await f.close(); }
+});
+
+test('GitHub commits delete a proposal and reserve its old URL in one atomic operation',async()=>{
+  const f=await fixture();
+  try{
+    const editor=new ProposalEditor(new ContentStore(f.provider));const bootstrap=await editor.bootstrap(authorize);const proposal=bootstrap.proposals[0];
+    const assets=[...f.fake.files].filter(([path])=>asset(path));
+    const result=await editor.lifecycle({action:'delete',baseCommit:bootstrap.baseCommit,path:proposal.path,sha:proposal.sha,confirmation:proposal.metadata.proposal_id},authorize);
+    assert.equal(f.fake.mutations,1);assert.equal(result.state,'committed_validation_pending');assert.equal(result.live,false);
+    assert.ok(!f.fake.files.has(proposal.path));assert.ok(f.fake.files.get('_data/removed_proposals.yml').bytes.toString().includes(proposal.metadata.permalink));
+    for(const [path,file] of assets)assert.deepEqual(f.fake.files.get(path).bytes,file.bytes);
+  }finally{await f.close();}
 });
 
 test('excess App permissions are rejected and source byte order markers are preserved', async () => {

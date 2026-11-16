@@ -36,4 +36,8 @@ small { display: block; }
 #errors { border-left: 4px solid #a01c25; padding: .5rem 1rem; background: #fff0ef; }
 #preview-frame { width: 100%; min-height: 80vh; border: 1px solid #bdcecb; background: white; }
 :focus-visible { outline: 3px solid #142d47; outline-offset: 3px; }
+.danger { background: #a01c25; color: white; }
+dialog { max-width: min(42rem,95vw); padding: 1.5rem; border: 2px solid #175c5a; }
+dialog::backdrop { background: #0009; }
+button[draggable=true] { cursor: grab; }
 @media (min-width: 1100px) { #editor-panels.split { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1.5rem; } }

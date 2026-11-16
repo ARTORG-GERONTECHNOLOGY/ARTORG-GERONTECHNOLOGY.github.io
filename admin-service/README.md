@@ -1,7 +1,7 @@
 # Administration access service
 
-Steps 16–19 provide private-link entry, protected sessions, a GitHub content
-save API, the proposal editor and private media uploads. GitHub integration is
+Steps 16–20 provide private-link entry, protected sessions, a GitHub content
+save API, proposal editing/uploads and proposal lifecycle controls. GitHub integration is
 disabled until explicitly configured; the local access demo needs no GitHub
 credentials. The public website remains static and separate.
 
@@ -14,6 +14,7 @@ node --test admin-service/test/access.test.mjs
 node --test admin-service/test/content.test.mjs
 node --test admin-service/test/editor.test.mjs
 node --test admin-service/test/media.test.mjs
+node --test admin-service/test/lifecycle.test.mjs
 ```
 
 ## Private access configuration
@@ -205,7 +206,8 @@ All routes require the Step 16 session. POST also requires an exact Origin and
 `X-CSRF-Token` from `GET /admin/api/session`. Cookie protection and rate limits
 remain in force. JSON save bodies are bounded to 1 MiB; each text file is limited
 to 128 KiB and each save to sixteen distinct files. Only the separate media
-endpoint accepts binary uploads; deletion is a later step. These APIs do not
+endpoint accepts binary uploads; the confirmed lifecycle action handles proposal
+deletion. These APIs do not
 provide unrestricted filesystem operations.
 
 | Route | Behavior |
@@ -216,7 +218,7 @@ provide unrestricted filesystem operations.
 | `GET /admin/api/content/checks?commit=...` | Reports the matching GitHub Actions check's pending/passed/failed state, always with `live: false` in this step |
 
 Only dated proposal Markdown, stable team/news Markdown and Home/About/category
-YAML are editable. Schemas, program defaults, workflows, site configuration,
+YAML plus the validated removed-URL registry are editable. Schemas, program defaults, workflows, site configuration,
 service code, arbitrary paths and media bytes are not writable through this API.
 Existing approved assets can be referenced and are validated from the same Git
 snapshot. Text and supporting changes are validated together before any write.
@@ -357,3 +359,52 @@ The local review supports upload, selection, download and preview. Real GitHub
 saves remain disabled; atomic binary saves are exercised against isolated fake
 providers/API responses. No real proposal files, public media or production
 settings were changed for demonstration.
+
+## Status, order and deletion (Step 20)
+
+The proposal list uses the shared priority/publication/ID order. Staff may switch
+directly between any two of Available, Taken and Archived, as requested. List
+shortcuts and the proposal form follow `_data/proposal_schema.yml` transitions.
+Status saves advance the substantive update date and keep the proposal ID,
+initial publication/creation dates, scientific text and permanent URL.
+
+Use **Move up**, **Move down** or the drag handle to propose a new order, then
+**Save order**. Keyboard buttons are equivalent to dragging. Priorities become
+10, 20, 30… in one atomic commit; only changed priorities are written, and
+scientific update dates stay unchanged. This shared order applies within each
+public view's existing filters/groups; the homepage retains featured-first
+grouping. **Reset order** discards only the proposed order.
+Reordering supports up to fifty changed proposal files per trusted operation;
+ordinary saves retain their sixteen-file limit and all snapshot/byte limits.
+
+**Delete…** opens a confirmation that offers **Archive instead**, **Cancel**,
+and **Delete proposal**. Escape/Cancel sends no mutation. Archiving keeps the
+detail page and downloads. Confirmed deletion removes the proposal Markdown
+and adds a minimal `_data/removed_proposals.yml` record in the same conditional
+Git commit. Only that proposal can be deleted; this route cannot delete media,
+configuration or arbitrary files. Public Git history still retains the content.
+
+Deleted proposals disappear from generated home/catalogue/team links, search,
+feeds, sitemap, print pages and PDF inventory. The old address shows a generic
+**Proposal removed** page, with no title, scientific text or download links,
+and links to available projects/contact information. It carries noindex; static
+GitHub Pages serves this as an ordinary HTML response, not an HTTP 410. Reserved
+removed IDs/URLs cannot be reused or silently cleared; restoring the same proposal
+later must remove its record atomically. Shared source media is retained. The
+PDF generator removes obsolete generated PDFs, including an empty catalogue.
+
+The protected endpoint is `POST /admin/api/editor/lifecycle`. Every action
+requires the branch revision; status/delete also require the current file SHA.
+Delete requires confirmation of the immutable proposal ID. Order submits every
+current proposal path exactly once. Paths/sources are resolved and validated on
+the server; callers cannot supply arbitrary deletion targets or rewritten files.
+The same session, Origin, CSRF, whole-candidate validation and atomic GitHub
+preconditions apply. Conflicts preserve proposed ordering/forms; **Reload list**
+obtains new list data without discarding a working proposal. **Close editor**
+offers a discard warning. Successful commits are shown separately from failed
+refreshes, with checks/build pending rather than claiming live publication.
+
+Local review allows staging/resetting order, previewing status edits and opening
+or cancelling the deletion dialog. Actual save/delete buttons remain disabled
+without GitHub configuration. No real proposal has been changed or deleted by
+the local lifecycle checks; they use isolated providers and generated output.

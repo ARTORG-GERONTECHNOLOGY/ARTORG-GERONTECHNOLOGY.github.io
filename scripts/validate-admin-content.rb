@@ -4,6 +4,7 @@ require 'json'
 require 'tmpdir'
 require 'fileutils'
 require_relative 'lib/team'
+require_relative 'lib/proposal-lifecycle'
 
 # This process uses only installed trusted validators. Author files are never
 # loaded as Ruby, Liquid, plugins or configuration for a Jekyll build.
@@ -33,6 +34,18 @@ begin
     team_ids = profiles.values.map { |document| document.metadata['team_id'] }
     raise Proposals::FormatError, 'Duplicate team IDs' unless team_ids.uniq.length == team_ids.length
     proposals = files.select { |path, _| path.start_with?('_posts/') }.to_h { |path, content| [path, Proposals::Document.parse(content)] }
+    removed = Proposals.load_yaml(files.fetch('_data/removed_proposals.yml', '[]'), mapping: false)
+    old_proposals = previous.select { |path, _| path.start_with?('_posts/') }.to_h { |path, content| [path, Proposals::Document.parse(content)] }
+    Proposals.removed!(removed, proposals, previous: old_proposals)
+    previous_removed = Proposals.load_yaml(previous.fetch('_data/removed_proposals.yml', '[]'), mapping: false)
+    removed.each do |entry|
+      deleted = old_proposals.any? { |path, document| !proposals.key?(path) && %w[proposal_id permalink].all? { |key| document.metadata[key] == entry[key] } }
+      raise Proposals::FormatError, 'New removed-URL records must describe a deleted proposal' unless previous_removed.include?(entry) || deleted
+    end
+    previous_removed.each do |entry|
+      restored = proposals.values.any? { |document| %w[proposal_id permalink].all? { |key| document.metadata[key] == entry[key] } }
+      raise Proposals::FormatError, 'Keep removed URLs reserved unless restoring the same proposal' unless removed.include?(entry) || restored
+    end
     validator = Proposals::Validator.new(team_ids: team_ids, categories: categories)
     errors.merge!(validator.validate_set(proposals).reject { |_, messages| messages.empty? })
     proposals.each do |path, document|

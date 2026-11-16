@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { policy, editable, asset, blobSha, ContentError } from './content-policy.mjs';
+import { policy, editable, asset, blobSha, conflict, ContentError } from './content-policy.mjs';
 import { staticMath } from './preview.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 
@@ -88,5 +88,21 @@ export class ProposalEditor {
     const result = await rubyEditor({operation: 'bootstrap', proposals, categories: snapshot.files.get('_data/proposal_categories.yml').bytes.toString('utf8')});
     await authorize();
     return {...result, baseCommit: snapshot.head, canPublish: Boolean(this.content), mode: this.content ? 'github' : 'local_review'};
+  }
+  async lifecycle(payload,authorize) {
+    if(!this.content)throw new ContentError(503,'saving_not_configured','GitHub saving is not configured. No change was made.');
+    if(!payload||!['order','status','delete'].includes(payload.action))throw new ContentError(422,'invalid_action','Choose a proposal action.');
+    const snapshot=await this.snapshot();await authorize();
+    if(payload.baseCommit!==snapshot.head)throw conflict(snapshot.head);
+    const proposals=[...snapshot.files].filter(([path])=>path.startsWith('_posts/')).map(([path,file])=>({path,source:file.bytes.toString('utf8')}));
+    if(payload.action!=='order'){
+      if(!editable(payload.path)||!payload.path.startsWith('_posts/')||!snapshot.files.has(payload.path))throw new ContentError(422,'invalid_path','Choose a current proposal.');
+      if(payload.sha!==snapshot.files.get(payload.path).sha)throw conflict(snapshot.head,[payload.path]);
+    }
+    const result=await rubyEditor({operation:'lifecycle',proposals,actionData:payload,removedSource:snapshot.files.get('_data/removed_proposals.yml')?.bytes.toString('utf8')||'[]'});
+    if(result.error)throw new ContentError(422,result.error,result.message,{errors:result.errors});
+    if(!result.changes.length&&!result.deletions.length)throw new ContentError(422,'no_changes','There are no ordering changes to save.');
+    return this.content.save({baseCommit:snapshot.head,changes:result.changes.map(item=>({...item,sha:snapshot.files.get(item.path)?.sha||null}))},authorize,
+      {deletions:result.deletions.map(path=>({path,sha:snapshot.files.get(path).sha})),limit:payload.action==='order'?50:policy.maxChanges});
   }
 }

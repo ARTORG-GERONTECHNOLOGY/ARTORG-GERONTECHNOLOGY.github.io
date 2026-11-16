@@ -581,6 +581,9 @@ structured fields, Write/Preview views and downloaded Markdown drafts.
 Step 19 adds an existing-file picker, private session uploads and temporary-file
 downloads. The [service guide](../admin-service/README.md#media-picker-and-uploads-step-19)
 explains supported files, inspection limits, expiry and atomic saves.
+Step 20 adds status shortcuts, drag/keyboard ordering and confirmed deletion with
+archiving offered first. Removed proposals retain a generic recovery page at the
+old URL; shared files remain. See the [lifecycle controls](../admin-service/README.md#status-order-and-deletion-step-20).
 Local access is prepared; live HTTPS hosting and production
 credentials remain separate, unperformed operations.
 

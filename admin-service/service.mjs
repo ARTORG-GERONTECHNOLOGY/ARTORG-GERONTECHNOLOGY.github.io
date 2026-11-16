@@ -139,6 +139,10 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
           try { payload = JSON.parse(data); } catch { throw new ContentError(400, 'invalid_json', 'The editor request is not valid JSON.'); }
           return json(200, await editor.prepare(payload, authorize, media.temporary(session)));
         }
+        if (route === 'editor' && url.pathname === '/admin/api/editor/lifecycle') {
+          let payload;try{payload=JSON.parse(data);}catch{throw new ContentError(400,'invalid_json','The proposal action is not valid JSON.');}
+          return json(201,await editor.lifecycle(payload,authorize));
+        }
         if (apiSave || route === 'editor' && url.pathname === '/admin/api/editor/save') {
           if (!content) throw new ContentError(503, 'saving_not_configured', 'GitHub saving is not configured. No save was made.');
           let payload;

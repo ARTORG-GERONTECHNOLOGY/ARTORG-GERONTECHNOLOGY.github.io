@@ -8,6 +8,7 @@ require 'jekyll'
 require_relative 'lib/proposal-renderer'
 require_relative 'lib/team'
 require_relative 'lib/media'
+require_relative 'lib/proposal-lifecycle'
 
 def field_errors(messages)
   messages.each_with_object({}) do |message, result|
@@ -18,13 +19,20 @@ end
 
 begin
   input = JSON.parse(STDIN.read(64 * 1024 * 1024 + 1))
+  if input['operation'] == 'lifecycle'
+    documents = input.fetch('proposals').to_h { |item| [item.fetch('path'), Proposals::Document.parse(item.fetch('source'))] }
+    puts JSON.generate(Proposals.lifecycle(documents, input.fetch('actionData'), input.fetch('removedSource', '[]')))
+    exit
+  end
   if input['operation'] == 'bootstrap'
     proposals = input.fetch('proposals').map do |item|
       document = Proposals::Document.parse(item.fetch('source'))
       item.merge('metadata' => document.metadata.transform_values { |value| value.is_a?(Time) ? value.iso8601 : value }, 'sections' => document.sections)
     end
+    indexed = proposals.to_h { |item| [item['metadata']['proposal_id'], item] }
+    proposals = Proposals.ordered(proposals.map { |item| item['metadata'] }).map { |metadata| indexed.fetch(metadata['proposal_id']) }
     puts JSON.generate({'proposals' => proposals, 'categories' => Proposals.categories!(Proposals.load_yaml(input.fetch('categories'), mapping: false)),
-      'statuses' => Proposals::SCHEMA['statuses'], 'eligibilities' => Proposals::SCHEMA['eligibilities']})
+      'statuses' => Proposals::SCHEMA['statuses'], 'transitions' => Proposals::SCHEMA['status_transitions'], 'eligibilities' => Proposals::SCHEMA['eligibilities']})
     exit
   end
   source = input.fetch('source')

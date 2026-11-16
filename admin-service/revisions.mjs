@@ -5,7 +5,7 @@ import {validateContent} from './content.mjs';
 import {createHash,randomBytes} from 'node:crypto';
 const digest=source=>createHash('sha256').update(JSON.stringify(source)).digest('hex');
 export class ContentRevisions {
-  constructor(editor,{now=Date.now}={}){this.editor=editor;this.provider=editor.content?.provider||new LocalHistory();this.now=now;this.previews=new Map();}
+  constructor(editor,{now=Date.now,supporting=null}={}){this.editor=editor;this.supporting=supporting;this.provider=editor.content?.provider||new LocalHistory();this.now=now;this.previews=new Map();}
   purge(active){for(const [id,record] of this.previews)if(record.expires<=this.now()||!active(record.session))this.previews.delete(id);}
   async records(snapshot){const result=await rubyEditor({operation:'removed_list',source:snapshot.files.get('_data/removed_proposals.yml')?.bytes.toString('utf8')||'[]'});if(result.error)throw new ContentError(422,'invalid_removed_records','Removed proposal records are invalid.');return result.records;}
   async context(path,authorize){
@@ -41,8 +41,9 @@ export class ContentRevisions {
       const last=await this.provider.revision(payload.path,history.revisions[0].commit,head);baseline=last.source||last.before;
       if(!baseline)throw new ContentError(422,'history_missing','The last saved proposal cannot be recovered.');
     }
-    const restored=await rubyEditor({operation:'restore_prepare',path:payload.path,current:current?.bytes.toString('utf8')||null,historical:selected.source,baseline,preparedAt,
-      ...(removed?{removedSource:snapshot.files.get('_data/removed_proposals.yml').bytes.toString('utf8')}:{})});
+    const proposal=payload.path.startsWith('_posts/');
+    const restored=await rubyEditor(proposal?{operation:'restore_prepare',path:payload.path,current:current?.bytes.toString('utf8')||null,historical:selected.source,baseline,preparedAt,
+      ...(removed?{removedSource:snapshot.files.get('_data/removed_proposals.yml').bytes.toString('utf8')}:{})}:{operation:'supporting',action:'restore',path:payload.path,source:selected.source,current:current.bytes.toString('utf8'),preparedAt});
     if(restored.error)throw new ContentError(422,'invalid_restoration',restored.message,{errors:restored.errors});
     if(!restored.changed)throw new ContentError(422,'no_changes','This revision has no restorable content/status differences; current ordering is kept.');
     const changes=[{path:payload.path,sha:current?.sha||null,content:restored.source}];
@@ -52,9 +53,9 @@ export class ContentRevisions {
     return {snapshot,selected,restored,changes,current,removed};
   }
   async preview(session,payload,authorize){
-    if(typeof payload?.path!=='string'||!payload.path.startsWith('_posts/'))throw new ContentError(422,'invalid_restoration','Restore proposal revisions here.');
+    if(typeof payload?.path!=='string'||!editable(payload.path)||!payload.path.startsWith('_posts/')&&(!this.supporting||!/^_(?:team|news)\/|^_data\/(?:home|about)\.yml$/.test(payload.path)))throw new ContentError(422,'invalid_restoration','Choose supported content to restore.');
     const preparedAt=new Date(this.now()).toISOString();const value=await this.candidate(payload,authorize,preparedAt);
-    const rendered=await this.editor.prepare({operation:'preview',source:value.restored.source,context:{path:payload.path,baseCommit:payload.baseCommit,sha:payload.sha}},authorize);
+    const rendered=payload.path.startsWith('_posts/')?await this.editor.prepare({operation:'preview',source:value.restored.source,context:{path:payload.path,baseCommit:payload.baseCommit,sha:payload.sha}},authorize):{html:await this.supporting.render(value.snapshot,payload.path,value.restored.source,authorize)};
     if(!rendered.html)throw new ContentError(422,'invalid_restoration','The restoration cannot be previewed.',{errors:rendered.previewErrors||rendered.errors});
     const diff=await rubyEditor({operation:'revision_diff',path:payload.path,before:value.current?.bytes.toString('utf8')||null,after:value.restored.source});
     const previewId=randomBytes(24).toString('hex');if(this.previews.size>=1000)throw new ContentError(429,'preview_capacity','Too many pending restoration confirmations.');

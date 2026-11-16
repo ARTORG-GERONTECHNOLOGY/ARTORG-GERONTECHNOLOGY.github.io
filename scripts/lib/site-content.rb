@@ -77,12 +77,18 @@ module SiteContent
     raise Proposals::FormatError, "#{field}: use a timestamp with timezone, such as 2026-11-12T09:00:00Z"
   end
 
-  def self.news!(document, source)
+  def self.news!(document, source, previous: nil)
     %w[title summary].each { |key| text!(document.metadata[key], key) }
     text!(document.body, "body")
     published = timestamp!(document.metadata["date"], "date")
     updated = timestamp!(document.metadata["updated_at"], "updated_at")
+    timestamp!(document.metadata['created_at'],'created_at') if document.metadata.key?('created_at')
     raise Proposals::FormatError, "updated_at: cannot precede publication" if updated < published
     image!(document.metadata["image"], source)
+    if previous
+      %w[date created_at].each { |key| raise Proposals::FormatError,"#{key}: original publication/creation cannot change" if previous.metadata.key?(key) && document.metadata[key]!=previous.metadata[key] }
+      changed=document.body!=previous.body || ((document.metadata.keys|previous.metadata.keys)-['updated_at']).any? { |key| document.metadata[key]!=previous.metadata[key] }
+      raise Proposals::FormatError,'updated_at: must advance after substantive news edits' if changed && updated<=timestamp!(previous.metadata['updated_at'],'previous.updated_at')
+    end
   end
 end

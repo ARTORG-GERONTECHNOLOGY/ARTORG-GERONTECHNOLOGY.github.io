@@ -588,6 +588,10 @@ Step 21 adds [revision history and restoration](../admin-service/README.md#revis
 including comparisons, validated previews and recovery of deleted proposals.
 Restoration returns content/status while preserving current order; deleted
 proposals reuse their former priority. Confirmation creates a new revision.
+Step 22 adds [Home, News, Team and About editors](../admin-service/README.md#home-news-team-and-about-editors-step-22),
+including images, private draft downloads, shared previews and revision restoration.
+Profile IDs/links remain stable; renaming a profile leaves proposal supervisor
+names unchanged. About's QR destination follows canonical configuration.
 Local access is prepared; live HTTPS hosting and production
 credentials remain separate, unperformed operations.
 

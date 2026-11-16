@@ -31,7 +31,7 @@ export async function staticMath(html) {
     await page.evaluate(() => {
       document.querySelectorAll('script,#MathJax_Message').forEach(node => node.remove());
       const policy = document.createElement('meta'); policy.httpEquiv = 'Content-Security-Policy';
-      policy.content = "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; font-src data:; script-src 'none'; base-uri 'none'; form-action 'none'";
+      policy.content = "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data: https:; font-src data:; script-src 'none'; base-uri 'none'; form-action 'none'";
       document.head.prepend(policy);
       const referrer = document.createElement('meta'); referrer.name = 'referrer'; referrer.content = 'no-referrer'; document.head.prepend(referrer);
     });

@@ -228,6 +228,11 @@ test('content HTTP routes require session, Origin and CSRF and never expose App 
     assert.ok(!saved.text.includes('fixture-installation-token') && !saved.text.includes('PRIVATE KEY'));
     assert.equal((await request('/admin/api/content/save', options)).status, 409);
     assert.equal((await request('/admin/api/media/list')).status,401);
+    assert.equal((await request('/admin/api/editor/supporting')).status,401);
+    const supported=await request('/admin/api/editor/supporting',{headers:{cookie}});assert.equal(supported.status,200);const home=JSON.parse(supported.text).items.find(item=>item.kind==='home');
+    const supportingEdit={...options,body:JSON.stringify({operation:'compose',path:home.path,source:home.source,patch:{title:'HTTP supporting content'}})};
+    assert.equal((await request('/admin/api/editor/support-prepare',{...supportingEdit,headers:{...supportingEdit.headers,'x-csrf-token':'bad'}})).status,403);
+    const supportingResult=await request('/admin/api/editor/support-prepare',supportingEdit);assert.equal(supportingResult.status,200);assert.equal(JSON.parse(supportingResult.text).ready,true);
     const mediaList=await request('/admin/api/media/list',{headers:{cookie}});assert.equal(mediaList.status,200);
     const image=await fs.readFile(new URL('../../assets/images/branding/bfh.png',import.meta.url));
     const proposalId=/^proposal_id:\s*["']?([a-z0-9-]+)/m.exec(f.fake.files.get(path).bytes.toString('utf8'))[1];
@@ -237,6 +242,8 @@ test('content HTTP routes require session, Origin and CSRF and never expose App 
     assert.equal((await request(uploadRoute,{...uploadOptions,headers:{...uploadOptions.headers,origin:'https://wrong.example'}})).status,403);
     const upload=await request(uploadRoute,uploadOptions);assert.equal(upload.status,201);const uploaded=JSON.parse(upload.text);
     const download=await request('/admin/api/media/file?id='+uploaded.id,{headers:{cookie}});assert.equal(download.status,200);assert.deepEqual(download.bytes,image);assert.equal(download.headers['content-type'],'image/png');assert.ok(download.headers['content-disposition'].startsWith('attachment;'));
+    assert.equal((await request('/admin/api/media/image?id='+uploaded.id)).status,401);
+    const inlineImage=await request('/admin/api/media/image?id='+uploaded.id,{headers:{cookie}});assert.equal(inlineImage.status,200);assert.equal(inlineImage.headers['content-disposition'],'inline');assert.deepEqual(inlineImage.bytes,image);
     assert.ok(download.headers['content-disposition'].includes("filename*=UTF-8''HTTP%20figure%27s%20%C3%BC.png"));
     const other=(await request('/admin/access?token='+token)).headers['set-cookie'][0].split(';')[0];
     assert.equal((await request('/admin/api/media/file?id='+uploaded.id,{headers:{cookie:other}})).status,404);

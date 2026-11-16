@@ -471,8 +471,66 @@ and supports restoration previews. Final confirmation is disabled until GitHub
 is configured. Read-only Git commands disable signature verification/notes and
 external text converters/diff programs. Existing local drafts and source documents
 are not used as historical proposals. Supporting Markdown/YAML history reads
-are available through the shared backend for later supporting-content editors;
-this step's restoration UI is for proposals.
+are also available in the supporting-content editors described below.
 
 API references: [GitHub commit history and comparison](https://docs.github.com/en/rest/commits/commits),
 [immutable Git trees](https://docs.github.com/en/rest/git/trees).
+
+## Home, News, Team and About editors (Step 22)
+
+Open **Home**, **About**, an existing team/news item, **New team profile** or
+**New news item** in the administration panel. These forms use the same protected
+save connection, public-content warning, conflict handling, Write/Preview views
+and Revisions tab as proposals. Local review keeps final saving/restoration
+disabled while GitHub is disconnected. No sample announcement is created.
+
+Home controls its title/introduction, section visibility, list limits, links and
+optional hero image. About controls its existing public text, application steps,
+institutional links and corrections contact. The QR destination remains derived
+from the canonical website configuration, with the generated QR in the preview;
+it is not a separate editable address. The previously removed staff submission
+section stays absent from both the editor and public page.
+
+Team profiles provide name, role, public email, research interests, biography,
+links, portrait, display order and active flag. Inactive profiles disappear from
+the Team listing while retaining their public profile and proposal links.
+Stable IDs, filenames and addresses cannot be edited. As requested, renaming a
+person does not change the supervisor names stored in existing proposals.
+News provides title, summary, Markdown body and optional image in its separate
+collection; announcements never become student proposals. Original publication
+dates are preserved. New items receive their first publication date on save;
+substantive team/news edits advance the update date, while profile-order changes
+alone do not. Older profiles without recorded dates refer operators to Revisions.
+
+Preview builds the candidate through the trusted Jekyll templates and shared
+sanitized rendering. Scripts are removed and the embedded page cannot execute
+scripts. Image reads use authenticated, read-only service URLs; the generated QR
+and trusted fonts are embedded. These private preview URLs never enter public
+content. Public output continues to use ordinary static assets.
+
+The existing media picker supports Home hero images, team portraits and news
+images. Temporary uploads belong to the current session and content item and
+are inspected with the same image rules as proposal uploads. Selected images
+save atomically with their referencing content. Unlinking keeps shared files.
+Download temporary files before signing out or expiry.
+
+**Download draft** saves team/news Markdown (`.md`) or Home/About YAML (`.yml`)
+on your computer. **Open downloaded draft** reopens either format, including its
+original revision information for conflict detection. Downloads are marked as
+private drafts and rejected by the public-save validator until prepared for
+publication. They contain no credentials or image bytes. Nothing is stored as a
+durable server draft; unsaved-change warnings also apply to these forms.
+
+History and restoration use the same session-bound confirmation and new-commit
+flow as proposals. Team restoration returns profile content/active state while
+keeping its current display order; news keeps its original publication date.
+IDs and addresses remain unchanged. Shared assets must still exist and restored
+content must pass current rules. Deletion/recovery controls remain proposal-only.
+
+Supporting routes are `GET /admin/api/editor/supporting` and
+`POST /admin/api/editor/support-prepare`; image preview reads use
+`GET /admin/api/media/image?path=...`. Existing session, Origin/CSRF, allowed-path,
+upload ownership, whole-candidate validation and SHA conflict gates apply.
+Local checks exercise representative edits, public rendering, history and
+restoration for all four types using isolated providers, without modifying real
+site content or contacting GitHub.

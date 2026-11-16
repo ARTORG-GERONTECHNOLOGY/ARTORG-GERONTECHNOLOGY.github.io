@@ -70,18 +70,21 @@ begin
           expected_layout = path.start_with?('_posts/') ? 'post' : path.start_with?('_team/') ? 'team' : 'news'
           raise Proposals::FormatError, 'Do not select another layout or enable author execution' if data['layout'] && data['layout'] != expected_layout || (data.keys & %w[render_with_liquid output redirect_to]).any?
           raise Proposals::FormatError, 'Private/unpublished drafts must stay outside the public repository' if data.key?('published') && data['published'] != true
+          raise Proposals::FormatError, 'Private draft annotations must stay outside the public repository' if data.key?('_editor_draft')
           raise Proposals::FormatError, 'Proposals require layout: post' if path.start_with?('_posts/') && data['layout'] != 'post'
           if path.start_with?('_team/')
-            Team.validate!(document, File.join(source, path), source)
+            Team.validate!(document, File.join(source, path), source, previous: previous[path] && Proposals::Document.parse(previous[path]))
           elsif path.start_with?('_news/')
-            SiteContent.news!(document, source)
+            SiteContent.news!(document, source, previous: previous[path] && Proposals::Document.parse(previous[path]))
             stable = '/news/' + File.basename(path, '.md') + '/'
             raise Proposals::FormatError, 'Retain the news URL derived from its immutable filename' if data['permalink'] && data['permalink'] != stable
           end
         elsif path == '_data/home.yml'
-          SiteContent.home!(Proposals.load_yaml(content), source)
+          data=Proposals.load_yaml(content);raise Proposals::FormatError,'Private draft annotations cannot be published' if data.key?('_editor_draft')
+          SiteContent.home!(data, source)
         elsif path == '_data/about.yml'
-          SiteContent.about!(Proposals.load_yaml(content))
+          data=Proposals.load_yaml(content);raise Proposals::FormatError,'Private draft annotations cannot be published' if data.key?('_editor_draft')
+          SiteContent.about!(data)
         end
       rescue Proposals::FormatError => error
         (errors[path] ||= []) << error.message

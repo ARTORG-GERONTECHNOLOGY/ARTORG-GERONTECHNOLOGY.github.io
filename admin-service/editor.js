@@ -6,6 +6,7 @@
   let mediaFiles=[],mediaRules;
   let orderDirty=false,orderPaths=[],draggedPath,deleteTarget,listNeedsReload=false;
   let historyPath,historyPage=0,historyBusy=false;
+  let supportingItems=[],supportingBase,qrDestination;
   const listMessage=text=>{$('list-state').textContent=text;};
   const formatDate = value => value ? new Intl.DateTimeFormat('en-GB', {dateStyle:'medium', timeStyle:'short', timeZone:'Europe/Zurich'}).format(new Date(value)) : 'Not yet published';
   function node(tag, text, attributes = {}) { const item = document.createElement(tag); if (text !== undefined) item.textContent = text; for (const [name,value] of Object.entries(attributes)) item.setAttribute(name,value); return item; }
@@ -43,6 +44,8 @@
     fields.set(key,{error,add,read:()=>records.map(record=>{ const value={}; for(const column of columns) { const raw=record.inputs[column.key].value; if(column.type==='number') {if(raw!=='')value[column.key]=Number(raw);} else if(raw!==''||column.required) value[column.key]=raw; } return value; })});
   }
   function populate(model, context) {
+    if(model.supporting||model.kind){populateSupporting(model,context);return;}
+    $('editor-title').textContent='Proposal editor';$('preview-panel').querySelector('h3').textContent='Proposal preview';
     $('write-tab').hidden=false;$('preview-tab').hidden=false;$('split-view').parentElement.hidden=false;$('publication-actions').hidden=false;
     fields.clear(); $('proposal-form').replaceChildren(); state={...model,context}; const m=model.metadata;
     let p=group('Proposal details'); field(p,'Title','title',m.title); field(p,'Short summary','summary',m.summary,{area:true});
@@ -68,6 +71,7 @@
     message('No unsaved changes'); tabs('write'); $('editor-title').scrollIntoView({block:'start'});
   }
   function values() {
+    if(state.supporting)return supportingValues();
     const patch={}; const sections={};
     for(const [key,record] of fields) {
       if(record.read) { patch[key]=record.read(); continue; }
@@ -82,10 +86,60 @@
     if(!patch.figure.src&&!patch.figure.alt&&!patch.figure.caption) patch.figure=null;
     return {source:state.source,context:state.context,patch,sections};
   }
+  function populateSupporting(model,context){
+    fields.clear();$('proposal-form').replaceChildren();state={...model,supporting:true,context};const m=model.metadata;const kind=model.kind;
+    $('write-tab').hidden=false;$('preview-tab').hidden=false;$('split-view').parentElement.hidden=false;$('publication-actions').hidden=false;
+    $('editor-title').textContent={home:'Homepage editor',about:'About editor',team:'Team profile editor',news:'News editor'}[kind];$('preview-panel').querySelector('h3').textContent='Public page preview';
+    let p=group('Content');
+    if(kind==='home'){
+      field(p,'Title','title',m.title);field(p,'Introduction','introduction',m.introduction,{area:true});
+      for(const [key,label] of [['introduction','Show introduction'],['proposals','Show available proposals'],['news','Show news']])field(p,label,'sections.'+key,m.sections?.[key],{type:'checkbox'});
+      field(p,'Maximum proposals on homepage','proposal_limit',m.proposal_limit,{type:'number',step:'1'});field(p,'Maximum news items on homepage','news_limit',m.news_limit,{type:'number',step:'1'});
+      rows(p,'Links','links',m.links,[{key:'label',label:'Link text',required:true},{key:'url',label:'URL or site path',required:true}]);
+    }else if(kind==='about'){
+      for(const [key,label] of [['title','Title'],['overview','Overview'],['group_text','About the group'],['program_text','Study program'],['eligibility_text','Student eligibility explanation'],['corrections_text','Corrections and removal requests'],['corrections_email','Public corrections email']])field(p,label,key,m[key],{area:!['title','corrections_email'].includes(key)});
+      field(p,'Application steps (one per line)','application_steps',(m.application_steps||[]).join('\n'),{area:true,rows:6});
+      rows(p,'Institutional links','institutional_links',m.institutional_links,[{key:'label',label:'Link text',required:true},{key:'url',label:'HTTPS institutional URL',required:true}]);p.append(node('p','QR destination: '+qrDestination+' — derived from the website configuration.'));
+    }else if(kind==='team'){
+      field(p,'Stable profile ID','team_id',m.team_id,{readonly:true});field(p,'Name','name',m.name);field(p,'Role','role',m.role);field(p,'Public email (optional)','email',m.email);field(p,'Active — show in Team listing','active',m.active,{type:'checkbox'});field(p,'Display order','display_order',m.display_order,{type:'number',step:'1'});
+      field(p,'Research interests (one per line)','interests',(m.interests||[]).join('\n'),{area:true});rows(p,'Links','links',m.links,[{key:'label',label:'Link text',required:true},{key:'url',label:'URL or site path',required:true}]);field(p,'Biography (Markdown)','body',model.body,{area:true,rows:10});
+      p.append(node('p','Inactive members keep their profiles and proposal links. A changed profile name leaves names on existing proposals unchanged.'));
+    }else{
+      field(p,'Title','title',m.title);field(p,'Short summary','summary',m.summary,{area:true});field(p,'News text (Markdown)','body',model.body,{area:true,rows:12});
+    }
+    if(['team','news'].includes(kind)){
+      p=group('Dates and address');field(p,'Permanent address','permalink',m.permalink||'/'+kind+'/'+model.path.split('/')[1].slice(0,-3)+'/',{readonly:true});
+      for(const [key,label] of [['created_at','Created'],['date','Initial publication'],['updated_at','Last edited']]){if(key==='date'&&kind!=='news')continue;field(p,label,key,m[key]?formatDate(m[key])+' (Europe/Zurich)':key==='date'?'Assigned on first publication':'Not recorded; see Revisions',{readonly:true,help:m[key]?'Stored value: '+m[key]:''});}
+    }
+    if(kind!=='about'){
+      const imageKey={home:'hero_image',team:'portrait',news:'image'}[kind];p=group('Optional image');const picker=node('section',undefined,{id:'media-picker','aria-label':'Media files'});p.append(picker);
+      for(const [key,label] of [['src','Image URL or existing asset path'],['alt','Alternative text'],['caption','Optional caption']])field(p,label,imageKey+'.'+key,m[imageKey]?.[key]);renderMedia();
+    }
+    dirty=false;$('editor').hidden=false;$('errors').hidden=true;$('reload').hidden=true;$('preview-frame').srcdoc='';$('preview-state').textContent='Preview has not been generated.';
+    historyPath=context.sha?model.path:undefined;historyPage=0;$('history-list').replaceChildren();$('revision-detail').hidden=true;$('older-revisions').hidden=true;$('history-state').textContent='Open Revisions to load saved history.';
+    $('save').disabled=!bootstrap.canPublish;message('No unsaved changes');tabs('write');$('editor-title').scrollIntoView({block:'start'});
+  }
+  function supportingValues(){
+    const patch={};let body;
+    for(const [key,record] of fields){if(record.read){patch[key]=record.read();continue;}const input=record.input;if(input.readOnly)continue;
+      let value=input.type==='checkbox'?input.checked:input.type==='number'?(input.value===''?null:Number(input.value)):input.value;
+      if(key==='body'){body=value===(state.body||'').replace(/\r\n/g,'\n')?state.body:value;continue;}
+      if(key.includes('.')){const [parent,child]=key.split('.');(patch[parent]||={})[child]=value;}
+      else if(['interests','application_steps'].includes(key))patch[key]=value.split('\n').filter(line=>line.trim());
+      else if(value!==''||Object.hasOwn(state.metadata,key))patch[key]=value;
+    }
+    const imageKey={home:'hero_image',team:'portrait',news:'image'}[state.kind];if(imageKey&&!patch[imageKey].src&&!patch[imageKey].alt&&!patch[imageKey].caption)patch[imageKey]=null;
+    return {source:state.source,path:state.path,context:state.context,patch,...(body===undefined?{}:{body})};
+  }
+  async function loadSupporting(){
+    const result=await api('supporting');supportingItems=result.items;supportingBase=result.baseCommit;qrDestination=result.qrDestination;$('supporting-list').replaceChildren();
+    for(const item of supportingItems){const button=node('button',item.kind==='home'?'Home':item.kind==='about'?'About':(item.kind==='team'?'Team: ':'News: ')+(item.metadata.name||item.metadata.title),{type:'button',class:'secondary'});button.addEventListener('click',()=>openSupporting(item));$('supporting-list').append(button);}
+  }
+  function openSupporting(item){if(busy||orderDirty){listMessage('Save or reset the proposed order first.');return;}if(dirty&&!confirm('Discard this working copy? Download it first to keep unfinished work.'))return;populateSupporting(item,{path:item.path,kind:item.kind,sha:item.sha,baseCommit:supportingBase});}
   function errors(value) {
     $('error-list').replaceChildren(); for(const record of fields.values()) if(record.error) {record.error.textContent=''; record.input?.removeAttribute('aria-invalid');}
     const entries=Object.entries(value||{}); $('errors').hidden=!entries.length;
-    for(const [key,messages] of entries) { const record=fields.get(key)||fields.get('section.'+key)||fields.get(key.split('[')[0]); const text=messages.join('; '); $('error-list').append(node('li',key+': '+text)); if(record?.error){record.error.textContent+=(record.error.textContent?' · ':'')+text;record.input?.setAttribute('aria-invalid','true');} }
+    for(const [key,messages] of entries) { const record=fields.get(key)||fields.get('section.'+key)||fields.get(key.split(/[.\[]/)[0]); const text=messages.join('; '); $('error-list').append(node('li',key+': '+text)); if(record?.error){record.error.textContent+=(record.error.textContent?' · ':'')+text;record.input?.setAttribute('aria-invalid','true');} }
   }
   function tabs(name) { for(const kind of ['write','preview','revisions']) {$(`${kind}-tab`).setAttribute('aria-selected',String(kind===name));$(`${kind}-panel`).hidden=name==='revisions'?kind!=='revisions':kind==='revisions'||kind!==name&&!$('split-view').checked;} $('editor-panels').classList.toggle('split', $('split-view').checked&&name!=='revisions'); }
   async function loadHistory(more=false){
@@ -116,13 +170,13 @@
     if(busy||!state||historyPath!==path)return;busy=true;$('history-state').textContent='Validating and preparing restoration preview…';
     try{
       const value=await api('restore-preview',{path,commit,baseCommit:state.context.baseCommit,sha:state.context.sha??null});if(historyPath!==path)return;
-      panel.querySelector('.restoration-preview')?.remove();const result=node('section',undefined,{class:'restoration-preview'});result.append(node('h4',value.deleted?'Proposed recovery: earlier content/status return, using its priority just before deletion.':'Proposed restoration: content and status return; current ordering is kept.'));diffView(result,value.diff);
+      panel.querySelector('.restoration-preview')?.remove();const result=node('section',undefined,{class:'restoration-preview'});result.append(node('h4',state.supporting?'Proposed restoration of saved page content. Profile order and original addresses/publication dates are retained.':value.deleted?'Proposed recovery: earlier content/status return, using its priority just before deletion.':'Proposed restoration: content and status return; current ordering is kept.'));diffView(result,value.diff);
       const frame=node('iframe',undefined,{title:'Restoration preview',sandbox:'allow-same-origin',referrerpolicy:'no-referrer',class:'restoration-frame'});frame.srcdoc=value.html;result.append(frame);
       const button=node('button',value.deleted?'Confirm recovery as a new revision':'Confirm restoration as a new revision',{type:'button'});button.disabled=!value.canRestore;
       if(!value.canRestore)result.append(node('p','Local review: this preview is available, but GitHub saving is not connected.'));
       button.addEventListener('click',async()=>{
         if(busy)return;if(dirty||orderDirty){$('history-state').textContent='Keep unfinished work: save/download and close the working proposal, or reset the proposed order, before restoring.';return;}
-        if(!confirm('Restore this content and status as a new revision? Original identity/dates stay unchanged, and history will be retained.'))return;
+        if(!confirm('Restore this saved content as a new revision? Original identity/dates stay unchanged, and history will be retained.'))return;
         busy=true;try{await api('restore',{previewId:value.previewId,confirmation:commit});button.disabled=true;listNeedsReload=true;
           try{await refreshAfterListSave();listMessage('Restoration committed; checks/build pending. Production publication is not yet confirmed.');}
           catch{listMessage('Restoration committed; checks/build pending. Reload the list to see the new revision.');}
@@ -152,21 +206,22 @@
     if(!state||busy)return; busy=true; message(name==='preview'?'Preparing preview…':'Preparing proposal…');
     try {
       const payload={...values(),operation:name};
-      if(['compose','publish'].includes(name)) {const problems=clientErrors(payload.patch); if(Object.keys(problems).length){errors(problems);message('Please correct the highlighted fields. Your working copy is unchanged.');return;}}
-      const result=await api('prepare',payload); errors(result.previewErrors||result.errors);
+      if(!state.supporting&&['compose','publish'].includes(name)) {const problems=clientErrors(payload.patch); if(Object.keys(problems).length){errors(problems);message('Please correct the highlighted fields. Your working copy is unchanged.');return;}}
+      const result=await api(state.supporting?'support-prepare':'prepare',payload); errors(result.previewErrors||result.errors);
       if(name==='preview') { if(result.html){$('preview-frame').srcdoc=result.html; $('preview-state').textContent=result.ready?'Preview is current.':'Draft preview — publication fields still need attention.';} else $('preview-state').textContent='Correct the highlighted fields before previewing.'; }
-      if(name==='download') { const file=new Blob([result.source],{type:'text/markdown;charset=utf-8'}); const url=URL.createObjectURL(file); const link=node('a',undefined,{href:url,download:(result.metadata.proposal_id||'proposal')+'-draft.md'}); link.click();setTimeout(()=>URL.revokeObjectURL(url),1000); message('Markdown draft downloaded. Keep this file to continue later.'); }
+      if(name==='download') { const file=new Blob([result.source],{type:'text/plain;charset=utf-8'}); const url=URL.createObjectURL(file); const filename=state.supporting?state.path.split('/').at(-1).replace(/\.(md|yml)$/,'-draft.$1'):(result.metadata.proposal_id||'proposal')+'-draft.md';const link=node('a',undefined,{href:url,download:filename}); link.click();setTimeout(()=>URL.revokeObjectURL(url),1000); message('Draft downloaded. Keep this file and any temporary images to continue later.'); }
       else if(name==='publish') {
         if(!result.ready) {message('Please correct the highlighted fields. Your working copy is unchanged.'); return;}
-        const path=state.context.path||result.metadata.date.slice(0,10)+'-project-'+result.metadata.proposal_id+'.md';
-        const selected=new Set([payload.patch.figure?.src,...payload.patch.attachments.map(file=>file.url)]);
+        if(state.supporting&&result.changed===false){message('There are no changes to save.');return;}
+        const path=state.supporting?state.path:state.context.path||result.metadata.date.slice(0,10)+'-project-'+result.metadata.proposal_id+'.md';
+        const selected=new Set(state.supporting?[payload.patch[{home:'hero_image',news:'image',team:'portrait'}[state.kind]]?.src]:[payload.patch.figure?.src,...payload.patch.attachments.map(file=>file.url)]);
         const uploads=mediaFiles.filter(file=>file.temporary&&selected.has(file.url)).map(file=>file.id);
-        const saved=await api('save',{baseCommit:state.context.baseCommit,changes:[{path:path.startsWith('_posts/')?path:'_posts/'+path,sha:state.context.sha??null,content:result.source}],uploads});
-        const savedPath=path.startsWith('_posts/')?path:'_posts/'+path;
+        const savedPath=state.supporting?path:path.startsWith('_posts/')?path:'_posts/'+path;
+        const saved=await api('save',{baseCommit:state.context.baseCommit,changes:[{path:savedPath,sha:state.context.sha??null,content:result.source}],uploads});
         populate(result,{path:savedPath,baseCommit:saved.commit,sha:saved.files.find(file=>file.path===savedPath).sha});
         message('Committed; validation/build pending. This is not a live deployment confirmation.');
-        try { bootstrap=await api('bootstrap'); await loadMedia();renderList();renderMedia(); } catch { message('Committed; validation/build pending. The list could not refresh. Reload it before editing another proposal.'); }
-      } else if(name!=='download') message(result.ready?'Proposal checks passed.':'Working copy retained — required publication fields need attention.');
+        try { bootstrap=await api('bootstrap'); await loadSupporting();await loadMedia();renderList();renderMedia(); } catch { message('Committed; validation/build pending. The list could not refresh. Reload it before editing more content.'); }
+      } else if(name!=='download') message(result.ready?'Content checks passed.':'Working copy retained — required publication fields need attention.');
     } catch(error) { errors(error.data?.errors||{});message(error.message+' Your working copy remains in this tab.');if(error.status===409)$('reload').hidden=false; }
     finally {busy=false;}
   }
@@ -181,7 +236,7 @@
   function renderMedia() {
     const panel=$('media-picker');if(!panel)return;panel.replaceChildren(node('h3','Choose or upload a file'));
     const status=node('p','',{role:'status'});
-    const label=node('label','Upload PNG, JPEG, WebP or PDF (up to 10 MiB)');const input=node('input',undefined,{type:'file',accept:'.png,.jpg,.jpeg,.webp,.pdf'});label.append(input);panel.append(label,status);
+    const label=node('label',state.supporting?'Upload PNG, JPEG or WebP (up to 10 MiB)':'Upload PNG, JPEG, WebP or PDF (up to 10 MiB)');const input=node('input',undefined,{type:'file',accept:state.supporting?'.png,.jpg,.jpeg,.webp':'.png,.jpg,.jpeg,.webp,.pdf'});label.append(input);panel.append(label,status);
     input.addEventListener('change',async()=>{
       const file=input.files[0];if(!file||busy)return;
       if(file.size>(mediaRules?.max_file_bytes||10485760)){status.textContent='Choose a file no larger than 10 MiB.';input.value='';return;}
@@ -189,20 +244,20 @@
       try{
         const session=await fetch('/admin/api/session',{credentials:'same-origin'});if(!session.ok)throw new Error('Your session ended. Open the private link in another tab, then retry.');
         const token=(await session.json()).csrf;const extension='.'+file.name.split('.').at(-1).toLowerCase();
-        const response=await fetch('/admin/api/media/upload?'+new URLSearchParams({filename:file.name,proposalId:state.metadata.proposal_id}),{method:'POST',credentials:'same-origin',headers:{'Content-Type':mediaRules?.types[extension]||file.type||'application/octet-stream','X-CSRF-Token':token},body:file});
+        const response=await fetch('/admin/api/media/upload?'+new URLSearchParams({filename:file.name,...(state.supporting?{target:state.path}:{proposalId:state.metadata.proposal_id})}),{method:'POST',credentials:'same-origin',headers:{'Content-Type':mediaRules?.types[extension]||file.type||'application/octet-stream','X-CSRF-Token':token},body:file});
         const value=await response.json().catch(()=>({message:'The upload was rejected. Check its type and size.'}));if(!response.ok)throw new Error(value.message);
         dirty=true;
         await loadMedia();renderMedia();$('media-select').value=value.url;$('media-select').dispatchEvent(new Event('change'));
-        message('File checked and uploaded privately. Choose “Use as figure” or “Add as attachment” before saving.');
+        message(state.supporting?'Image checked and uploaded privately. Choose “Use image” before saving.':'File checked and uploaded privately. Choose “Use as figure” or “Add as attachment” before saving.');
       }catch(error){status.textContent=error.message+' Your proposal remains unchanged.';}finally{busy=false;input.value='';}
     });
     const selectLabel=node('label','Existing and temporary files',{for:'media-select'});const select=node('select',undefined,{id:'media-select'});select.append(node('option','Choose a file…',{value:''}));
-    const own=mediaFiles.filter(file=>!file.temporary||file.url.startsWith('/assets/media/proposals/'+state.metadata.proposal_id+'/'));
+    const own=mediaFiles.filter(file=>(!state.supporting||file.mime_type.startsWith('image/'))&&(!file.temporary||(state.supporting?file.ownerPath===state.path:file.url.startsWith('/assets/media/proposals/'+state.metadata.proposal_id+'/'))));
     for(const file of own)select.append(node('option',(file.temporary?'Temporary · ':'')+file.title+' · '+file.mime_type+' · '+(file.size/1024).toFixed(1)+' KB',{value:file.url}));
-    const buttons=node('div',undefined,{class:'actions'});const figure=node('button','Use as figure',{type:'button'});const attach=node('button','Add as attachment',{type:'button'});const download=node('a','Download selected file',{hidden:'',class:'media-download'});
+    const buttons=node('div',undefined,{class:'actions'});const figure=node('button',state.supporting?'Use image':'Use as figure',{type:'button'});const attach=node('button','Add as attachment',{type:'button'});attach.hidden=Boolean(state.supporting);const download=node('a','Download selected file',{hidden:'',class:'media-download'});
     const chosen=()=>own.find(file=>file.url===select.value);
     select.addEventListener('change',()=>{const file=chosen();download.hidden=!file;if(file){download.href='/admin/api/media/file?'+new URLSearchParams(file.temporary?{id:file.id}:{path:file.url.slice(1)});download.textContent=file.temporary?'Download temporary file':'Download selected file';}});
-    figure.addEventListener('click',()=>{const file=chosen();if(!file)return;if(!file.mime_type.startsWith('image/')){status.textContent='Choose an image for a figure. PDFs can be added as attachments.';return;}fields.get('figure.src').input.value=file.url;fields.get('figure.alt').input.focus();changed();status.textContent='Figure selected. Add alternative text and an optional caption below.';});
+    figure.addEventListener('click',()=>{const file=chosen();if(!file)return;if(!file.mime_type.startsWith('image/')){status.textContent='Choose an image for a figure. PDFs can be added as attachments.';return;}const key=state.supporting?{home:'hero_image',team:'portrait',news:'image'}[state.kind]:'figure';fields.get(key+'.src').input.value=file.url;fields.get(key+'.alt').input.focus();changed();status.textContent='Image selected. Add alternative text and an optional caption below.';});
     attach.addEventListener('click',()=>{const file=chosen();if(!file)return;fields.get('attachments').add({title:file.title,url:file.url,mime_type:file.mime_type,size:file.size});changed();status.textContent='Attachment added. You can edit its title below.';});
     buttons.append(figure,attach,download);panel.append(selectLabel,select,buttons);
   }
@@ -211,6 +266,7 @@
       const session=await fetch('/admin/api/session',{credentials:'same-origin'}).then(r=>r.json());csrf=session.csrf;
       bootstrap=await api('bootstrap'); $('connection').textContent=bootstrap.canPublish?'Connected to the staff content branch. Saves wait for validation.':'Local review — GitHub saving is not connected. You can edit, preview and download drafts.';
       renderList();
+      try{await loadSupporting();}catch(error){listMessage(error.message);}
       try{await loadDeleted();}catch(error){listMessage(error.message);}
       try{await loadMedia();}catch(error){$('connection').textContent+=' '+error.message;}
     } catch(error){$('connection').textContent=error.message;}
@@ -254,8 +310,8 @@
     }catch(error){if(error.status===409)listNeedsReload=true;listMessage(error.message+' The working copy is retained. Reload the list after comparing any newer changes.');}finally{busy=false;}
   }
   async function refreshAfterListSave(){
-    bootstrap=await api('bootstrap');orderDirty=false;listNeedsReload=false;renderList();
-    if(state&&!dirty){const current=bootstrap.proposals.find(item=>item.path===state.context.path);if(current)populate(current,{path:current.path,sha:current.sha,baseCommit:bootstrap.baseCommit});else{$('editor').hidden=true;state=null;dirty=false;}}
+    bootstrap=await api('bootstrap');await loadSupporting();orderDirty=false;listNeedsReload=false;renderList();
+    if(state&&!dirty){const current=(state.supporting?supportingItems:bootstrap.proposals).find(item=>item.path===state.context.path);if(current)populate(current,{path:current.path,sha:current.sha,baseCommit:bootstrap.baseCommit});else{$('editor').hidden=true;state=null;dirty=false;}}
     await loadDeleted();
   }
   $('save-order').addEventListener('click',async()=>{if(busy||!orderDirty||listNeedsReload)return;if(dirty){listMessage('Reset the proposed order before saving proposal edits. Both working copies are retained.');return;}busy=true;try{await api('lifecycle',{action:'order',baseCommit:bootstrap.baseCommit,order:orderPaths});orderDirty=false;listNeedsReload=true;try{await refreshAfterListSave();listMessage('Order committed; checks/build pending. Content-update dates were preserved.');}catch{renderList();listMessage('Order committed; checks/build pending. Reload the list before another action.');}}catch(error){if(error.status===409)listNeedsReload=true;listMessage(error.message+' The proposed order is retained; reset/reload only after comparing newer changes.');}finally{busy=false;}});
@@ -266,9 +322,10 @@
   $('confirm-delete').addEventListener('click',()=>{const item=deleteTarget;$('delete-dialog').close();if(item)lifecycleAction(item,'delete');});
   $('delete-dialog').addEventListener('close',()=>{deleteTarget=null;});
   $('proposal-form').addEventListener('input',changed); $('proposal-form').addEventListener('change',changed);
-  $('close-editor').addEventListener('click',()=>{if(busy)return;if(dirty&&!confirm('Close and discard this working proposal? Download Markdown and temporary files first to keep unfinished work.'))return;$('editor').hidden=true;state=null;dirty=false;fields.clear();listMessage('Editor closed. Downloaded files are kept; temporary uploads remain available only while this session is active.');});
+  $('close-editor').addEventListener('click',()=>{if(busy)return;if(dirty&&!confirm('Close and discard this working copy? Download the draft and temporary files first to keep unfinished work.'))return;$('editor').hidden=true;state=null;dirty=false;fields.clear();listMessage('Editor closed. Downloaded files are kept; temporary uploads remain available only while this session is active.');});
+  for(const kind of ['news','team'])$('new-'+kind).addEventListener('click',async()=>{if(busy||orderDirty)return;if(dirty&&!confirm('Discard this working copy? Download it first to keep unfinished work.'))return;busy=true;try{const value=await api('support-prepare',{operation:'new',kind});populateSupporting(value,{path:value.path,kind,sha:null,baseCommit:supportingBase||bootstrap.baseCommit});}catch(error){listMessage(error.message);}finally{busy=false;}});
   $('new-proposal').addEventListener('click',async()=>{if(busy)return;if(orderDirty){listMessage('Save or reset the proposed order first.');return;}if(dirty&&!confirm('Discard the current working copy? Download Markdown first to keep it.'))return;try{const value=await api('prepare',{operation:'new'});populate(value,{baseCommit:bootstrap.baseCommit,sha:null});}catch(error){message(error.message);}});
-  $('open-draft').addEventListener('change',async event=>{const file=event.target.files[0];if(!file||busy)return;if(orderDirty){listMessage('Save or reset the proposed order first.');event.target.value='';return;}if(file.size>131072){alert('Choose a Markdown file smaller than 128 KiB.');return;}if(dirty&&!confirm('Replace the current working copy?'))return;try{const value=await api('prepare',{operation:'parse',source:await file.text()});populate(value,{baseCommit:bootstrap.baseCommit,sha:null,...value.context});}catch(error){message(error.message);}event.target.value='';});
+  $('open-draft').addEventListener('change',async event=>{const file=event.target.files[0];if(!file||busy)return;if(orderDirty){listMessage('Save or reset the proposed order first.');event.target.value='';return;}if(file.size>131072){alert('Choose a draft file smaller than 128 KiB.');return;}if(dirty&&!confirm('Replace the current working copy?'))return;try{const source=await file.text();let value=await api('support-prepare',{operation:'parse',source});if(value.isProposal)value=await api('prepare',{operation:'parse',source});populate(value,{baseCommit:value.supporting?supportingBase:bootstrap.baseCommit,sha:null,...value.context,path:value.supporting?value.path:value.context?.path});}catch(error){message(error.message);}event.target.value='';});
   $('write-tab').addEventListener('click',()=>tabs('write'));$('preview-tab').addEventListener('click',()=>{tabs('preview');action('preview');});$('revisions-tab').addEventListener('click',()=>{tabs('revisions');if(!historyPage)loadHistory();});$('older-revisions').addEventListener('click',()=>loadHistory(true));$('split-view').addEventListener('change',()=>tabs($('revisions-tab').getAttribute('aria-selected')==='true'?'revisions':$('preview-tab').getAttribute('aria-selected')==='true'?'preview':'write'));
   const editorTabs=[$('write-tab'),$('preview-tab'),$('revisions-tab')];for(const tab of editorTabs)tab.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();const visible=editorTabs.filter(item=>!item.hidden);const index=visible.indexOf(tab);visible[(index+(event.key==='ArrowRight'?1:visible.length-1))%visible.length].focus();}});
   $('refresh-preview').addEventListener('click',()=>action('preview'));$('validate').addEventListener('click',()=>action('compose'));$('download').addEventListener('click',()=>action('download'));$('save').addEventListener('click',()=>action('publish'));

@@ -7,6 +7,7 @@ import { ContentError } from './content-policy.mjs';
 import { ProposalEditor } from './editor.mjs';
 import { MediaStore } from './media.mjs';
 import { ContentRevisions } from './revisions.mjs';
+import { SupportingEditor } from './supporting.mjs';
 
 const cookieName = '__Host-ger_admin';
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -16,7 +17,7 @@ const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<'
 const headers = {
   'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY', 'X-Robots-Tag': 'noindex, nofollow, noarchive',
-  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src data: https:; font-src data:; connect-src 'self'; frame-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src data:; connect-src 'self'; frame-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
 };
 
@@ -28,8 +29,9 @@ function page(title, body) {
 
 export function createAdministration(config, {now = Date.now, log = () => {}, content = null} = {}) {
   const editor = new ProposalEditor(content);
+  const supporting = new SupportingEditor(editor);
   const media = new MediaStore(editor,content,{now});
-  const revisions = new ContentRevisions(editor,{now});
+  const revisions = new ContentRevisions(editor,{now,supporting});
   const sessions = new Map();
   const purgeUploads = () => {const active=new Set(sessions.values());media.purge(session=>active.has(session));revisions.purge(session=>active.has(session));};
   const cleanup = setInterval(purgeUploads, 30000); cleanup.unref();
@@ -130,7 +132,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
         if (csrf.length !== 1 || !/^[a-f0-9]{64}$/.test(csrf[0]) || !equal(csrf[0], session.csrf)) return denied(403);
         // Re-read after an asynchronous request body: rotation/expiry wins races.
         await authorize();
-        if (uploadRequest) return json(201, await media.upload(session,{filename:url.searchParams.get('filename'),proposalId:url.searchParams.get('proposalId'),mime:contentType,bytes:data},authorize));
+        if (uploadRequest) return json(201, await media.upload(session,{filename:url.searchParams.get('filename'),proposalId:url.searchParams.get('proposalId'),target:url.searchParams.get('target'),mime:contentType,bytes:data},authorize));
         if (route === '/admin/logout') {
           sessions.delete(digest(id));
           purgeUploads();
@@ -140,6 +142,10 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
           let payload;
           try { payload = JSON.parse(data); } catch { throw new ContentError(400, 'invalid_json', 'The editor request is not valid JSON.'); }
           return json(200, await editor.prepare(payload, authorize, media.temporary(session)));
+        }
+        if(route==='editor'&&url.pathname==='/admin/api/editor/support-prepare'){
+          let payload;try{payload=JSON.parse(data);}catch{throw new ContentError(400,'invalid_json','The content request is not valid JSON.');}
+          return json(200,await supporting.prepare(payload,authorize,media.temporary(session)));
         }
         if (route === 'editor' && url.pathname === '/admin/api/editor/lifecycle') {
           let payload;try{payload=JSON.parse(data);}catch{throw new ContentError(400,'invalid_json','The proposal action is not valid JSON.');}
@@ -158,12 +164,17 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
         return send(404, page('Page unavailable', '<p>This administration page is unavailable.</p>'));
       }
       if (req.method === 'HEAD') return denied(405, {'Allow': 'GET'});
+      if (route==='editor'&&url.pathname==='/admin/api/editor/supporting') return json(200,await supporting.bootstrap(authorize));
       if (route === 'editor' && url.pathname === '/admin/api/editor/deleted') return json(200,await revisions.deleted(authorize));
       if (route === 'editor' && url.pathname === '/admin/api/editor/history') return json(200,await revisions.list(url.searchParams.get('path'),Number(url.searchParams.get('page')||1),authorize));
       if (route === 'editor' && url.pathname === '/admin/api/editor/revision') return json(200,await revisions.detail(url.searchParams.get('path'),url.searchParams.get('commit'),authorize));
       if (route === 'media' && url.pathname === '/admin/api/media/list') return json(200,await media.list(session,authorize));
-      if (route === 'media' && url.pathname === '/admin/api/media/file') {
+      if (route === 'media' && ['/admin/api/media/file','/admin/api/media/image'].includes(url.pathname)) {
         const file=await media.file(session,{id:url.searchParams.get('id'),path:url.searchParams.get('path')},authorize);
+        if(url.pathname.endsWith('/image')){
+          if(!file.mime_type?.startsWith('image/'))throw new ContentError(422,'invalid_image','Only validated images can be previewed.');
+          return send(200,file.bytes,file.mime_type,{'Content-Disposition':'inline'});
+        }
         const filename=encodeURIComponent(file.filename).replace(/['()*]/g,character=>'%'+character.charCodeAt(0).toString(16).toUpperCase());
         return send(200,file.bytes,file.mime_type,{'Content-Disposition':"attachment; filename=\"download" + (file.mime_type==='application/pdf'?'.pdf':'.'+file.mime_type.split('/')[1]) + "\"; filename*=UTF-8''"+filename});
       }

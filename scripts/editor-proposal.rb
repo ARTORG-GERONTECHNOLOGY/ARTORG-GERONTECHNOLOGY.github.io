@@ -10,6 +10,7 @@ require_relative 'lib/team'
 require_relative 'lib/media'
 require_relative 'lib/proposal-lifecycle'
 require_relative 'lib/content-revisions'
+require_relative 'lib/supporting-content'
 
 def field_errors(messages)
   messages.each_with_object({}) do |message, result|
@@ -20,6 +21,9 @@ end
 
 begin
   input = JSON.parse(STDIN.read(64 * 1024 * 1024 + 1))
+  if input['operation']=='supporting'
+    puts JSON.generate(input['action']=='preview_build' ? SupportingContent.preview(input) : SupportingContent.process(input));exit
+  end
   if input['operation'] == 'removed_list'
     records = Proposals.load_yaml(input.fetch('source', '[]'), mapping: false)
     Proposals.removed!(records, {})

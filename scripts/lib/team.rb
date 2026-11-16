@@ -2,7 +2,7 @@
 require_relative "site-content"
 
 module Team
-  def self.validate!(document, path, source)
+  def self.validate!(document, path, source, previous: nil)
     data = document.metadata
     id = data["team_id"]
     unless id.is_a?(String) && id.match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/) && File.basename(path, ".md") == id
@@ -31,6 +31,17 @@ module Team
     SiteContent.image!(data["portrait"], source)
     if data["permalink"] && data["permalink"] != "/team/#{id}/"
       raise Proposals::FormatError, "permalink: retain /team/#{id}/"
+    end
+    %w[created_at updated_at].each { |key| SiteContent.timestamp!(data[key],key) if data.key?(key) }
+    if previous
+      %w[team_id created_at].each { |key| raise Proposals::FormatError,"#{key}: profile identity/creation cannot change" if previous.metadata.key?(key) && data[key]!=previous.metadata[key] }
+      changed=document.body!=previous.body || ((data.keys|previous.metadata.keys)-%w[display_order updated_at]).any? { |key| data[key]!=previous.metadata[key] }
+      if changed
+        updated=SiteContent.timestamp!(data['updated_at'],'updated_at')
+        raise Proposals::FormatError,'updated_at: must advance after profile edits' if previous.metadata['updated_at'] && updated<=SiteContent.timestamp!(previous.metadata['updated_at'],'previous.updated_at')
+      elsif data['display_order']!=previous.metadata['display_order'] && data['updated_at']!=previous.metadata['updated_at']
+        raise Proposals::FormatError,'updated_at: must stay unchanged for profile-order edits'
+      end
     end
   rescue URI::InvalidURIError
     raise Proposals::FormatError, "links.url: invalid URL"

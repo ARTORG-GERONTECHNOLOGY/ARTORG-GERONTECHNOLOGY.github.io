@@ -43,7 +43,7 @@ begin
       raise Proposals::FormatError, 'New removed-URL records must describe a deleted proposal' unless previous_removed.include?(entry) || deleted
     end
     previous_removed.each do |entry|
-      restored = proposals.values.any? { |document| %w[proposal_id permalink].all? { |key| document.metadata[key] == entry[key] } }
+      restored = proposals.any? { |path, document| (!entry['source_path'] || path == entry['source_path']) && %w[proposal_id permalink].all? { |key| document.metadata[key] == entry[key] } }
       raise Proposals::FormatError, 'Keep removed URLs reserved unless restoring the same proposal' unless removed.include?(entry) || restored
     end
     validator = Proposals::Validator.new(team_ids: team_ids, categories: categories)

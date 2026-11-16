@@ -584,6 +584,10 @@ explains supported files, inspection limits, expiry and atomic saves.
 Step 20 adds status shortcuts, drag/keyboard ordering and confirmed deletion with
 archiving offered first. Removed proposals retain a generic recovery page at the
 old URL; shared files remain. See the [lifecycle controls](../admin-service/README.md#status-order-and-deletion-step-20).
+Step 21 adds [revision history and restoration](../admin-service/README.md#revisions-and-restoration-step-21),
+including comparisons, validated previews and recovery of deleted proposals.
+Restoration returns content/status while preserving current order; deleted
+proposals reuse their former priority. Confirmation creates a new revision.
 Local access is prepared; live HTTPS hosting and production
 credentials remain separate, unperformed operations.
 

@@ -97,6 +97,36 @@ export class GitHubContent {
     if (!sha(committed)) throw new ContentError(502, 'save_outcome_unknown', 'The save outcome could not be confirmed. Reload and compare before trying again.');
     return committed;
   }
+  async history(path,page,head){
+    if(!editable(path)||!sha(head)||!Number.isInteger(page)||page<1||page>50)throw new ContentError(422,'invalid_revision','Choose an allowed content history.');
+    const values=await this.#api('GET',prefix+'/commits?'+new URLSearchParams({sha:head,path,per_page:'20',page:String(page)}));
+    if(!Array.isArray(values)||values.length>20)throw safeFailure();
+    return {revisions:values.map(value=>this.#revisionLabel(value)),hasMore:values.length===20};
+  }
+  #revisionLabel(value){
+    if(!value||typeof value!=='object'||!Array.isArray(value.parents))throw safeFailure();
+    const time=value.commit?.committer?.date;const name=value.commit?.author?.name;const parents=value.parents?.map(parent=>parent.sha)||[];
+    if(!sha(value.sha)||!Number.isFinite(Date.parse(time))||typeof name!=='string'||typeof value.commit?.message!=='string'||parents.some(parent=>!sha(parent)))throw safeFailure();
+    const login=typeof value.author?.login==='string'?value.author.login.slice(0,200):name.slice(0,200);
+    const bot=value.author?.type==='Bot'||login.endsWith('[bot]');
+    return {commit:value.sha,time:new Date(time).toISOString(),author:bot?'Recorded GitHub App/bot: '+login+' (individual staff identity not verified)':'Git author: '+name.slice(0,200)+' (staff identity not verified)',message:value.commit.message.split('\n')[0].slice(0,300),parents};
+  }
+  async revision(path,commit,head){
+    if(!editable(path)||!sha(commit)||!sha(head))throw new ContentError(422,'invalid_revision','Choose an allowed content revision.');
+    if(commit!==head){const comparison=await this.#api('GET',prefix+'/compare/'+commit+'...'+head+'?per_page=1');if(!['ahead','identical'].includes(comparison.status)||comparison.merge_base_commit?.sha!==commit)throw new ContentError(422,'invalid_revision','Choose a revision from the current content history.');}
+    const label=this.#revisionLabel(await this.#api('GET',prefix+'/commits/'+commit));
+    const current=await this.#fileAt(path,commit);const before=label.parents[0]?await this.#fileAt(path,label.parents[0]):null;
+    return {...label,source:current?.source??null,fileSha:current?.sha??null,before:before?.source??null};
+  }
+  async #fileAt(path,commit){
+    const info=await this.#api('GET',prefix+'/git/commits/'+commit);if(!sha(info.tree?.sha))throw safeFailure();
+    const tree=await this.#api('GET',prefix+'/git/trees/'+info.tree.sha+'?recursive=1');if(tree.truncated||!Array.isArray(tree.tree)||tree.tree.length>10000)throw safeFailure();
+    const entry=tree.tree.find(entry=>entry.path===path);if(!entry)return null;
+    if(entry.mode!=='100644'||entry.type!=='blob'||!sha(entry.sha)||entry.size>policy.maxTextBytes)throw new ContentError(422,'invalid_revision','Historical content must be an ordinary bounded text file.');
+    const blob=await this.#api('GET',prefix+'/git/blobs/'+entry.sha);if(blob.encoding!=='base64'||typeof blob.content!=='string')throw safeFailure();const bytes=Buffer.from(blob.content.replace(/\s/g,''),'base64');
+    if(bytes.length!==entry.size||bytes.length>policy.maxTextBytes||blobSha(bytes)!==entry.sha)throw safeFailure();
+    try{return {sha:entry.sha,source:new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes)};}catch{throw new ContentError(422,'invalid_revision','Historical content must be UTF-8 text.');}
+  }
   async checks(commit) {
     if (!sha(commit)) throw new ContentError(422, 'invalid_revision', 'Use a valid commit revision.');
     const result = await this.#api('GET', prefix + '/commits/' + commit + '/check-runs?per_page=100');

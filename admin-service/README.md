@@ -1,7 +1,7 @@
 # Administration access service
 
-Steps 16–20 provide private-link entry, protected sessions, a GitHub content
-save API, proposal editing/uploads and proposal lifecycle controls. GitHub integration is
+Steps 16–21 provide private-link entry, protected sessions, a GitHub content
+save API, proposal editing/uploads, lifecycle controls and revision restoration. GitHub integration is
 disabled until explicitly configured; the local access demo needs no GitHub
 credentials. The public website remains static and separate.
 
@@ -408,3 +408,71 @@ Local review allows staging/resetting order, previewing status edits and opening
 or cancelling the deletion dialog. Actual save/delete buttons remain disabled
 without GitHub configuration. No real proposal has been changed or deleted by
 the local lifecycle checks; they use isolated providers and generated output.
+
+## Revisions and restoration (Step 21)
+
+Open a saved proposal and select **Revisions**. Commit timestamps use
+Europe/Zurich, including daylight-saving changes; the table/editor's last-edited
+date still means a substantive content/status change, not a reorder. Recorded
+Git authors and App/bot accounts are shown with an explicit warning that they
+do not identify the individual staff member using the shared link. No optional
+staff name is treated as verified identity.
+
+Select a revision for its change summary, metadata before/after values and
+line-by-line text differences. Added/removed text is labeled with +/− and color.
+Historical scripts, HTML and Liquid are displayed as text, never executed.
+Order-only commits and status changes have distinct summaries. Changes are
+compared against the commit's first parent; an older/invalid format remains
+readable as raw text with a warning. History is paged twenty revisions at a
+time, up to 1,000 file revisions; a maintainer can inspect older Git history.
+
+**Preview restoration** validates the historical proposal against current
+categories, team links, media and schema, and renders it through the same trusted
+preview pipeline. Restoration returns content and status, keeps a current
+proposal's priority, and preserves immutable ID, URL, filename and original
+creation/publication dates. Its substantive update date advances. A revision
+that changes only ordering has nothing to restore under this rule. Invalid or
+pre-schema content cannot be automatically restored; repair/migration is a
+separate editorial action.
+
+**Deleted proposals and recovery** lists removed addresses. Their source filename
+is now recorded alongside the ID/URL/removal time. Select an address to browse
+history; a deletion revision offers the version immediately before deletion.
+Recovery reuses the priority from just before deletion, as the user requested,
+and leaves other priorities unchanged. Equal priorities retain the shared
+publication/ID tie-break. The proposal and removal-record update are committed
+atomically, restoring the original address instead of leaving its removal notice.
+Older removal records lacking a source filename remain readable but require a
+maintainer to locate the source history; no such real removals existed in this
+local-only installation when this feature was introduced.
+
+Review the rendered restoration and its comparison against current saved content,
+then use **Confirm restoration/recovery as a new revision**. Confirmation is
+bound to the session, selected revision, exact branch/file preconditions and a
+digest of the prepared changes. It expires after ten minutes or when the session
+ends. Only preparation time/digests/revision identifiers are held for confirmation;
+this is not a private draft store. The server recalculates and revalidates the
+same candidate at confirmation. A newer edit returns a conflict, and history is
+never rewritten. Unsaved form edits remain intact while browsing; finish or
+download/close them before confirming a restoration.
+
+Protected routes are `GET /admin/api/editor/history?path=...&page=...`,
+`GET /admin/api/editor/revision?path=...&commit=...`,
+`GET /admin/api/editor/deleted`, `POST /admin/api/editor/restore-preview` and
+`POST /admin/api/editor/restore`. Reads are restricted to allowed current content
+or recorded deleted proposal paths, and to commits reachable from the fixed
+content branch. Historical blobs must be bounded UTF-8 ordinary files. Restore
+accepts a session-owned preview ID and explicit confirmation, not caller-supplied
+replacement content. The existing session, Origin/CSRF, validation and atomic
+GitHub commit gates remain in force. A confirmed save means checks/build pending.
+
+Local review reads actual local Git history without Git writes or network access,
+and supports restoration previews. Final confirmation is disabled until GitHub
+is configured. Read-only Git commands disable signature verification/notes and
+external text converters/diff programs. Existing local drafts and source documents
+are not used as historical proposals. Supporting Markdown/YAML history reads
+are available through the shared backend for later supporting-content editors;
+this step's restoration UI is for proposals.
+
+API references: [GitHub commit history and comparison](https://docs.github.com/en/rest/commits/commits),
+[immutable Git trees](https://docs.github.com/en/rest/git/trees).

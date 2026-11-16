@@ -5,6 +5,7 @@
   const fields = new Map();
   let mediaFiles=[],mediaRules;
   let orderDirty=false,orderPaths=[],draggedPath,deleteTarget,listNeedsReload=false;
+  let historyPath,historyPage=0,historyBusy=false;
   const listMessage=text=>{$('list-state').textContent=text;};
   const formatDate = value => value ? new Intl.DateTimeFormat('en-GB', {dateStyle:'medium', timeStyle:'short', timeZone:'Europe/Zurich'}).format(new Date(value)) : 'Not yet published';
   function node(tag, text, attributes = {}) { const item = document.createElement(tag); if (text !== undefined) item.textContent = text; for (const [name,value] of Object.entries(attributes)) item.setAttribute(name,value); return item; }
@@ -42,6 +43,7 @@
     fields.set(key,{error,add,read:()=>records.map(record=>{ const value={}; for(const column of columns) { const raw=record.inputs[column.key].value; if(column.type==='number') {if(raw!=='')value[column.key]=Number(raw);} else if(raw!==''||column.required) value[column.key]=raw; } return value; })});
   }
   function populate(model, context) {
+    $('write-tab').hidden=false;$('preview-tab').hidden=false;$('split-view').parentElement.hidden=false;$('publication-actions').hidden=false;
     fields.clear(); $('proposal-form').replaceChildren(); state={...model,context}; const m=model.metadata;
     let p=group('Proposal details'); field(p,'Title','title',m.title); field(p,'Short summary','summary',m.summary,{area:true});
     field(p,'Status','status',m.status,{choices:bootstrap.statuses.map(x=>[x,x[0].toUpperCase()+x.slice(1)])});
@@ -49,7 +51,7 @@
     field(p,'Categories','categories',m.categories,{choices:bootstrap.categories.map(x=>[x.id,x.label]),multiple:true,help:'Choose from the shared list. Use Ctrl or Command to select more than one.'});
     field(p,'Language','language',m.language); field(p,'Priority','priority',m.priority,{type:'number',step:'1'}); field(p,'Featured on homepage','featured',m.featured,{type:'checkbox'});
     field(p,'Tags (one per line)','tags',(m.tags||[]).join('\n'),{area:true});
-    p=group('Dates and stable identity'); for(const [key,label] of [['proposal_id','Proposal ID'],['permalink','Permanent address'],['created_at','Created'],['date','Initial publication'],['updated_at','Last saved content update']]) field(p,label,key,m[key],{readonly:true,help:key==='date'&&!m.date?'Assigned when first saved for publication.':''});
+    p=group('Dates and stable identity'); for(const [key,label] of [['proposal_id','Proposal ID'],['permalink','Permanent address'],['created_at','Created'],['date','Initial publication'],['updated_at','Last edited (content/status)']]) {const timestamp=['created_at','date','updated_at'].includes(key);field(p,label,key,timestamp&&m[key]?formatDate(m[key])+' (Europe/Zurich)':m[key],{readonly:true,help:key==='date'&&!m.date?'Assigned when first saved for publication.':timestamp&&m[key]?'Stored value: '+m[key]:''});}
     p=group('Supervisors and institutes'); rows(p,'Supervisors','supervisors',m.supervisors,[{key:'name',label:'Name',required:true},{key:'team_id',label:'Optional team profile ID'}]); rows(p,'Institutes','institutes',m.institutes,[{key:'name',label:'Institute',required:true},{key:'url',label:'Optional institutional URL'}]);
     p=group('Nature of the thesis'); rows(p,'Activities','workload',m.workload,[{key:'activity',label:'Activity',required:true},{key:'percentage',label:'Percentage',type:'number'}]); p.append(node('p','Workload percentages must total 100% before publication.'));
     p=group('Contact and applications'); for(const [key,label] of [['name','Contact name'],['email','Public email'],['address','Address'],['phone','Phone']]) field(p,label,'contact.'+key,m.contact?.[key]);
@@ -61,6 +63,7 @@
     const picker=node('section',undefined,{id:'media-picker','aria-label':'Media files'});optional.prepend(picker);renderMedia();
     optional.append(node('p','Removing a figure or attachment link keeps its shared file. Temporary uploads expire at sign-out or session expiry. Download your Markdown and temporary files to continue later; upload the files again when reopening the draft. Existing embedded media metadata is preserved.'));
     dirty=false; $('editor').hidden=false; $('errors').hidden=true; $('reload').hidden=true; $('preview-frame').srcdoc=''; $('preview-state').textContent='Preview has not been generated.';
+    historyPath=context.path;historyPage=0;$('history-list').replaceChildren();$('revision-detail').hidden=true;$('older-revisions').hidden=true;$('history-state').textContent='Open Revisions to load saved history.';
     $('save').disabled=!bootstrap.canPublish; $('save').title=bootstrap.canPublish?'':'GitHub saving is not connected in this local review.';
     message('No unsaved changes'); tabs('write'); $('editor-title').scrollIntoView({block:'start'});
   }
@@ -84,7 +87,57 @@
     const entries=Object.entries(value||{}); $('errors').hidden=!entries.length;
     for(const [key,messages] of entries) { const record=fields.get(key)||fields.get('section.'+key)||fields.get(key.split('[')[0]); const text=messages.join('; '); $('error-list').append(node('li',key+': '+text)); if(record?.error){record.error.textContent+=(record.error.textContent?' · ':'')+text;record.input?.setAttribute('aria-invalid','true');} }
   }
-  function tabs(name) { for(const kind of ['write','preview']) {$(`${kind}-tab`).setAttribute('aria-selected',String(kind===name));$(`${kind}-panel`).hidden=kind!==name&&!$('split-view').checked;} $('editor-panels').classList.toggle('split', $('split-view').checked); }
+  function tabs(name) { for(const kind of ['write','preview','revisions']) {$(`${kind}-tab`).setAttribute('aria-selected',String(kind===name));$(`${kind}-panel`).hidden=name==='revisions'?kind!=='revisions':kind==='revisions'||kind!==name&&!$('split-view').checked;} $('editor-panels').classList.toggle('split', $('split-view').checked&&name!=='revisions'); }
+  async function loadHistory(more=false){
+    if(historyBusy)return;if(!historyPath){$('history-state').textContent='History is available after this proposal has been saved.';return;}
+    const requested=historyPath;historyBusy=true;$('history-state').textContent='Loading saved revisions…';
+    try{
+      const page=more?historyPage+1:1;const result=await api('history?'+new URLSearchParams({path:requested,page:String(page)}));if(historyPath!==requested)return;
+      if(!more)$('history-list').replaceChildren();historyPage=page;
+      for(const revision of result.revisions){const item=node('li');const button=node('button',formatDate(revision.time)+' — '+revision.message,{type:'button',class:'link-button'});button.addEventListener('click',()=>showRevision(requested,revision.commit));item.append(button,node('p',revision.author),node('small','Revision '+revision.commit.slice(0,12)));$('history-list').append(item);}
+      $('older-revisions').hidden=!result.hasMore||page>=50;$('history-state').textContent=page>=50&&result.hasMore?'The latest 1,000 file revisions are shown. A maintainer can inspect older Git history.':result.revisions.length?'Select a revision to see its change summary and differences.':'No further revisions were found.';
+    }catch(error){$('history-state').textContent=error.message;}finally{historyBusy=false;}
+  }
+  function diffView(parent,diff){
+    parent.append(node('h4',diff.summary));if(diff.warning)parent.append(node('p',diff.warning));
+    if(diff.metadata.length){const table=node('table');table.append(node('caption','Metadata changes'));const head=node('tr');for(const label of ['Field','Before','After'])head.append(node('th',label));table.append(head);
+      for(const entry of diff.metadata){const row=node('tr');const labels={proposal_id:'Proposal ID',permalink:'Permanent address',date:'Initial publication',created_at:'Created',updated_at:'Last edited',student_eligibility:'Student eligibility',priority:'Priority / order'};const label=labels[entry.field]||entry.field.replace(/_/g,' ').replace(/^./,letter=>letter.toUpperCase());row.append(node('th',label));for(const value of [entry.before,entry.after]){const cell=node('td');cell.append(node('pre',value===null?'Not set':JSON.stringify(value,null,2)));row.append(cell);}table.append(row);}const wrapper=node('div',undefined,{class:'table-wrap'});wrapper.append(table);parent.append(wrapper);}
+    if(diff.narrative.length){parent.append(node('h4','Text changes (+ added, − removed)'));const code=node('pre',undefined,{class:'revision-diff',tabindex:'0'});for(const line of diff.narrative)code.append(node('span',line+'\n',{class:line.startsWith('+')?'diff-added':line.startsWith('-')?'diff-removed':'diff-context'}));parent.append(code);}
+  }
+  async function showRevision(path,commit){
+    if(historyBusy)return;historyBusy=true;$('history-state').textContent='Comparing revision…';
+    try{const value=await api('revision?'+new URLSearchParams({path,commit}));if(historyPath!==path)return;const panel=$('revision-detail');panel.replaceChildren(node('h4',formatDate(value.time)+' — '+value.message),node('p',value.author),node('small','Revision '+value.commit));diffView(panel,value.diff);
+      const restoreCommit=value.source!==null?value.commit:value.before!==null?value.parents[0]:null;
+      if(restoreCommit){const preview=node('button',value.source===null?'Preview recovery before deletion':'Preview restoration',{type:'button'});preview.addEventListener('click',()=>previewRestoration(path,restoreCommit,panel));panel.append(preview);}
+      panel.hidden=false;$('history-state').textContent='Comparison shows what changed in this revision. Your form is unchanged.';}
+    catch(error){$('history-state').textContent=error.message;}finally{historyBusy=false;}
+  }
+  async function previewRestoration(path,commit,panel){
+    if(busy||!state||historyPath!==path)return;busy=true;$('history-state').textContent='Validating and preparing restoration preview…';
+    try{
+      const value=await api('restore-preview',{path,commit,baseCommit:state.context.baseCommit,sha:state.context.sha??null});if(historyPath!==path)return;
+      panel.querySelector('.restoration-preview')?.remove();const result=node('section',undefined,{class:'restoration-preview'});result.append(node('h4',value.deleted?'Proposed recovery: earlier content/status return, using its priority just before deletion.':'Proposed restoration: content and status return; current ordering is kept.'));diffView(result,value.diff);
+      const frame=node('iframe',undefined,{title:'Restoration preview',sandbox:'allow-same-origin',referrerpolicy:'no-referrer',class:'restoration-frame'});frame.srcdoc=value.html;result.append(frame);
+      const button=node('button',value.deleted?'Confirm recovery as a new revision':'Confirm restoration as a new revision',{type:'button'});button.disabled=!value.canRestore;
+      if(!value.canRestore)result.append(node('p','Local review: this preview is available, but GitHub saving is not connected.'));
+      button.addEventListener('click',async()=>{
+        if(busy)return;if(dirty||orderDirty){$('history-state').textContent='Keep unfinished work: save/download and close the working proposal, or reset the proposed order, before restoring.';return;}
+        if(!confirm('Restore this content and status as a new revision? Original identity/dates stay unchanged, and history will be retained.'))return;
+        busy=true;try{await api('restore',{previewId:value.previewId,confirmation:commit});button.disabled=true;listNeedsReload=true;
+          try{await refreshAfterListSave();listMessage('Restoration committed; checks/build pending. Production publication is not yet confirmed.');}
+          catch{listMessage('Restoration committed; checks/build pending. Reload the list to see the new revision.');}
+        }catch(error){$('history-state').textContent=error.message+' Your working copy and selected revision are retained.';}finally{busy=false;}
+      });result.append(button);panel.append(result);$('history-state').textContent='Review this preview, then confirm to create a new revision.';
+    }catch(error){$('history-state').textContent=error.message;const errors=error.data?.errors;if(errors)for(const [field,messages] of Object.entries(errors))panel.append(node('p',field+': '+messages.join('; ')));}finally{busy=false;}
+  }
+  async function loadDeleted(){
+    const value=await api('deleted');$('deleted-proposals').replaceChildren();
+    if(!value.records.length){$('deleted-proposals').append(node('li','No deleted proposals.'));return;}
+    for(const record of value.records){const item=node('li');const button=node('button',record.permalink,{type:'button',class:'link-button'});button.disabled=!record.source_path;
+      button.addEventListener('click',()=>{if(!listActionAllowed())return;state={deleted:true,context:{path:record.source_path,sha:null,baseCommit:value.baseCommit}};dirty=false;historyPath=record.source_path;historyPage=0;
+        $('editor').hidden=false;$('write-tab').hidden=true;$('preview-tab').hidden=true;$('split-view').parentElement.hidden=true;$('publication-actions').hidden=true;$('errors').hidden=true;$('revision-detail').hidden=true;$('history-list').replaceChildren();tabs('revisions');message('Deleted proposal — review history before recovery.');loadHistory();$('editor-title').scrollIntoView({block:'start'});});
+      item.append(button,node('small',record.source_path?'Removed '+formatDate(record.removed_at):'Source filename is absent; ask a maintainer to locate its history.'));$('deleted-proposals').append(item);}
+  }
   function clientErrors(patch) {
     const result={};
     for(const key of ['title','summary','status','student_eligibility']) if(!patch[key]?.trim()) result[key]=['Please fill in this field.'];
@@ -94,6 +147,7 @@
     return result;
   }
   async function action(name) {
+    if(state?.deleted)return;
     if(name==='publish'&&orderDirty){message('Save or reset the proposed order before saving proposal edits. Your working copy is retained.');return;}
     if(!state||busy)return; busy=true; message(name==='preview'?'Preparing preview…':'Preparing proposal…');
     try {
@@ -157,6 +211,7 @@
       const session=await fetch('/admin/api/session',{credentials:'same-origin'}).then(r=>r.json());csrf=session.csrf;
       bootstrap=await api('bootstrap'); $('connection').textContent=bootstrap.canPublish?'Connected to the staff content branch. Saves wait for validation.':'Local review — GitHub saving is not connected. You can edit, preview and download drafts.';
       renderList();
+      try{await loadDeleted();}catch(error){listMessage(error.message);}
       try{await loadMedia();}catch(error){$('connection').textContent+=' '+error.message;}
     } catch(error){$('connection').textContent=error.message;}
   }
@@ -200,7 +255,8 @@
   }
   async function refreshAfterListSave(){
     bootstrap=await api('bootstrap');orderDirty=false;listNeedsReload=false;renderList();
-    if(state){const current=bootstrap.proposals.find(item=>item.path===state.context.path);if(current)populate(current,{path:current.path,sha:current.sha,baseCommit:bootstrap.baseCommit});else{$('editor').hidden=true;state=null;dirty=false;}}
+    if(state&&!dirty){const current=bootstrap.proposals.find(item=>item.path===state.context.path);if(current)populate(current,{path:current.path,sha:current.sha,baseCommit:bootstrap.baseCommit});else{$('editor').hidden=true;state=null;dirty=false;}}
+    await loadDeleted();
   }
   $('save-order').addEventListener('click',async()=>{if(busy||!orderDirty||listNeedsReload)return;if(dirty){listMessage('Reset the proposed order before saving proposal edits. Both working copies are retained.');return;}busy=true;try{await api('lifecycle',{action:'order',baseCommit:bootstrap.baseCommit,order:orderPaths});orderDirty=false;listNeedsReload=true;try{await refreshAfterListSave();listMessage('Order committed; checks/build pending. Content-update dates were preserved.');}catch{renderList();listMessage('Order committed; checks/build pending. Reload the list before another action.');}}catch(error){if(error.status===409)listNeedsReload=true;listMessage(error.message+' The proposed order is retained; reset/reload only after comparing newer changes.');}finally{busy=false;}});
   $('reload-list').addEventListener('click',async()=>{if(busy)return;if(orderDirty&&!confirm('Discard the proposed order and load the latest list? Your proposal form will be kept.'))return;busy=true;try{bootstrap=await api('bootstrap');orderDirty=false;listNeedsReload=false;renderList();listMessage('Latest list loaded. Any working proposal retains its original revision so newer edits cannot be overwritten.');}catch(error){listMessage(error.message);}finally{busy=false;}});
@@ -213,8 +269,8 @@
   $('close-editor').addEventListener('click',()=>{if(busy)return;if(dirty&&!confirm('Close and discard this working proposal? Download Markdown and temporary files first to keep unfinished work.'))return;$('editor').hidden=true;state=null;dirty=false;fields.clear();listMessage('Editor closed. Downloaded files are kept; temporary uploads remain available only while this session is active.');});
   $('new-proposal').addEventListener('click',async()=>{if(busy)return;if(orderDirty){listMessage('Save or reset the proposed order first.');return;}if(dirty&&!confirm('Discard the current working copy? Download Markdown first to keep it.'))return;try{const value=await api('prepare',{operation:'new'});populate(value,{baseCommit:bootstrap.baseCommit,sha:null});}catch(error){message(error.message);}});
   $('open-draft').addEventListener('change',async event=>{const file=event.target.files[0];if(!file||busy)return;if(orderDirty){listMessage('Save or reset the proposed order first.');event.target.value='';return;}if(file.size>131072){alert('Choose a Markdown file smaller than 128 KiB.');return;}if(dirty&&!confirm('Replace the current working copy?'))return;try{const value=await api('prepare',{operation:'parse',source:await file.text()});populate(value,{baseCommit:bootstrap.baseCommit,sha:null,...value.context});}catch(error){message(error.message);}event.target.value='';});
-  $('write-tab').addEventListener('click',()=>tabs('write'));$('preview-tab').addEventListener('click',()=>{tabs('preview');action('preview');});$('split-view').addEventListener('change',()=>tabs($('preview-tab').getAttribute('aria-selected')==='true'?'preview':'write'));
-  for(const tab of [$('write-tab'),$('preview-tab')])tab.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();(tab===$('write-tab')?$('preview-tab'):$('write-tab')).focus();}});
+  $('write-tab').addEventListener('click',()=>tabs('write'));$('preview-tab').addEventListener('click',()=>{tabs('preview');action('preview');});$('revisions-tab').addEventListener('click',()=>{tabs('revisions');if(!historyPage)loadHistory();});$('older-revisions').addEventListener('click',()=>loadHistory(true));$('split-view').addEventListener('change',()=>tabs($('revisions-tab').getAttribute('aria-selected')==='true'?'revisions':$('preview-tab').getAttribute('aria-selected')==='true'?'preview':'write'));
+  const editorTabs=[$('write-tab'),$('preview-tab'),$('revisions-tab')];for(const tab of editorTabs)tab.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();const visible=editorTabs.filter(item=>!item.hidden);const index=visible.indexOf(tab);visible[(index+(event.key==='ArrowRight'?1:visible.length-1))%visible.length].focus();}});
   $('refresh-preview').addEventListener('click',()=>action('preview'));$('validate').addEventListener('click',()=>action('compose'));$('download').addEventListener('click',()=>action('download'));$('save').addEventListener('click',()=>action('publish'));
   $('reload').addEventListener('click',()=>{if(confirm('Reload the latest source? Download your working Markdown first; reloading will discard it.')){leaving=true;location.reload();}});
   $('logout').addEventListener('submit',event=>{if((dirty||orderDirty)&&!confirm('Sign out and discard this tab’s working copy and proposed order? Download Markdown first to keep proposal edits.'))event.preventDefault();else leaving=true;});

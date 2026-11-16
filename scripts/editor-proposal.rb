@@ -9,6 +9,7 @@ require_relative 'lib/proposal-renderer'
 require_relative 'lib/team'
 require_relative 'lib/media'
 require_relative 'lib/proposal-lifecycle'
+require_relative 'lib/content-revisions'
 
 def field_errors(messages)
   messages.each_with_object({}) do |message, result|
@@ -19,6 +20,24 @@ end
 
 begin
   input = JSON.parse(STDIN.read(64 * 1024 * 1024 + 1))
+  if input['operation'] == 'removed_list'
+    records = Proposals.load_yaml(input.fetch('source', '[]'), mapping: false)
+    Proposals.removed!(records, {})
+    puts JSON.generate({'records'=>records}); exit
+  end
+  if input['operation'] == 'restore_prepare'
+    result = Proposals.restoration(input['current'], input.fetch('historical'), input.fetch('baseline'), prepared_at: input['preparedAt'])
+    if input['removedSource']
+      records = Proposals.load_yaml(input['removedSource'], mapping: false)
+      records.reject! { |record| record['source_path'] == input.fetch('path') }
+      result['removedSource'] = YAML.dump(records)
+    end
+    puts JSON.generate(result); exit
+  end
+  if input['operation'] == 'revision_diff'
+    puts JSON.generate(Proposals.revision_diff(input['before'], input['after'], input.fetch('path')))
+    exit
+  end
   if input['operation'] == 'lifecycle'
     documents = input.fetch('proposals').to_h { |item| [item.fetch('path'), Proposals::Document.parse(item.fetch('source'))] }
     puts JSON.generate(Proposals.lifecycle(documents, input.fetch('actionData'), input.fetch('removedSource', '[]')))

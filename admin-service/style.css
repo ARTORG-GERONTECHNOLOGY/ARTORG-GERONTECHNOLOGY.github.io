@@ -40,4 +40,11 @@ small { display: block; }
 dialog { max-width: min(42rem,95vw); padding: 1.5rem; border: 2px solid #175c5a; }
 dialog::backdrop { background: #0009; }
 button[draggable=true] { cursor: grab; }
+#revision-detail pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+.revision-diff { padding: 1rem; background: #f2f5f4; }
+.diff-added { color: #164f32; background: #d8f3df; }
+.diff-removed { color: #82232b; background: #ffe0df; }
+#history-list > li { margin: 1rem 0; }
+.restoration-frame { width: 100%; min-height: 75vh; border: 1px solid #64827e; }
+.restoration-preview { border-top: 2px solid #64827e; margin-top: 1.5rem; padding-top: 1rem; }
 @media (min-width: 1100px) { #editor-panels.split { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1.5rem; } }

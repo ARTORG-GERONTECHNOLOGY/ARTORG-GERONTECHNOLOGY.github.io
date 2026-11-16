@@ -11,7 +11,7 @@ reject = lambda do |&block|
   begin; block.call; raise 'Invalid lifecycle action accepted'; rescue Proposals::FormatError; checks += 1; end
 end
 paths = Dir[File.join(Proposals::ROOT, '_posts/*.md')].first(2)
-originals = paths.to_h { |path| [File.basename(path), File.read(path, encoding: 'UTF-8')] }
+originals = paths.to_h { |path| ['_posts/' + File.basename(path), File.read(path, encoding: 'UTF-8')] }
 documents = -> { originals.transform_values { |source| Proposals::Document.parse(source) } }
 Proposals::SCHEMA['statuses'].permutation(2).each do |from, to|
   docs = documents.call; path = docs.keys.first; docs[path].metadata['status'] = from

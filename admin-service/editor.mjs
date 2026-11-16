@@ -21,7 +21,7 @@ export async function localSnapshot() {
   return {head: blobSha(Buffer.from([...files].map(([name, file]) => name + file.sha).sort().join('\n'))), files};
 }
 
-function rubyEditor(payload) {
+export function rubyEditor(payload) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.env.ADMIN_RUBY_EXECUTABLE || 'ruby', ['scripts/editor-proposal.rb'], {cwd: root, shell: false, windowsHide: true});
     const chunks = []; let length = 0;

@@ -6,6 +6,7 @@ import { readAccess } from './config.mjs';
 import { ContentError } from './content-policy.mjs';
 import { ProposalEditor } from './editor.mjs';
 import { MediaStore } from './media.mjs';
+import { ContentRevisions } from './revisions.mjs';
 
 const cookieName = '__Host-ger_admin';
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -28,8 +29,9 @@ function page(title, body) {
 export function createAdministration(config, {now = Date.now, log = () => {}, content = null} = {}) {
   const editor = new ProposalEditor(content);
   const media = new MediaStore(editor,content,{now});
+  const revisions = new ContentRevisions(editor,{now});
   const sessions = new Map();
-  const purgeUploads = () => {const active=new Set(sessions.values());media.purge(session=>active.has(session));};
+  const purgeUploads = () => {const active=new Set(sessions.values());media.purge(session=>active.has(session));revisions.purge(session=>active.has(session));};
   const cleanup = setInterval(purgeUploads, 30000); cleanup.unref();
   const limits = new Map();
   let generation;
@@ -143,6 +145,10 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
           let payload;try{payload=JSON.parse(data);}catch{throw new ContentError(400,'invalid_json','The proposal action is not valid JSON.');}
           return json(201,await editor.lifecycle(payload,authorize));
         }
+        if(route==='editor'&&['/admin/api/editor/restore-preview','/admin/api/editor/restore'].includes(url.pathname)){
+          let payload;try{payload=JSON.parse(data);}catch{throw new ContentError(400,'invalid_json','The restoration request is not valid JSON.');}
+          return json(url.pathname.endsWith('/restore')?201:200,await (url.pathname.endsWith('/restore')?revisions.restore(session,payload,authorize):revisions.preview(session,payload,authorize)));
+        }
         if (apiSave || route === 'editor' && url.pathname === '/admin/api/editor/save') {
           if (!content) throw new ContentError(503, 'saving_not_configured', 'GitHub saving is not configured. No save was made.');
           let payload;
@@ -152,6 +158,9 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
         return send(404, page('Page unavailable', '<p>This administration page is unavailable.</p>'));
       }
       if (req.method === 'HEAD') return denied(405, {'Allow': 'GET'});
+      if (route === 'editor' && url.pathname === '/admin/api/editor/deleted') return json(200,await revisions.deleted(authorize));
+      if (route === 'editor' && url.pathname === '/admin/api/editor/history') return json(200,await revisions.list(url.searchParams.get('path'),Number(url.searchParams.get('page')||1),authorize));
+      if (route === 'editor' && url.pathname === '/admin/api/editor/revision') return json(200,await revisions.detail(url.searchParams.get('path'),url.searchParams.get('commit'),authorize));
       if (route === 'media' && url.pathname === '/admin/api/media/list') return json(200,await media.list(session,authorize));
       if (route === 'media' && url.pathname === '/admin/api/media/file') {
         const file=await media.file(session,{id:url.searchParams.get('id'),path:url.searchParams.get('path')},authorize);

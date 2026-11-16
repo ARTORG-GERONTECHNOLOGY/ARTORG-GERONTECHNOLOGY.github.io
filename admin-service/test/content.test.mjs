@@ -11,6 +11,7 @@ import { ContentStore, validateContent } from '../content.mjs';
 import { policy, editable, asset, blobSha } from '../content-policy.mjs';
 import { createAdministration } from '../service.mjs';
 import { ProposalEditor } from '../editor.mjs';
+import { ContentRevisions } from '../revisions.mjs';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const hash = value => createHash('sha1').update(value).digest('hex');
@@ -29,6 +30,8 @@ async function fixture() {
   }
   for (const directory of ['_posts', '_team', '_news', '_data', 'assets/images']) await collect(directory);
   const fake = {head: hash('initial'), files, mutations: 0, mints: 0, race: false, fail: false, loseResponse: false};
+  fake.revisions=new Map([[fake.head,{files:new Map(files),parents:[],paths:[...files.keys()],time:'2026-01-15T00:30:00Z'}]]);
+  const label=commit=>({sha:commit,parents:fake.revisions.get(commit).parents.map(sha=>({sha})),author:{type:'Bot',login:'ger-admin[bot]'},commit:{committer:{date:fake.revisions.get(commit).time},author:{name:'Shared administration'},message:'Update staff content'}});
   const response = value => new Response(JSON.stringify(value), {status: 200});
   const config = {appId: 12, installationId: 34, repositoryId: 56, keyFile};
   const fetcher = async (address, options) => {
@@ -54,10 +57,13 @@ async function fixture() {
       assert.ok(route === prefix + '/git/ref/heads/' + policy.contentBranch);
       return response({object: {sha: fake.head}});
     }
-    if (route.startsWith(prefix + '/git/commits/')) return response({tree: {sha: fake.head}});
-    if (route.startsWith(prefix + '/git/trees/')) return response({truncated: false, tree: [...fake.files].map(([path, file]) => ({path, type: 'blob', mode: '100644', sha: file.sha, size: file.bytes.length}))});
+    if (route.startsWith(prefix+'/commits?')){const query=new URL('https://api.github.com'+route).searchParams;assert.equal(query.get('sha'),fake.head);const matches=[...fake.revisions.keys()].reverse().filter(commit=>fake.revisions.get(commit).paths.includes(query.get('path')));const offset=(Number(query.get('page'))-1)*20;return response(matches.slice(offset,offset+20).map(label));}
+    if (route.startsWith(prefix+'/commits/')&&/^[a-f0-9]{40}$/.test(route.slice((prefix+'/commits/').length)))return response(label(route.split('/').at(-1)));
+    if (route.startsWith(prefix+'/compare/')){const candidate=route.slice((prefix+'/compare/').length).split('...')[0];return response({status:fake.revisions.has(candidate)?'ahead':'diverged',merge_base_commit:{sha:fake.revisions.has(candidate)?candidate:fake.head}});}
+    if (route.startsWith(prefix + '/git/commits/')) return response({tree: {sha: route.split('/').at(-1)}});
+    if (route.startsWith(prefix + '/git/trees/')) {const revision=route.split('/').at(-1).split('?')[0];const treeFiles=revision===fake.head?fake.files:fake.revisions.get(revision)?.files;assert.ok(treeFiles);return response({truncated: false, tree: [...treeFiles].map(([path, file]) => ({path, type: 'blob', mode: '100644', sha: file.sha, size: file.bytes.length}))});}
     if (route.startsWith(prefix + '/git/blobs/')) {
-      const item = [...fake.files.values()].find(file => file.sha === route.split('/').at(-1)); assert.ok(item);
+      const item = [...fake.files.values(),...[...fake.revisions.values()].flatMap(record=>[...record.files.values()])].find(file => file.sha === route.split('/').at(-1)); assert.ok(item);
       return response({encoding: 'base64', content: item.bytes.toString('base64')});
     }
     if (route === '/graphql') {
@@ -75,7 +81,8 @@ async function fixture() {
       for (const addition of input.fileChanges.additions) {
         assert.ok(editable(addition.path)||asset(addition.path)); const bytes = Buffer.from(addition.contents, 'base64'); next.set(addition.path, {bytes, sha: blobSha(bytes)});
       }
-      fake.files = next; fake.head = hash(fake.head + JSON.stringify(input.fileChanges));
+      const parent=fake.head;fake.files = next; fake.head = hash(fake.head + JSON.stringify(input.fileChanges));
+      fake.revisions.set(fake.head,{files:new Map(next),parents:[parent],paths:[...input.fileChanges.additions,...(input.fileChanges.deletions||[])].map(item=>item.path),time:'2026-07-15T00:30:00Z'});
       if (fake.loseResponse) throw Error('Simulated network loss after atomic commit');
       return response({data: {createCommitOnBranch: {commit: {oid: fake.head}}}});
     }
@@ -249,6 +256,76 @@ test('content HTTP routes require session, Origin and CSRF and never expose App 
     assert.equal(revoked.status, 401); assert.equal(f.fake.mutations, attempts);
     assert.equal((await request('/admin/api/media/file?id='+uploaded.id,{headers:{cookie}})).status,401);
   } finally { await new Promise(resolve => server.close(resolve)); await f.close(); }
+});
+
+test('content history reads immutable revisions, labels shared authorship and rejects unrelated paths/commits',async()=>{
+  const f=await fixture();
+  try{
+    const store=new ContentStore(f.provider);const editor=new ProposalEditor(store);const revisions=new ContentRevisions(editor);const snapshot=await f.provider.snapshot();const path=[...snapshot.files.keys()].find(path=>path.startsWith('_posts/'));
+    await store.save({baseCommit:snapshot.head,changes:[change(snapshot,path,20)]},authorize);
+    const history=await revisions.list(path,1,authorize);assert.equal(history.revisions.length,2);assert.equal(history.hasMore,false);
+    assert.ok(history.revisions[0].author.includes('individual staff identity not verified'));assert.equal(history.revisions[0].time,'2026-07-15T00:30:00.000Z');
+    const detail=await revisions.detail(path,history.revisions[0].commit,authorize);assert.equal(detail.diff.summary,'Order changed');assert.equal(detail.before,snapshot.files.get(path).bytes.toString('utf8'));
+    assert.ok(detail.source.includes('priority: 20'));assert.equal(detail.diff.narrative.length,0);
+    const old=await revisions.detail(path,history.revisions[1].commit,authorize);assert.equal(old.source,snapshot.files.get(path).bytes.toString('utf8'));assert.equal(old.time,'2026-01-15T00:30:00.000Z');
+    await assert.rejects(revisions.detail(path,'0'.repeat(40),authorize),error=>error.status===422);
+    await assert.rejects(revisions.list('_config.yml',1,authorize),error=>error.status===422);
+    await assert.rejects(revisions.list(path,51,authorize),error=>error.status===422);
+    assert.equal(f.fake.mutations,1,'history never writes to Git');
+  }finally{await f.close();}
+});
+
+test('restoration previews validate content, preserve current order and require fresh session-bound confirmation',async()=>{
+  const f=await fixture();
+  try{
+    const store=new ContentStore(f.provider);const editor=new ProposalEditor(store);const revisions=new ContentRevisions(editor);const initial=await f.provider.snapshot();const bootstrap=await editor.bootstrap(authorize);const original=bootstrap.proposals[0];
+    const prepared=await editor.prepare({operation:'publish',source:original.source,context:{path:original.path,sha:original.sha,baseCommit:initial.head},patch:{title:'Changed title for restoration',status:bootstrap.statuses.find(status=>status!==original.metadata.status)}},authorize);
+    await store.save({baseCommit:initial.head,changes:[{path:original.path,sha:original.sha,content:prepared.source}]},authorize);
+    const edited=await f.provider.snapshot();await store.save({baseCommit:edited.head,changes:[change(edited,original.path,20)]},authorize);
+    const base=await f.provider.snapshot();const session={expires:Date.now()+7200000};
+    const payload={path:original.path,commit:initial.head,baseCommit:base.head,sha:base.files.get(original.path).sha};
+    const preview=await revisions.preview(session,payload,authorize);assert.ok(preview.html);assert.ok(!preview.diff.metadata.some(field=>field.field==='priority'));
+    await assert.rejects(revisions.restore({...session},{previewId:preview.previewId,confirmation:initial.head},authorize),error=>error.status===422);
+    await assert.rejects(revisions.restore(session,{previewId:preview.previewId},authorize),error=>error.status===422);
+    const saved=await revisions.restore(session,{previewId:preview.previewId,confirmation:initial.head},authorize);assert.equal(saved.live,false);assert.equal(f.fake.mutations,3);
+    const restored=(await editor.bootstrap(authorize)).proposals.find(item=>item.path===original.path);assert.equal(restored.metadata.title,original.metadata.title);assert.equal(restored.metadata.status,original.metadata.status);assert.equal(restored.metadata.priority,20);
+    for(const key of ['proposal_id','permalink','created_at','date'])assert.equal(restored.metadata[key],original.metadata[key]);assert.ok(new Date(restored.metadata.updated_at)>new Date(prepared.metadata.updated_at));
+    await assert.rejects(revisions.restore(session,{previewId:preview.previewId,confirmation:initial.head},authorize),error=>error.status===422);
+    const current=await f.provider.snapshot();const otherPreview=await revisions.preview(session,{path:original.path,commit:edited.head,baseCommit:current.head,sha:current.files.get(original.path).sha},authorize);
+    await store.save({baseCommit:current.head,changes:[change(current,original.path,30)]},authorize);
+    await assert.rejects(revisions.restore(session,{previewId:otherPreview.previewId,confirmation:edited.head},authorize),error=>error.status===409);assert.equal(f.fake.mutations,4);
+    revisions.purge(()=>false);assert.equal(revisions.previews.size,0);
+  }finally{await f.close();}
+});
+
+test('deleted proposals recover atomically at their former priority and keep original URLs/dates',async()=>{
+  const f=await fixture();
+  try{
+    const store=new ContentStore(f.provider);const editor=new ProposalEditor(store);const revisions=new ContentRevisions(editor);const initial=await f.provider.snapshot();const original=(await editor.bootstrap(authorize)).proposals[0];
+    const numbered=await store.save({baseCommit:initial.head,changes:[change(initial,original.path,170)]},authorize);const beforeDelete=await f.provider.snapshot();
+    await editor.lifecycle({action:'delete',path:original.path,baseCommit:beforeDelete.head,sha:beforeDelete.files.get(original.path).sha,confirmation:original.metadata.proposal_id},authorize);
+    const deleted=await revisions.deleted(authorize);assert.equal(deleted.records[0].source_path,original.path);
+    const other=[...f.fake.files.keys()].find(path=>path.startsWith('_posts/'));const deletedSnapshot=await f.provider.snapshot();
+    await store.save({baseCommit:deletedSnapshot.head,changes:[change(deletedSnapshot,other,10)]},authorize);
+    const base=await f.provider.snapshot();const session={expires:Date.now()+7200000};
+    const preview=await revisions.preview(session,{path:original.path,commit:initial.head,baseCommit:base.head,sha:null},authorize);assert.equal(preview.deleted,true);assert.ok(preview.html);
+    const result=await revisions.restore(session,{previewId:preview.previewId,confirmation:initial.head},authorize);assert.equal(result.files.length,2);assert.equal(f.fake.mutations,4);
+    const recovered=(await editor.bootstrap(authorize)).proposals.find(item=>item.path===original.path);assert.equal(recovered.metadata.priority,170);assert.equal(recovered.metadata.status,original.metadata.status);
+    for(const key of ['proposal_id','created_at','date','permalink'])assert.equal(recovered.metadata[key],original.metadata[key]);
+    assert.equal((await revisions.deleted(authorize)).records.length,0);assert.ok(numbered.commit!==result.commit);
+  }finally{await f.close();}
+});
+
+test('invalid historical metadata cannot pass restoration validation',async()=>{
+  const f=await fixture();
+  try{
+    const editor=new ProposalEditor(new ContentStore(f.provider));const revisions=new ContentRevisions(editor);const initial=await f.provider.snapshot();const path=[...initial.files.keys()].find(path=>path.startsWith('_posts/'));const source=initial.files.get(path).bytes.toString('utf8');
+    const invalid=source.replace(/^  email:.*$/m,'  email: invalid-email');assert.ok(invalid.includes('email: invalid-email'));
+    const bad=await f.provider.commit(initial.head,[{path,content:invalid}]);await f.provider.commit(bad,[{path,content:source}]);
+    const current=await f.provider.snapshot();
+    await assert.rejects(revisions.preview({expires:Date.now()+7200000},{path,commit:bad,baseCommit:current.head,sha:current.files.get(path).sha},authorize),error=>error.status===422&&error.code==='invalid_content');
+    assert.equal(f.fake.mutations,2,'invalid restoration never commits');
+  }finally{await f.close();}
 });
 
 test('GitHub commits delete a proposal and reserve its old URL in one atomic operation',async()=>{

@@ -3,6 +3,7 @@
   const $ = id => document.getElementById(id);
   let bootstrap, state, csrf, dirty = false, busy = false, leaving = false;
   const fields = new Map();
+  let mediaFiles=[],mediaRules;
   const formatDate = value => value ? new Intl.DateTimeFormat('en-GB', {dateStyle:'medium', timeStyle:'short', timeZone:'Europe/Zurich'}).format(new Date(value)) : 'Not yet published';
   function node(tag, text, attributes = {}) { const item = document.createElement(tag); if (text !== undefined) item.textContent = text; for (const [name,value] of Object.entries(attributes)) item.setAttribute(name,value); return item; }
   function message(text) { $('save-state').textContent = text; }
@@ -36,7 +37,7 @@
     for(const value of values||[]) add(value);
     const button=node('button','Add '+title.toLowerCase().replace(/s$/,''),{type:'button',class:'secondary'}); button.addEventListener('click',()=>{add({}); changed();}); parent.append(button);
     const error=node('p','',{class:'field-error',id:'field-'+key+'-error'}); parent.append(error);
-    fields.set(key,{error,read:()=>records.map(record=>{ const value={}; for(const column of columns) { const raw=record.inputs[column.key].value; if(column.type==='number') {if(raw!=='')value[column.key]=Number(raw);} else if(raw!==''||column.required) value[column.key]=raw; } return value; })});
+    fields.set(key,{error,add,read:()=>records.map(record=>{ const value={}; for(const column of columns) { const raw=record.inputs[column.key].value; if(column.type==='number') {if(raw!=='')value[column.key]=Number(raw);} else if(raw!==''||column.required) value[column.key]=raw; } return value; })});
   }
   function populate(model, context) {
     fields.clear(); $('proposal-form').replaceChildren(); state={...model,context}; const m=model.metadata;
@@ -55,7 +56,8 @@
     const optional=node('details'); optional.append(node('summary','Optional figure, downloads and media')); $('proposal-form').append(optional);
     for(const [key,label] of [['src','Existing figure URL or /assets/ path'],['alt','Figure alternative text'],['caption','Figure caption']]) field(optional,label,'figure.'+key,m.figure?.[key]);
     rows(optional,'Attachments','attachments',m.attachments,[{key:'title',label:'Title',required:true},{key:'url',label:'Existing file URL',required:true},{key:'mime_type',label:'MIME type',required:true},{key:'size',label:'Bytes (required for external files)',type:'number'}]);
-    optional.append(node('p','Media uploads and file selection arrive in the next step. Existing media metadata is preserved.'));
+    const picker=node('section',undefined,{id:'media-picker','aria-label':'Media files'});optional.prepend(picker);renderMedia();
+    optional.append(node('p','Removing a figure or attachment link keeps its shared file. Temporary uploads expire at sign-out or session expiry. Download your Markdown and temporary files to continue later; upload the files again when reopening the draft. Existing embedded media metadata is preserved.'));
     dirty=false; $('editor').hidden=false; $('errors').hidden=true; $('reload').hidden=true; $('preview-frame').srcdoc=''; $('preview-state').textContent='Preview has not been generated.';
     $('save').disabled=!bootstrap.canPublish; $('save').title=bootstrap.canPublish?'':'GitHub saving is not connected in this local review.';
     message('No unsaved changes'); tabs('write'); $('editor-title').scrollIntoView({block:'start'});
@@ -100,21 +102,59 @@
       else if(name==='publish') {
         if(!result.ready) {message('Please correct the highlighted fields. Your working copy is unchanged.'); return;}
         const path=state.context.path||result.metadata.date.slice(0,10)+'-project-'+result.metadata.proposal_id+'.md';
-        const saved=await api('save',{baseCommit:state.context.baseCommit,changes:[{path:path.startsWith('_posts/')?path:'_posts/'+path,sha:state.context.sha??null,content:result.source}]});
+        const selected=new Set([payload.patch.figure?.src,...payload.patch.attachments.map(file=>file.url)]);
+        const uploads=mediaFiles.filter(file=>file.temporary&&selected.has(file.url)).map(file=>file.id);
+        const saved=await api('save',{baseCommit:state.context.baseCommit,changes:[{path:path.startsWith('_posts/')?path:'_posts/'+path,sha:state.context.sha??null,content:result.source}],uploads});
         const savedPath=path.startsWith('_posts/')?path:'_posts/'+path;
         populate(result,{path:savedPath,baseCommit:saved.commit,sha:saved.files.find(file=>file.path===savedPath).sha});
         message('Committed; validation/build pending. This is not a live deployment confirmation.');
-        try { bootstrap=await api('bootstrap'); renderList(); } catch { message('Committed; validation/build pending. The list could not refresh. Reload it before editing another proposal.'); }
+        try { bootstrap=await api('bootstrap'); await loadMedia();renderList();renderMedia(); } catch { message('Committed; validation/build pending. The list could not refresh. Reload it before editing another proposal.'); }
       } else if(name!=='download') message(result.ready?'Proposal checks passed.':'Working copy retained — required publication fields need attention.');
     } catch(error) { errors(error.data?.errors||{});message(error.message+' Your working copy remains in this tab.');if(error.status===409)$('reload').hidden=false; }
     finally {busy=false;}
   }
-  async function open(item) {if(dirty&&!confirm('Discard the current working copy? Download Markdown first if you want to keep it.'))return;populate(item,{path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit});}
+  async function open(item) {if(busy)return;if(dirty&&!confirm('Discard the current working copy? Download Markdown first if you want to keep it.'))return;populate(item,{path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit});}
+  async function loadMedia() {
+    const response=await fetch('/admin/api/media/list',{credentials:'same-origin'});if(!response.ok)throw new Error('The media list is unavailable. Please try again.');
+    const value=await response.json();mediaFiles=value.files;mediaRules=value.rules;
+    // Once committed, use the permanent file rather than the remaining private upload.
+    const permanent=new Set(mediaFiles.filter(file=>!file.temporary).map(file=>file.url));
+    mediaFiles=mediaFiles.filter(file=>!file.temporary||!permanent.has(file.url));
+  }
+  function renderMedia() {
+    const panel=$('media-picker');if(!panel)return;panel.replaceChildren(node('h3','Choose or upload a file'));
+    const status=node('p','',{role:'status'});
+    const label=node('label','Upload PNG, JPEG, WebP or PDF (up to 10 MiB)');const input=node('input',undefined,{type:'file',accept:'.png,.jpg,.jpeg,.webp,.pdf'});label.append(input);panel.append(label,status);
+    input.addEventListener('change',async()=>{
+      const file=input.files[0];if(!file||busy)return;
+      if(file.size>(mediaRules?.max_file_bytes||10485760)){status.textContent='Choose a file no larger than 10 MiB.';input.value='';return;}
+      busy=true;status.textContent='Checking and uploading file…';
+      try{
+        const session=await fetch('/admin/api/session',{credentials:'same-origin'});if(!session.ok)throw new Error('Your session ended. Open the private link in another tab, then retry.');
+        const token=(await session.json()).csrf;const extension='.'+file.name.split('.').at(-1).toLowerCase();
+        const response=await fetch('/admin/api/media/upload?'+new URLSearchParams({filename:file.name,proposalId:state.metadata.proposal_id}),{method:'POST',credentials:'same-origin',headers:{'Content-Type':mediaRules?.types[extension]||file.type||'application/octet-stream','X-CSRF-Token':token},body:file});
+        const value=await response.json().catch(()=>({message:'The upload was rejected. Check its type and size.'}));if(!response.ok)throw new Error(value.message);
+        dirty=true;
+        await loadMedia();renderMedia();$('media-select').value=value.url;$('media-select').dispatchEvent(new Event('change'));
+        message('File checked and uploaded privately. Choose “Use as figure” or “Add as attachment” before saving.');
+      }catch(error){status.textContent=error.message+' Your proposal remains unchanged.';}finally{busy=false;input.value='';}
+    });
+    const selectLabel=node('label','Existing and temporary files',{for:'media-select'});const select=node('select',undefined,{id:'media-select'});select.append(node('option','Choose a file…',{value:''}));
+    const own=mediaFiles.filter(file=>!file.temporary||file.url.startsWith('/assets/media/proposals/'+state.metadata.proposal_id+'/'));
+    for(const file of own)select.append(node('option',(file.temporary?'Temporary · ':'')+file.title+' · '+file.mime_type+' · '+(file.size/1024).toFixed(1)+' KB',{value:file.url}));
+    const buttons=node('div',undefined,{class:'actions'});const figure=node('button','Use as figure',{type:'button'});const attach=node('button','Add as attachment',{type:'button'});const download=node('a','Download selected file',{hidden:'',class:'media-download'});
+    const chosen=()=>own.find(file=>file.url===select.value);
+    select.addEventListener('change',()=>{const file=chosen();download.hidden=!file;if(file){download.href='/admin/api/media/file?'+new URLSearchParams(file.temporary?{id:file.id}:{path:file.url.slice(1)});download.textContent=file.temporary?'Download temporary file':'Download selected file';}});
+    figure.addEventListener('click',()=>{const file=chosen();if(!file)return;if(!file.mime_type.startsWith('image/')){status.textContent='Choose an image for a figure. PDFs can be added as attachments.';return;}fields.get('figure.src').input.value=file.url;fields.get('figure.alt').input.focus();changed();status.textContent='Figure selected. Add alternative text and an optional caption below.';});
+    attach.addEventListener('click',()=>{const file=chosen();if(!file)return;fields.get('attachments').add({title:file.title,url:file.url,mime_type:file.mime_type,size:file.size});changed();status.textContent='Attachment added. You can edit its title below.';});
+    buttons.append(figure,attach,download);panel.append(selectLabel,select,buttons);
+  }
   async function start() {
     try {
       const session=await fetch('/admin/api/session',{credentials:'same-origin'}).then(r=>r.json());csrf=session.csrf;
       bootstrap=await api('bootstrap'); $('connection').textContent=bootstrap.canPublish?'Connected to the staff content branch. Saves wait for validation.':'Local review — GitHub saving is not connected. You can edit, preview and download drafts.';
       renderList();
+      try{await loadMedia();}catch(error){$('connection').textContent+=' '+error.message;}
     } catch(error){$('connection').textContent=error.message;}
   }
   function renderList() {
@@ -122,8 +162,8 @@
     for(const item of bootstrap.proposals){const tr=node('tr');const td=node('td');const button=node('button',item.metadata.title,{type:'button',class:'link-button'});button.addEventListener('click',()=>open(item));td.append(button);tr.append(td);for(const text of [item.metadata.status,item.metadata.priority,formatDate(item.metadata.created_at),formatDate(item.metadata.updated_at),'Committed source'])tr.append(node('td',String(text)));$('proposal-list').append(tr);}
   }
   $('proposal-form').addEventListener('input',changed); $('proposal-form').addEventListener('change',changed);
-  $('new-proposal').addEventListener('click',async()=>{if(dirty&&!confirm('Discard the current working copy? Download Markdown first to keep it.'))return;try{const value=await api('prepare',{operation:'new'});populate(value,{baseCommit:bootstrap.baseCommit,sha:null});}catch(error){message(error.message);}});
-  $('open-draft').addEventListener('change',async event=>{const file=event.target.files[0];if(!file)return;if(file.size>131072){alert('Choose a Markdown file smaller than 128 KiB.');return;}if(dirty&&!confirm('Replace the current working copy?'))return;try{const value=await api('prepare',{operation:'parse',source:await file.text()});populate(value,{baseCommit:bootstrap.baseCommit,sha:null,...value.context});}catch(error){message(error.message);}event.target.value='';});
+  $('new-proposal').addEventListener('click',async()=>{if(busy)return;if(dirty&&!confirm('Discard the current working copy? Download Markdown first to keep it.'))return;try{const value=await api('prepare',{operation:'new'});populate(value,{baseCommit:bootstrap.baseCommit,sha:null});}catch(error){message(error.message);}});
+  $('open-draft').addEventListener('change',async event=>{const file=event.target.files[0];if(!file||busy)return;if(file.size>131072){alert('Choose a Markdown file smaller than 128 KiB.');return;}if(dirty&&!confirm('Replace the current working copy?'))return;try{const value=await api('prepare',{operation:'parse',source:await file.text()});populate(value,{baseCommit:bootstrap.baseCommit,sha:null,...value.context});}catch(error){message(error.message);}event.target.value='';});
   $('write-tab').addEventListener('click',()=>tabs('write'));$('preview-tab').addEventListener('click',()=>{tabs('preview');action('preview');});$('split-view').addEventListener('change',()=>tabs($('preview-tab').getAttribute('aria-selected')==='true'?'preview':'write'));
   for(const tab of [$('write-tab'),$('preview-tab')])tab.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();(tab===$('write-tab')?$('preview-tab'):$('write-tab')).focus();}});
   $('refresh-preview').addEventListener('click',()=>action('preview'));$('validate').addEventListener('click',()=>action('compose'));$('download').addEventListener('click',()=>action('download'));$('save').addEventListener('click',()=>action('publish'));

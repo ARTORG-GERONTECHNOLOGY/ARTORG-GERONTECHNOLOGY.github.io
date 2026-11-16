@@ -84,7 +84,7 @@ export class GitHubContent {
         query: 'mutation SaveContent($input:CreateCommitOnBranchInput!){createCommitOnBranch(input:$input){commit{oid}}}',
         variables: {input: {branch: {repositoryNameWithOwner: policy.repository, refName: 'refs/heads/' + policy.contentBranch},
           expectedHeadOid: expectedHead, message: {headline: 'Update staff content'},
-          fileChanges: {additions: changes.map(item => ({path: item.path, contents: Buffer.from(item.content, 'utf8').toString('base64')}))}}}
+          fileChanges: {additions: changes.map(item => ({path: item.path, contents: (item.bytes || Buffer.from(item.content, 'utf8')).toString('base64')}))}}}
       });
     } catch { throw new ContentError(502, 'save_outcome_unknown', 'The save outcome could not be confirmed. Reload and compare before trying again.'); }
     if (result.errors?.length) {

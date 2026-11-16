@@ -1,7 +1,7 @@
 # Administration access service
 
-Steps 16–18 provide private-link entry, protected sessions, a GitHub content
-save API and the proposal editor. GitHub integration is
+Steps 16–19 provide private-link entry, protected sessions, a GitHub content
+save API, the proposal editor and private media uploads. GitHub integration is
 disabled until explicitly configured; the local access demo needs no GitHub
 credentials. The public website remains static and separate.
 
@@ -13,6 +13,7 @@ the website repository root:
 node --test admin-service/test/access.test.mjs
 node --test admin-service/test/content.test.mjs
 node --test admin-service/test/editor.test.mjs
+node --test admin-service/test/media.test.mjs
 ```
 
 ## Private access configuration
@@ -203,8 +204,9 @@ refuse redirects and do not log upstream response bodies or credentials.
 All routes require the Step 16 session. POST also requires an exact Origin and
 `X-CSRF-Token` from `GET /admin/api/session`. Cookie protection and rate limits
 remain in force. JSON save bodies are bounded to 1 MiB; each text file is limited
-to 128 KiB and each save to sixteen distinct files. Uploads/deletion are later
-steps, rather than unrestricted filesystem operations hidden in this API.
+to 128 KiB and each save to sixteen distinct files. Only the separate media
+endpoint accepts binary uploads; deletion is a later step. These APIs do not
+provide unrestricted filesystem operations.
 
 | Route | Behavior |
 | --- | --- |
@@ -290,6 +292,68 @@ creation, edits, conflicts and draft rejection without remote writes. The
 local checkout is not used as a write destination.
 
 Existing figure/download paths can be edited; existing embedded media metadata
-is retained. File upload and media selection are Step 19. Public pages remain
+is retained. Step 19 adds file upload and media selection below. Public pages remain
 static; preview and editing require the separate trusted administration service.
 No live GitHub connection, public hosting or publication has been activated.
+
+## Media picker and uploads (Step 19)
+
+Open **Optional figure, downloads and media** in a proposal. Choose a file from
+the existing/temporary list, then **Use as figure** or **Add as attachment**.
+Images need meaningful alternative text; captions and attachment titles can be
+edited below the picker. PNG/JPEG/WebP images and PDF attachments are supported.
+Removing a reference never deletes its shared repository file.
+
+Upload inspection also requires Python **3.12.14** with the exact versions in
+`admin-service/requirements-media.txt`. Install those dependencies in a private
+virtual environment outside the repository and served folders. Set
+`ADMIN_PYTHON_EXECUTABLE` to its Python executable (or provide that environment's
+Python on PATH). Ruby uses the repository's Bundler environment. The prepared
+Windows preview reuses the isolated dependencies at `../.local/validation-python`;
+they are not copied into the public website. Missing inspection dependencies
+reject uploads rather than accepting unchecked bytes.
+
+The shared `_data/media.yml` supplies allowed MIME types and limits: 10 MiB per
+file and 25 MiB per proposal, with image sides up to 12,000 pixels and at most
+40 million decoded pixels across all animation frames. The server checks the
+filename, extension, declared type, signature, decoding and dimensions. PDF
+inspection rejects encrypted/malformed documents, scripts, automatic actions,
+forms, embedded files and unsafe actions/links. This is targeted file validation,
+not antivirus scanning. Existing published assets retain their original bytes;
+the deeper decoding rules apply to new uploads.
+
+Uploads stay in bounded server memory, owned by the authenticated session.
+Sign-out, link rotation, expiry and service restart remove access. A cleanup
+pass runs on requests and every 30 seconds. There is a 128 MiB/200-file service
+budget and at most two simultaneous incoming uploads. No upload is written to
+the local checkout or public build. Stable destinations use the proposal ID,
+normalized descriptive name and a content hash; existing files are never
+overwritten. Re-uploading the same original filename/bytes recovers the same URL.
+
+Use **Download temporary file** after selecting an upload to keep its original
+bytes and filename. A Markdown download contains references, not file bytes.
+Keep both downloads before signing out; reopen the Markdown and upload the
+original files again when resuming. Missing/expired figure and attachment
+references are reported beside their fields before preview/publication.
+
+When GitHub is enabled, Save submits selected upload IDs with the proposal.
+Only uploads belonging to that session and proposal, referenced as its figure
+or attachments, are eligible. Trusted server code adds those bytes to the same
+atomic commit after shared whole-candidate validation. Failed/conflicting saves
+retain uploads and the working copy; confirmed commits release selected
+temporary buffers and use permanent repository files. Unselected uploads stay
+private until expiry. The sixteen-file save limit includes the proposal and
+new assets; the existing 40 MiB repository snapshot limit still applies.
+
+Protected routes are `GET /admin/api/media/list`, `GET /admin/api/media/file`
+(an own-session `id`, or allowed existing asset `path`) and
+`POST /admin/api/media/upload?proposalId=...&filename=...`. Uploads use raw bytes,
+their declared MIME type and the same Origin/CSRF requirements as other
+mutations. Downloads require an active session and use attachment disposition,
+no-store and nosniff. Editor previews embed approved temporary image bytes into
+the script-disabled preview, without making public temporary URLs.
+
+The local review supports upload, selection, download and preview. Real GitHub
+saves remain disabled; atomic binary saves are exercised against isolated fake
+providers/API responses. No real proposal files, public media or production
+settings were changed for demonstration.

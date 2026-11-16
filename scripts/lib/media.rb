@@ -4,10 +4,10 @@ require_relative "proposal"
 module Media
   RULES = YAML.safe_load_file(File.join(Proposals::ROOT, "_data/media.yml"))
 
-  # Shared by static publication checks and the later trusted upload service.
+  # Shared by static publication checks and the trusted upload service.
   # Validate bytes before accepting a destination; never infer type from its name alone.
   def self.validate_bytes!(filename, bytes, declared_type:)
-    unless filename.is_a?(String) && !filename.match?(/[\\\x00\/:<>"|?*]/)
+    unless filename.is_a?(String) && !filename.match?(/[\\\x00-\x1f\x7f\/:<>"|?*]/)
       raise Proposals::FormatError, "Use a safe media filename, not a path"
     end
     extension = File.extname(filename).downcase

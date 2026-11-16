@@ -4,6 +4,6 @@
   "engines": {"node": "24.22.1"},
   "scripts": {
     "start": "node start.mjs",
-    "test": "node --test test/access.test.mjs test/content.test.mjs test/editor.test.mjs"
+    "test": "node --test test/access.test.mjs test/content.test.mjs test/editor.test.mjs test/media.test.mjs"
   }
 }

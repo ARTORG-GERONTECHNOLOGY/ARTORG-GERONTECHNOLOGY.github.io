@@ -70,7 +70,7 @@ async function fixture() {
       if (input.expectedHeadOid !== fake.head || fake.fail) return response({errors: [{type: 'STALE_DATA'}]});
       const next = new Map(fake.files);
       for (const addition of input.fileChanges.additions) {
-        assert.ok(editable(addition.path)); const bytes = Buffer.from(addition.contents, 'base64'); next.set(addition.path, {bytes, sha: blobSha(bytes)});
+        assert.ok(editable(addition.path)||asset(addition.path)); const bytes = Buffer.from(addition.contents, 'base64'); next.set(addition.path, {bytes, sha: blobSha(bytes)});
       }
       fake.files = next; fake.head = hash(fake.head + JSON.stringify(input.fileChanges));
       if (fake.loseResponse) throw Error('Simulated network loss after atomic commit');
@@ -189,7 +189,7 @@ test('content HTTP routes require session, Origin and CSRF and never expose App 
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); config.origin = 'http://localhost:' + server.address().port;
   const request = (route, {method = 'GET', headers = {}, body, splitAt} = {}) => new Promise((resolve, reject) => {
     const req = http.request('http://127.0.0.1:' + server.address().port + route, {method, headers: {host: new URL(config.origin).host, ...headers}}, res => {
-      const chunks = []; res.on('data', chunk => chunks.push(chunk)); res.on('end', () => resolve({status: res.statusCode, headers: res.headers, text: Buffer.concat(chunks).toString('utf8')}));
+      const chunks = []; res.on('data', chunk => chunks.push(chunk)); res.on('end', () => resolve({status: res.statusCode, headers: res.headers, bytes:Buffer.concat(chunks), text: Buffer.concat(chunks).toString('utf8')}));
     }); req.on('error', reject);
     if (splitAt) {
       const bytes = Buffer.from(body); req.write(bytes.subarray(0, splitAt));
@@ -217,6 +217,25 @@ test('content HTTP routes require session, Origin and CSRF and never expose App 
     assert.equal(JSON.parse(saved.text).live, false);
     assert.ok(!saved.text.includes('fixture-installation-token') && !saved.text.includes('PRIVATE KEY'));
     assert.equal((await request('/admin/api/content/save', options)).status, 409);
+    assert.equal((await request('/admin/api/media/list')).status,401);
+    const mediaList=await request('/admin/api/media/list',{headers:{cookie}});assert.equal(mediaList.status,200);
+    const image=await fs.readFile(new URL('../../assets/images/branding/bfh.png',import.meta.url));
+    const proposalId=/^proposal_id:\s*["']?([a-z0-9-]+)/m.exec(f.fake.files.get(path).bytes.toString('utf8'))[1];
+    const uploadRoute='/admin/api/media/upload?'+new URLSearchParams({filename:"HTTP figure's ü.png",proposalId});
+    const uploadOptions={method:'POST',headers:{cookie,origin:config.origin,'content-type':'image/png','x-csrf-token':session.csrf},body:image};
+    assert.equal((await request(uploadRoute,{...uploadOptions,headers:{...uploadOptions.headers,'x-csrf-token':'bad'}})).status,403);
+    assert.equal((await request(uploadRoute,{...uploadOptions,headers:{...uploadOptions.headers,origin:'https://wrong.example'}})).status,403);
+    const upload=await request(uploadRoute,uploadOptions);assert.equal(upload.status,201);const uploaded=JSON.parse(upload.text);
+    const download=await request('/admin/api/media/file?id='+uploaded.id,{headers:{cookie}});assert.equal(download.status,200);assert.deepEqual(download.bytes,image);assert.equal(download.headers['content-type'],'image/png');assert.ok(download.headers['content-disposition'].startsWith('attachment;'));
+    assert.ok(download.headers['content-disposition'].includes("filename*=UTF-8''HTTP%20figure%27s%20%C3%BC.png"));
+    const other=(await request('/admin/access?token='+token)).headers['set-cookie'][0].split(';')[0];
+    assert.equal((await request('/admin/api/media/file?id='+uploaded.id,{headers:{cookie:other}})).status,404);
+    assert.equal((await request('/admin/api/media/file?path=../access.json',{headers:{cookie}})).status,422);
+    const current=await f.provider.snapshot();
+    const prepared=await request('/admin/api/editor/prepare',{...options,body:JSON.stringify({operation:'publish',source:current.files.get(path).bytes.toString('utf8'),context:{path,sha:current.files.get(path).sha,baseCommit:current.head},patch:{figure:{src:uploaded.url,alt:'HTTP test figure',caption:'Atomic image save'}}})});
+    assert.equal(prepared.status,200);const candidate=JSON.parse(prepared.text);assert.equal(candidate.ready,true);
+    const withMedia=await request('/admin/api/editor/save',{...options,body:JSON.stringify({baseCommit:current.head,changes:[{path,sha:current.files.get(path).sha,content:candidate.source}],uploads:[uploaded.id]})});
+    assert.equal(withMedia.status,201);assert.deepEqual(f.fake.files.get(uploaded.url.slice(1)).bytes,image);assert.equal(JSON.parse(withMedia.text).files.length,2);
     assert.ok(!JSON.stringify(records).includes(token) && !JSON.stringify(records).includes(session.csrf));
     const beforeRevocation = await f.provider.snapshot(); const attempts = f.fake.mutations;
     store.validate = async (files, previous) => {
@@ -225,6 +244,7 @@ test('content HTTP routes require session, Origin and CSRF and never expose App 
     };
     const revoked = await request('/admin/api/content/save', {...options, body: JSON.stringify({baseCommit: beforeRevocation.head, changes: [change(beforeRevocation, path, 66)]})});
     assert.equal(revoked.status, 401); assert.equal(f.fake.mutations, attempts);
+    assert.equal((await request('/admin/api/media/file?id='+uploaded.id,{headers:{cookie}})).status,401);
   } finally { await new Promise(resolve => server.close(resolve)); await f.close(); }
 });
 

@@ -5,6 +5,7 @@ import fs from 'node:fs/promises';
 import { readAccess } from './config.mjs';
 import { ContentError } from './content-policy.mjs';
 import { ProposalEditor } from './editor.mjs';
+import { MediaStore } from './media.mjs';
 
 const cookieName = '__Host-ger_admin';
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -26,9 +27,13 @@ function page(title, body) {
 
 export function createAdministration(config, {now = Date.now, log = () => {}, content = null} = {}) {
   const editor = new ProposalEditor(content);
+  const media = new MediaStore(editor,content,{now});
   const sessions = new Map();
+  const purgeUploads = () => {const active=new Set(sessions.values());media.purge(session=>active.has(session));};
+  const cleanup = setInterval(purgeUploads, 30000); cleanup.unref();
   const limits = new Map();
   let generation;
+  let receivingUploads = 0;
   // Fixed-window limits have bounded storage; unknown new clients fail closed at capacity.
   function limited(key, count, seconds) {
     const time = now();
@@ -42,6 +47,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
   }
   const clearCookie = `${cookieName}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict`;
   const server = http.createServer(async (req, res) => {
+    let receivingUpload = false;
     let route = 'invalid';
     const send = (status, content, type = 'text/html; charset=utf-8', extra = {}) => {
       res.writeHead(status, {...headers, ...(route === '/admin/access' ? {'Content-Security-Policy': "default-src 'none'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'"} : {}), ...(!config.local ? {'Strict-Transport-Security': 'max-age=31536000'} : {}), 'Content-Type': type, ...extra});
@@ -61,7 +67,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
       if ((req.url || '').length > 2048) return denied(400);
       const url = new URL(req.url, config.origin);
       if (url.origin !== config.origin) return denied(400);
-      route = url.pathname.startsWith('/admin/api/editor') ? 'editor' : url.pathname === '/admin/editor.js' ? 'editor_script' : url.pathname.startsWith('/admin/api/content') ? 'content' : new Set(['/admin/access', '/admin/', '/admin/api/session', '/admin/logout', '/admin/style.css']).has(url.pathname) ? url.pathname : 'not_found';
+      route = url.pathname.startsWith('/admin/api/media') ? 'media' : url.pathname.startsWith('/admin/api/editor') ? 'editor' : url.pathname === '/admin/editor.js' ? 'editor_script' : url.pathname.startsWith('/admin/api/content') ? 'content' : new Set(['/admin/access', '/admin/', '/admin/api/session', '/admin/logout', '/admin/style.css']).has(url.pathname) ? url.pathname : 'not_found';
       const forwarded = req.headers['x-forwarded-for'];
       const ip = trusted && typeof forwarded === 'string' && isIP(forwarded) ? forwarded : remote;
       if (limited('global', 2000, 60)) return denied(429, {'Retry-After': '60'});
@@ -76,6 +82,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
       if (generation !== fingerprint) { sessions.clear(); generation = fingerprint; }
       const time = now();
       for (const [id, session] of sessions) if (session.expires <= time) sessions.delete(id);
+      purgeUploads();
       if (access.revoked) return denied(401, {'Set-Cookie': clearCookie});
       if (route === '/admin/access') {
         const tokens = url.searchParams.getAll('token');
@@ -94,7 +101,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
       if (!session) return denied(401, {'Set-Cookie': clearCookie});
       const authorize = async () => {
         if (digest(JSON.stringify(await readAccess(config.accessFile))) !== generation || session.expires <= now() || !sessions.has(digest(id))) {
-          sessions.clear(); throw new ContentError(401, 'session_expired', 'Your session has ended. Open the private access link again.');
+          sessions.clear(); purgeUploads(); throw new ContentError(401, 'session_expired', 'Your session has ended. Open the private access link again.');
         }
       };
       const json = (status, value) => send(status, JSON.stringify(value), 'application/json');
@@ -103,38 +110,50 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
         const contentType = req.headers['content-type']?.split(';')[0];
         const apiSave = route === 'content' && url.pathname === '/admin/api/content/save';
         const jsonRequest = apiSave || route === 'editor';
-        if (contentType !== (jsonRequest ? 'application/json' : 'application/x-www-form-urlencoded')) return denied(415);
+        const uploadRequest = route === 'media' && url.pathname === '/admin/api/media/upload';
+        const uploadRules = uploadRequest ? await media.rules() : null;
+        if (uploadRequest ? !Object.values(uploadRules.types).includes(contentType) : contentType !== (jsonRequest ? 'application/json' : 'application/x-www-form-urlencoded')) return denied(415);
+        if ((jsonRequest || uploadRequest) && (typeof req.headers['x-csrf-token'] !== 'string' || !/^[a-f0-9]{64}$/.test(req.headers['x-csrf-token']) || !equal(req.headers['x-csrf-token'],session.csrf))) return denied(403);
+        if (uploadRequest) {if(receivingUploads>=2)return denied(429);receivingUploads++;receivingUpload=true;}
         const chunks = []; let length = 0;
         for await (const chunk of req) {
           length += chunk.length;
-          if (length > (jsonRequest ? 1024 * 1024 : 8192)) return denied(413);
+          if (length > (uploadRequest ? uploadRules.max_file_bytes : jsonRequest ? 1024 * 1024 : 8192)) return denied(413);
           chunks.push(chunk);
         }
         let data;
-        try { data = new TextDecoder('utf-8', {fatal: true}).decode(Buffer.concat(chunks)); }
+        try { data = uploadRequest ? Buffer.concat(chunks) : new TextDecoder('utf-8', {fatal: true}).decode(Buffer.concat(chunks)); }
         catch { return denied(400); }
-        const csrf = jsonRequest ? [req.headers['x-csrf-token']] : new URLSearchParams(data).getAll('csrf');
+        const csrf = jsonRequest || uploadRequest ? [req.headers['x-csrf-token']] : new URLSearchParams(data).getAll('csrf');
         if (csrf.length !== 1 || !/^[a-f0-9]{64}$/.test(csrf[0]) || !equal(csrf[0], session.csrf)) return denied(403);
         // Re-read after an asynchronous request body: rotation/expiry wins races.
         await authorize();
+        if (uploadRequest) return json(201, await media.upload(session,{filename:url.searchParams.get('filename'),proposalId:url.searchParams.get('proposalId'),mime:contentType,bytes:data},authorize));
         if (route === '/admin/logout') {
           sessions.delete(digest(id));
+          purgeUploads();
           return send(303, '', undefined, {'Location': '/admin/', 'Set-Cookie': clearCookie});
         }
         if (route === 'editor' && url.pathname === '/admin/api/editor/prepare') {
           let payload;
           try { payload = JSON.parse(data); } catch { throw new ContentError(400, 'invalid_json', 'The editor request is not valid JSON.'); }
-          return json(200, await editor.prepare(payload, authorize));
+          return json(200, await editor.prepare(payload, authorize, media.temporary(session)));
         }
         if (apiSave || route === 'editor' && url.pathname === '/admin/api/editor/save') {
           if (!content) throw new ContentError(503, 'saving_not_configured', 'GitHub saving is not configured. No save was made.');
           let payload;
           try { payload = JSON.parse(data); } catch { throw new ContentError(400, 'invalid_json', 'The save request is not valid JSON.'); }
-          return json(201, await content.save(payload, authorize));
+          return json(201, await (apiSave ? content.save(payload, authorize) : media.save(session,payload,authorize)));
         }
         return send(404, page('Page unavailable', '<p>This administration page is unavailable.</p>'));
       }
       if (req.method === 'HEAD') return denied(405, {'Allow': 'GET'});
+      if (route === 'media' && url.pathname === '/admin/api/media/list') return json(200,await media.list(session,authorize));
+      if (route === 'media' && url.pathname === '/admin/api/media/file') {
+        const file=await media.file(session,{id:url.searchParams.get('id'),path:url.searchParams.get('path')},authorize);
+        const filename=encodeURIComponent(file.filename).replace(/['()*]/g,character=>'%'+character.charCodeAt(0).toString(16).toUpperCase());
+        return send(200,file.bytes,file.mime_type,{'Content-Disposition':"attachment; filename=\"download" + (file.mime_type==='application/pdf'?'.pdf':'.'+file.mime_type.split('/')[1]) + "\"; filename*=UTF-8''"+filename});
+      }
       if (route === 'editor_script') return send(200, await fs.readFile(new URL('./editor.js', import.meta.url), 'utf8'), 'text/javascript; charset=utf-8');
       if (route === 'editor' && url.pathname === '/admin/api/editor/bootstrap') return json(200, await editor.bootstrap(authorize));
       if (route === '/admin/api/session') return send(200, JSON.stringify({authenticated: true, csrf: session.csrf, expiresAt: new Date(session.expires).toISOString()}), 'application/json');
@@ -154,9 +173,12 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
       if (error instanceof ContentError) return send(error.status, JSON.stringify({error: error.code, message: error.message, ...error.details}), 'application/json', error.status === 401 ? {'Set-Cookie': clearCookie} : {});
       sessions.clear();
       return send(503, page('Temporarily unavailable', '<p>Administration access is temporarily unavailable. Please contact the maintainer.</p>'));
+    } finally {
+      if (receivingUpload) receivingUploads--;
     }
   });
   server.requestTimeout = 15000;
+  server.on('close',()=>{clearInterval(cleanup);sessions.clear();purgeUploads();});
   server.headersTimeout = 10000;
   server.maxHeadersCount = 40;
   server.on('clientError', (_error, socket) => { socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n'); });

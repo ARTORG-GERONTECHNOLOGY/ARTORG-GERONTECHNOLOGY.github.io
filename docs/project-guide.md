@@ -302,8 +302,8 @@ extensions, declared MIME types, magic-byte signatures and sizes. These checks a
 not a full image/PDF decoder or malware scanner. Proposal totals count unique
 local figure/poster/attachment paths and declared external attachment sizes;
 remote image/video bytes are not downloaded or included in that upload budget.
-The same byte validator can be called by the future trusted upload service;
-there is no browser upload endpoint in this step. Restart the local server after
+The Step 19 trusted upload service reuses this validator and adds image decoding,
+dimension limits and PDF inspection. Restart the local server after
 changing the media-rule configuration. Home, news and team image
 references also use the shared asset checks.
 
@@ -578,6 +578,9 @@ request. The service and all secret files are separate from the public site;
 service source is excluded from Jekyll output. Content read/create/update
 operations use the Step 17 protected API. The Step 18 proposal editor provides
 structured fields, Write/Preview views and downloaded Markdown drafts.
+Step 19 adds an existing-file picker, private session uploads and temporary-file
+downloads. The [service guide](../admin-service/README.md#media-picker-and-uploads-step-19)
+explains supported files, inspection limits, expiry and atomic saves.
 Local access is prepared; live HTTPS hosting and production
 credentials remain separate, unperformed operations.
 

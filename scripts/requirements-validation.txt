@@ -1,4 +1,3 @@
-# Verification tools only; none are copied into the public website.
-pypdf==6.21.4
-Pillow==13.0.0
+# Local/CI checks reuse pinned upload inspectors; none enter public output.
+-r ../admin-service/requirements-media.txt
 zxing-cpp==2.3.0

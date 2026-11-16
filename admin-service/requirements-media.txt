@@ -1,0 +1,3 @@
+# Trusted upload inspection; install outside public source/output.
+Pillow==13.0.0
+pypdf==6.21.4

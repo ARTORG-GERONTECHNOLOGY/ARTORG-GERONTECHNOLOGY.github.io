@@ -1,5 +1,7 @@
 max_file_bytes: 10485760
 max_proposal_bytes: 26214400
+max_image_dimension: 12000
+max_image_pixels: 40000000
 types:
   .png: image/png
   .jpg: image/jpeg

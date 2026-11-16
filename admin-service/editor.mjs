@@ -41,13 +41,15 @@ function rubyEditor(payload) {
 export class ProposalEditor {
   constructor(content = null) { this.content = content; this.busy = false; }
   async snapshot() { return this.content ? this.content.provider.snapshot() : localSnapshot(); }
-  async prepare(payload, authorize) {
+  async prepare(payload, authorize, temporary = []) {
     if (this.busy) throw new ContentError(429, 'preview_busy', 'Another proposal is being prepared. Please try again shortly.');
     if (!payload || !['new', 'parse', 'compose', 'download', 'preview', 'publish'].includes(payload.operation)) throw new ContentError(422, 'invalid_editor_request', 'Choose a valid editor action.');
     if (payload.source && (typeof payload.source !== 'string' || Buffer.byteLength(payload.source) > policy.maxTextBytes)) throw new ContentError(422, 'invalid_editor_request', 'The Markdown file is too large.');
     this.busy = true;
     try {
-      const snapshot = await this.snapshot(); await authorize();
+      const stored = await this.snapshot(); await authorize();
+      const snapshot = {...stored,files:new Map(stored.files)};
+      for (const item of temporary) snapshot.files.set(item.path, {bytes:item.bytes,sha:blobSha(item.bytes)});
       const source = payload.operation === 'new' ? await fs.readFile(path.join(root, 'templates/proposal.md'), 'utf8') : payload.source;
       const context = payload.context || {};
       if (context.path && (!editable(context.path) || !context.path.startsWith('_posts/'))) throw new ContentError(422, 'invalid_path', 'Choose a proposal path.');
@@ -59,6 +61,11 @@ export class ProposalEditor {
       if (result.error) throw new ContentError(422, result.error, result.message, {errors: result.errors});
       if (result.context.path && (!editable(result.context.path) || !result.context.path.startsWith('_posts/'))) throw new ContentError(422, 'invalid_path', 'Choose a proposal path.');
       if (Buffer.byteLength(result.source) > policy.maxTextBytes) throw new ContentError(422, 'invalid_editor_request', 'Keep the proposal Markdown below 128 KiB. Your working copy remains in this tab.');
+      const references=[['figure.src',result.metadata.figure?.src],...(result.metadata.attachments||[]).map((file,index)=>['attachments['+index+'].url',file.url])];
+      for(const [field,url] of references)if(typeof url==='string'&&url.startsWith('/assets/')&&!snapshot.files.has(url.slice(1))){
+        (result.errors||={})[field]=['The file is missing or its temporary upload expired. Upload the original again or choose an existing file.'];
+        result.ready=false;if(payload.operation==='preview'){(result.previewErrors||={})[field]=result.errors[field];delete result.html;delete result.css;}
+      }
       if (result.html) {
         const bootstrap = await fs.readFile(path.join(root, 'assets/vendor/bootstrap/css/bootstrap.min.css'), 'utf8').catch(() => '');
         result.html = result.html.replace('</head>', '<style>' + bootstrap.replace(/<\/style/gi, '') + result.css.replace(/<\/style/gi, '') + ' body{margin:0}.single.proposal-page{padding:1rem}.article{margin:0}.MathJax_SVG_Display{max-width:100%;overflow:auto}</style></head>');

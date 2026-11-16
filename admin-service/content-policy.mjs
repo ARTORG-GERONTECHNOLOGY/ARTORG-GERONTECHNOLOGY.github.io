@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import { createHash } from 'node:crypto';
+export const policy = Object.freeze(JSON.parse(fs.readFileSync(new URL('./content-policy.json', import.meta.url), 'utf8')));
+export class ContentError extends Error {
+  constructor(status, code, message, details = {}) { super(message); this.status = status; this.code = code; this.details = details; }
+}
+export const sha = value => typeof value === 'string' && /^[a-f0-9]{40}$/.test(value);
+export function editable(file) {
+  return typeof file === 'string' && file.length <= 240 && !/[\x00-\x20\x7f\\%]/.test(file)
+    && policy.editablePatterns.some(pattern => new RegExp(pattern).test(file));
+}
+export function asset(file) {
+  return typeof file === 'string' && !/[\x00-\x20\x7f\\%]/.test(file) && !file.split('/').some(part => part === '.' || part === '..')
+    && new RegExp(policy.assetPattern).test(file);
+}
+export function blobSha(bytes) { return createHash('sha1').update('blob ' + bytes.length + '\0').update(bytes).digest('hex'); }
+export const conflict = (currentCommit, paths = []) => new ContentError(409, 'conflict', 'Newer changes exist. Reload and compare before saving again.', {currentCommit, paths});

@@ -11,7 +11,6 @@ require "kramdown-parser-gfm"
 module Proposals
   ROOT = File.expand_path("../..", __dir__)
   SCHEMA = YAML.safe_load_file(File.join(ROOT, "_data/proposal_schema.yml"))
-  CATEGORIES = YAML.safe_load_file(File.join(ROOT, "_data/proposal_categories.yml"))
 
   def self.public_url?(value, local_only: false)
     return true if value.is_a?(String) && value.start_with?("/") && !value.start_with?("//") && !value.match?(/[\\\s%?#<>]/) && value.split("/").none? { |part| %w[. ..].include?(part) }
@@ -35,7 +34,7 @@ module Proposals
   class FormatError < StandardError; end
 
   # Reject ambiguous YAML instead of letting a later duplicate silently win.
-  def self.load_yaml(source)
+  def self.load_yaml(source, mapping: true)
     stream = Psych.parse_stream(source)
     raise FormatError, "Use one YAML document" if stream.children.length > 1
     inspect_node = lambda do |node|
@@ -51,11 +50,21 @@ module Proposals
     end
     inspect_node.call(stream)
     value = YAML.safe_load(source, permitted_classes: [Time, Date], aliases: false)
-    raise FormatError, "Front matter must be a YAML mapping" unless value.is_a?(Hash) && value.keys.all? { |key| key.is_a?(String) }
+    valid = mapping ? value.is_a?(Hash) && value.keys.all? { |key| key.is_a?(String) } : value.is_a?(Array)
+    raise FormatError, mapping ? "Front matter must be a YAML mapping" : "Provide a YAML list" unless valid
     value
   rescue Psych::Exception, ArgumentError => e
     raise FormatError, "Invalid YAML: #{e.message}"
   end
+
+  def self.categories!(categories)
+    unless categories.is_a?(Array) && !categories.empty? && categories.all? { |item| item.is_a?(Hash) && item['id'].is_a?(String) && item['id'].match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/) && item['label'].is_a?(String) && !item['label'].strip.empty? && (!item.key?('legacy_labels') || item['legacy_labels'].is_a?(Array) && item['legacy_labels'].all? { |label| label.is_a?(String) }) }
+      raise FormatError, 'categories: provide stable IDs and nonempty display labels'
+    end
+    %w[id label].each { |key| raise FormatError, "categories: duplicate #{key}" unless categories.map { |item| item[key] }.uniq.length == categories.length }
+    categories
+  end
+  CATEGORIES = categories!(load_yaml(File.read(File.join(ROOT, '_data/proposal_categories.yml'), encoding: 'UTF-8'), mapping: false))
 
   class Document
     attr_reader :metadata, :body, :sections, :section_errors
@@ -125,9 +134,10 @@ module Proposals
   end
 
   class Validator
-    def initialize(team_ids: Proposals.team_ids)
+    def initialize(team_ids: Proposals.team_ids, categories: CATEGORIES)
       @schema = SCHEMA
       @team_ids = team_ids
+      @categories = Proposals.categories!(categories)
     end
 
     def validate(document, mode: :publication, previous: nil)
@@ -161,7 +171,7 @@ module Proposals
       string_list(data["tags"], "tags", required: false)
       string_list(data["categories"], "categories", required: true)
       if data["categories"].is_a?(Array)
-        category_ids = CATEGORIES.map { |category| category.fetch("id") }
+        category_ids = @categories.map { |category| category.fetch("id") }
         data["categories"].each do |id|
           next if @draft && blank?(id)
           error("categories", "unknown category #{id.inspect}; use an ID from _data/proposal_categories.yml") unless category_ids.include?(id)
@@ -208,6 +218,10 @@ module Proposals
       documents.group_by { |_path, document| document.metadata["proposal_id"] }.each do |id, entries|
         next if blank?(id) || entries.length < 2
         entries.each { |path, _document| results[path] << "proposal_id: duplicate #{id.inspect}" }
+      end
+      documents.group_by { |_path, document| document.metadata['permalink'] }.each do |url, entries|
+        next if blank?(url) || entries.length < 2
+        entries.each { |path, _document| results[path] << 'permalink: duplicate public URL' }
       end
       results
     end

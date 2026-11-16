@@ -575,6 +575,16 @@ development can continue. Neither command publishes or deploys the website.
 shared private-link entry, two-hour protected sessions, logout, rotation and
 revocation. Replacing or revoking the link signs everyone out on their next
 request. The service and all secret files are separate from the public site;
-service source is excluded from Jekyll output. Staff editing and GitHub writes
-are later steps. Local access is prepared; live HTTPS hosting and production
+service source is excluded from Jekyll output. Content read/create/update
+operations use the Step 17 protected API; the staff editing screen is a later step.
+Local access is prepared; live HTTPS hosting and production
 credentials remain separate, unperformed operations.
+
+The [service guide](../admin-service/README.md#github-saves-step-17) describes the
+locally verified GitHub connection, fixed content branch, allowed file types,
+shared validation, atomic saves and conflict responses. Successful saves are
+reported as committed with checks pending, never live. The user selected eventual
+automatic publication after checks pass; the publishing path comes later.
+Actual App installation, remote branch protection and workflow triggering remain
+deferred at the user's request. No GitHub credentials or remote writes were
+provisioned as part of this local preparation.

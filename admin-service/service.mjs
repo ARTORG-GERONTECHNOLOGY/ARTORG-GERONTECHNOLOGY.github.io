@@ -3,6 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { isIP } from 'node:net';
 import fs from 'node:fs/promises';
 import { readAccess } from './config.mjs';
+import { ContentError } from './content-policy.mjs';
 
 const cookieName = '__Host-ger_admin';
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -22,7 +23,7 @@ function page(title, body) {
     + escape(title) + '</h1>' + body + '</main></body></html>';
 }
 
-export function createAdministration(config, {now = Date.now, log = () => {}} = {}) {
+export function createAdministration(config, {now = Date.now, log = () => {}, content = null} = {}) {
   const sessions = new Map();
   const limits = new Map();
   let generation;
@@ -58,7 +59,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}} = 
       if ((req.url || '').length > 2048) return denied(400);
       const url = new URL(req.url, config.origin);
       if (url.origin !== config.origin) return denied(400);
-      route = new Set(['/admin/access', '/admin/', '/admin/api/session', '/admin/logout', '/admin/style.css']).has(url.pathname) ? url.pathname : 'not_found';
+      route = url.pathname.startsWith('/admin/api/content') ? 'content' : new Set(['/admin/access', '/admin/', '/admin/api/session', '/admin/logout', '/admin/style.css']).has(url.pathname) ? url.pathname : 'not_found';
       const forwarded = req.headers['x-forwarded-for'];
       const ip = trusted && typeof forwarded === 'string' && isIP(forwarded) ? forwarded : remote;
       if (limited('global', 2000, 60)) return denied(429, {'Retry-After': '60'});
@@ -89,36 +90,60 @@ export function createAdministration(config, {now = Date.now, log = () => {}} = 
       const id = cookies.length === 1 ? cookies[0].slice(cookieName.length + 1) : '';
       const session = /^[a-f0-9]{64}$/.test(id) ? sessions.get(digest(id)) : undefined;
       if (!session) return denied(401, {'Set-Cookie': clearCookie});
+      const authorize = async () => {
+        if (digest(JSON.stringify(await readAccess(config.accessFile))) !== generation || session.expires <= now() || !sessions.has(digest(id))) {
+          sessions.clear(); throw new ContentError(401, 'session_expired', 'Your session has ended. Open the private access link again.');
+        }
+      };
+      const json = (status, value) => send(status, JSON.stringify(value), 'application/json');
       if (!['GET', 'HEAD'].includes(req.method)) {
         if (req.method !== 'POST' || req.headers.origin !== config.origin) return denied(403);
         const contentType = req.headers['content-type']?.split(';')[0];
-        if (contentType !== 'application/x-www-form-urlencoded') return denied(415);
-        let data = '';
+        const apiSave = route === 'content' && url.pathname === '/admin/api/content/save';
+        if (contentType !== (apiSave ? 'application/json' : 'application/x-www-form-urlencoded')) return denied(415);
+        const chunks = []; let length = 0;
         for await (const chunk of req) {
-          data += chunk.toString('utf8');
-          if (Buffer.byteLength(data) > 8192) return denied(413);
+          length += chunk.length;
+          if (length > (apiSave ? 1024 * 1024 : 8192)) return denied(413);
+          chunks.push(chunk);
         }
-        const csrf = new URLSearchParams(data).getAll('csrf');
+        let data;
+        try { data = new TextDecoder('utf-8', {fatal: true}).decode(Buffer.concat(chunks)); }
+        catch { return denied(400); }
+        const csrf = apiSave ? [req.headers['x-csrf-token']] : new URLSearchParams(data).getAll('csrf');
         if (csrf.length !== 1 || !/^[a-f0-9]{64}$/.test(csrf[0]) || !equal(csrf[0], session.csrf)) return denied(403);
         // Re-read after an asynchronous request body: rotation/expiry wins races.
-        if (digest(JSON.stringify(await readAccess(config.accessFile))) !== generation || session.expires <= now() || !sessions.has(digest(id))) {
-          sessions.clear(); return denied(401, {'Set-Cookie': clearCookie});
-        }
+        await authorize();
         if (route === '/admin/logout') {
           sessions.delete(digest(id));
           return send(303, '', undefined, {'Location': '/admin/', 'Set-Cookie': clearCookie});
+        }
+        if (apiSave) {
+          if (!content) throw new ContentError(503, 'saving_not_configured', 'GitHub saving is not configured. No save was made.');
+          let payload;
+          try { payload = JSON.parse(data); } catch { throw new ContentError(400, 'invalid_json', 'The save request is not valid JSON.'); }
+          return json(201, await content.save(payload, authorize));
         }
         return send(404, page('Page unavailable', '<p>This administration page is unavailable.</p>'));
       }
       if (req.method === 'HEAD') return denied(405, {'Allow': 'GET'});
       if (route === '/admin/api/session') return send(200, JSON.stringify({authenticated: true, csrf: session.csrf, expiresAt: new Date(session.expires).toISOString()}), 'application/json');
+      if (route === 'content') {
+        if (!content) throw new ContentError(503, 'saving_not_configured', 'GitHub saving is not configured.');
+        if (url.pathname === '/admin/api/content') return json(200, await content.list(authorize));
+        if (url.pathname === '/admin/api/content/file') return json(200, await content.read(url.searchParams.get('path'), authorize));
+        if (url.pathname === '/admin/api/content/checks') {
+          const checks = await content.provider.checks(url.searchParams.get('commit')); await authorize(); return json(200, checks);
+        }
+      }
       if (route === '/admin/') {
         return send(200, page('Administration', '<p class="status">Your administration session is active.</p><p>Proposal editing is not available yet.</p><p>Access ends at <time>'
           + escape(new Date(session.expires).toISOString()) + '</time>. Anyone with the shared link can enter this area.</p><form method="post" action="/admin/logout"><input type="hidden" name="csrf" value="'
           + session.csrf + '"><button type="submit">Sign out</button></form>'));
       }
       return send(404, page('Page unavailable', '<p>This administration page is unavailable.</p>'));
-    } catch {
+    } catch (error) {
+      if (error instanceof ContentError) return send(error.status, JSON.stringify({error: error.code, message: error.message, ...error.details}), 'application/json', error.status === 401 ? {'Set-Cookie': clearCookie} : {});
       sessions.clear();
       return send(503, page('Temporarily unavailable', '<p>Administration access is temporarily unavailable. Please contact the maintainer.</p>'));
     }

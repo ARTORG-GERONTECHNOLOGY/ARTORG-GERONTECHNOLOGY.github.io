@@ -7,6 +7,7 @@
   let orderDirty=false,orderPaths=[],draggedPath,deleteTarget,listNeedsReload=false;
   let historyPath,historyPage=0,historyBusy=false;
   let supportingItems=[],supportingBase,qrDestination;
+  const publicationReports=new Map();let publicationBusy=false,lastSaved;
   const listMessage=text=>{$('list-state').textContent=text;};
   const formatDate = value => value ? new Intl.DateTimeFormat('en-GB', {dateStyle:'medium', timeStyle:'short', timeZone:'Europe/Zurich'}).format(new Date(value)) : 'Not yet published';
   function node(tag, text, attributes = {}) { const item = document.createElement(tag); if (text !== undefined) item.textContent = text; for (const [name,value] of Object.entries(attributes)) item.setAttribute(name,value); return item; }
@@ -22,7 +23,36 @@
     if (!response.ok) { const error = new Error(value.message || 'The request failed. Your working copy is still in this tab.'); error.data=value; error.status=response.status; throw error; }
     return value;
   }
-  function changed() { dirty=true; message('Unsaved changes — download a draft to keep unfinished work.'); $('preview-state').textContent='Preview is outdated. Refresh it to see your latest changes.'; }
+  function changed() { dirty=true; message('Unsaved changes — download a draft to keep unfinished work.'); $('preview-state').textContent='Preview is outdated. Refresh it to see your latest changes.'; paintPublication(); }
+  function publicationSlot(parent,path,commit){const slot=node('div',undefined,{class:'publication-status','data-publication-path':path,'data-publication-commit':commit||''});parent.append(slot);return slot;}
+  function paintPublication(){
+    if(state?.deleted){const panel=$('editor-publication');if(panel.dataset.version!=='deleted'){panel.dataset.version='deleted';panel.replaceChildren(node('p','This proposal is deleted in the saved source. Review its history before recovery. Last saved change tracks a deletion made in this tab.'));}}
+    else if(state){const panel=$('editor-publication');const key=state.context.sha?state.context.path+'@'+state.context.baseCommit:'unsaved';if(panel.dataset.version!==key){panel.dataset.version=key;panel.replaceChildren();if(state.context.sha)publicationSlot(panel,state.context.path,state.context.baseCommit);else panel.append(node('p','This working copy has not been saved.'));panel.append(node('p','Unsaved changes in this form are not included in the publication status.',{class:'publication-working'}));}panel.querySelector('.publication-working').hidden=!dirty;}
+    for(const slot of document.querySelectorAll('[data-publication-path]')){
+      const report=publicationReports.get(slot.dataset.publicationCommit);const entry=report?.entries.find(item=>item.path===slot.dataset.publicationPath);
+      const focused=slot.contains(document.activeElement)?document.activeElement.getAttribute('href'):null;
+      slot.replaceChildren();const missing=report?.mode==='github'&&!report.state&&!entry;const status=entry?.state||report?.state||(missing?'unavailable':'pending');const label=entry?.label||(status==='local_review'?'Local review':status==='unavailable'?'Status unavailable':'Checking saved version…');
+      slot.append(node('strong',label,{class:'publication-badge','data-state':status}));
+      if(entry?.message||report?.message)slot.append(node('small',entry?.message||report.message));
+      if(missing)slot.append(node('small','No saved version at this address was found in the selected revision. Download and review your working copy before another save.'));
+      if(report?.checkedAt)slot.append(node('small','Checked '+formatDate(report.checkedAt)+' (Europe/Zurich)'));
+      for(const link of entry?.logs||[]){const anchor=node('a',link.label,{href:link.url,target:'_blank',rel:'noopener noreferrer'});slot.append(anchor);}
+      if(focused)([...slot.querySelectorAll('a')].find(anchor=>anchor.getAttribute('href')===focused)||$('refresh-publication')).focus({preventScroll:true});
+    }
+  }
+  function trackSaved(result){
+    lastSaved={commit:result.commit,paths:result.files.filter(item=>/^_(posts|team|news)\/|^_data\//.test(item.path)).map(item=>item.path)};
+    $('last-publication').hidden=false;$('last-publication-results').replaceChildren(node('p','Saved revision '+result.commit.slice(0,12)));
+    for(const path of lastSaved.paths){const item=state?.context?.path===path?state:[...(bootstrap?.proposals||[]),...supportingItems].find(item=>item.path===path);const label=item?.metadata?.title||item?.metadata?.name||({'_data/home.yml':'Home','_data/about.yml':'About','_data/removed_proposals.yml':'Removed proposal addresses','_data/proposal_categories.yml':'Proposal categories'}[path])||'Saved content';const group=node('div');group.append(node('p',label));publicationSlot(group,path,result.commit);$('last-publication-results').append(group);}
+    paintPublication();refreshPublication();
+  }
+  async function refreshPublication(announce=false){
+    if(publicationBusy||!bootstrap)return;publicationBusy=true;$('refresh-publication').setAttribute('aria-disabled','true');$('refresh-publication').setAttribute('aria-busy','true');if(announce)$('publication-check').textContent='Refreshing publication reports…';
+    const commits=[...new Set([bootstrap.baseCommit,supportingBase,state?.context?.baseCommit,lastSaved?.commit].filter(value=>/^[a-f0-9]{40}$/.test(value||'')))];
+    try{for(const commit of commits){try{publicationReports.set(commit,await api('publication?'+new URLSearchParams({commit})));}catch{publicationReports.set(commit,{state:'unavailable',entries:[],message:'Status could not be refreshed. Your working copy is kept. Reopen the private link if your session ended, then refresh status.'});}}
+      while(publicationReports.size>8)publicationReports.delete(publicationReports.keys().next().value);paintPublication();if(announce)$('publication-check').textContent=bootstrap.canPublish?'Publication reports checked. Form changes have been kept.':'Local review confirmed. GitHub publication tracking is disconnected; your form changes have been kept.';
+    }finally{publicationBusy=false;$('refresh-publication').removeAttribute('aria-disabled');$('refresh-publication').removeAttribute('aria-busy');}
+  }
   function field(parent, label, key, value, options={}) {
     const wrapper=node('div',undefined,{class:'field'}); const id='field-'+key.replace(/[^a-z0-9]/gi,'-');
     wrapper.append(node('label',label,{for:id})); let input;
@@ -68,7 +98,7 @@
     dirty=false; $('editor').hidden=false; $('errors').hidden=true; $('reload').hidden=true; $('preview-frame').srcdoc=''; $('preview-state').textContent='Preview has not been generated.';
     historyPath=context.path;historyPage=0;$('history-list').replaceChildren();$('revision-detail').hidden=true;$('older-revisions').hidden=true;$('history-state').textContent='Open Revisions to load saved history.';
     $('save').disabled=!bootstrap.canPublish; $('save').title=bootstrap.canPublish?'':'GitHub saving is not connected in this local review.';
-    message('No unsaved changes'); tabs('write'); $('editor-title').scrollIntoView({block:'start'});
+    message('No unsaved changes'); tabs('write'); paintPublication(); $('editor-title').scrollIntoView({block:'start'});
   }
   function values() {
     if(state.supporting)return supportingValues();
@@ -117,7 +147,7 @@
     }
     dirty=false;$('editor').hidden=false;$('errors').hidden=true;$('reload').hidden=true;$('preview-frame').srcdoc='';$('preview-state').textContent='Preview has not been generated.';
     historyPath=context.sha?model.path:undefined;historyPage=0;$('history-list').replaceChildren();$('revision-detail').hidden=true;$('older-revisions').hidden=true;$('history-state').textContent='Open Revisions to load saved history.';
-    $('save').disabled=!bootstrap.canPublish;message('No unsaved changes');tabs('write');$('editor-title').scrollIntoView({block:'start'});
+    $('save').disabled=!bootstrap.canPublish;message('No unsaved changes');tabs('write');paintPublication();$('editor-title').scrollIntoView({block:'start'});
   }
   function supportingValues(){
     const patch={};let body;
@@ -133,7 +163,7 @@
   }
   async function loadSupporting(){
     const result=await api('supporting');supportingItems=result.items;supportingBase=result.baseCommit;qrDestination=result.qrDestination;$('supporting-list').replaceChildren();
-    for(const item of supportingItems){const button=node('button',item.kind==='home'?'Home':item.kind==='about'?'About':(item.kind==='team'?'Team: ':'News: ')+(item.metadata.name||item.metadata.title),{type:'button',class:'secondary'});button.addEventListener('click',()=>openSupporting(item));$('supporting-list').append(button);}
+    for(const item of supportingItems){const wrapper=node('div',undefined,{class:'supporting-item'});const button=node('button',item.kind==='home'?'Home':item.kind==='about'?'About':(item.kind==='team'?'Team: ':'News: ')+(item.metadata.name||item.metadata.title),{type:'button',class:'secondary'});button.addEventListener('click',()=>openSupporting(item));wrapper.append(button);publicationSlot(wrapper,item.path,supportingBase);$('supporting-list').append(wrapper);}paintPublication();
   }
   function openSupporting(item){if(busy||orderDirty){listMessage('Save or reset the proposed order first.');return;}if(dirty&&!confirm('Discard this working copy? Download it first to keep unfinished work.'))return;populateSupporting(item,{path:item.path,kind:item.kind,sha:item.sha,baseCommit:supportingBase});}
   function errors(value) {
@@ -177,7 +207,7 @@
       button.addEventListener('click',async()=>{
         if(busy)return;if(dirty||orderDirty){$('history-state').textContent='Keep unfinished work: save/download and close the working proposal, or reset the proposed order, before restoring.';return;}
         if(!confirm('Restore this saved content as a new revision? Original identity/dates stay unchanged, and history will be retained.'))return;
-        busy=true;try{await api('restore',{previewId:value.previewId,confirmation:commit});button.disabled=true;listNeedsReload=true;
+        busy=true;try{const saved=await api('restore',{previewId:value.previewId,confirmation:commit});trackSaved(saved);button.disabled=true;listNeedsReload=true;
           try{await refreshAfterListSave();listMessage('Restoration committed; checks/build pending. Production publication is not yet confirmed.');}
           catch{listMessage('Restoration committed; checks/build pending. Reload the list to see the new revision.');}
         }catch(error){$('history-state').textContent=error.message+' Your working copy and selected revision are retained.';}finally{busy=false;}
@@ -189,7 +219,7 @@
     if(!value.records.length){$('deleted-proposals').append(node('li','No deleted proposals.'));return;}
     for(const record of value.records){const item=node('li');const button=node('button',record.permalink,{type:'button',class:'link-button'});button.disabled=!record.source_path;
       button.addEventListener('click',()=>{if(!listActionAllowed())return;state={deleted:true,context:{path:record.source_path,sha:null,baseCommit:value.baseCommit}};dirty=false;historyPath=record.source_path;historyPage=0;
-        $('editor').hidden=false;$('write-tab').hidden=true;$('preview-tab').hidden=true;$('split-view').parentElement.hidden=true;$('publication-actions').hidden=true;$('errors').hidden=true;$('revision-detail').hidden=true;$('history-list').replaceChildren();tabs('revisions');message('Deleted proposal — review history before recovery.');loadHistory();$('editor-title').scrollIntoView({block:'start'});});
+        $('editor').hidden=false;$('write-tab').hidden=true;$('preview-tab').hidden=true;$('split-view').parentElement.hidden=true;$('publication-actions').hidden=true;$('errors').hidden=true;$('revision-detail').hidden=true;$('history-list').replaceChildren();tabs('revisions');message('Deleted proposal — review history before recovery.');paintPublication();loadHistory();$('editor-title').scrollIntoView({block:'start'});});
       item.append(button,node('small',record.source_path?'Removed '+formatDate(record.removed_at):'Source filename is absent; ask a maintainer to locate its history.'));$('deleted-proposals').append(item);}
   }
   function clientErrors(patch) {
@@ -219,6 +249,7 @@
         const savedPath=state.supporting?path:path.startsWith('_posts/')?path:'_posts/'+path;
         const saved=await api('save',{baseCommit:state.context.baseCommit,changes:[{path:savedPath,sha:state.context.sha??null,content:result.source}],uploads});
         populate(result,{path:savedPath,baseCommit:saved.commit,sha:saved.files.find(file=>file.path===savedPath).sha});
+        trackSaved(saved);
         message('Committed; validation/build pending. This is not a live deployment confirmation.');
         try { bootstrap=await api('bootstrap'); await loadSupporting();await loadMedia();renderList();renderMedia(); } catch { message('Committed; validation/build pending. The list could not refresh. Reload it before editing more content.'); }
       } else if(name!=='download') message(result.ready?'Content checks passed.':'Working copy retained — required publication fields need attention.');
@@ -269,6 +300,7 @@
       try{await loadSupporting();}catch(error){listMessage(error.message);}
       try{await loadDeleted();}catch(error){listMessage(error.message);}
       try{await loadMedia();}catch(error){$('connection').textContent+=' '+error.message;}
+      await refreshPublication();
     } catch(error){$('connection').textContent=error.message;}
   }
   function renderList(focusPath,focusKind='handle') {
@@ -276,7 +308,8 @@
     $('proposal-list').replaceChildren();
     for(const [index,path] of orderPaths.entries()){
       const item=bootstrap.proposals.find(entry=>entry.path===path);const tr=node('tr');const td=node('td');const button=node('button',item.metadata.title,{type:'button',class:'link-button'});button.addEventListener('click',()=>open(item));td.append(button);tr.append(td);
-      for(const text of [item.metadata.status,orderDirty?(index+1)*10:item.metadata.priority,formatDate(item.metadata.created_at),formatDate(item.metadata.updated_at),orderDirty?'Order not saved':'Committed source'])tr.append(node('td',String(text)));
+      for(const text of [item.metadata.status,orderDirty?(index+1)*10:item.metadata.priority,formatDate(item.metadata.created_at),formatDate(item.metadata.updated_at)])tr.append(node('td',String(text)));
+      const publication=node('td');publicationSlot(publication,item.path,bootstrap.baseCommit);if(orderDirty)publication.append(node('small','Proposed order not saved'));tr.append(publication);
       const actions=node('td');const toolbar=node('div',undefined,{class:'actions'});
       for(const status of (bootstrap.transitions?.[item.metadata.status]||[])){
         const action=node('button',status==='available'?'Reopen':status==='archived'?'Archive':'Mark taken',{type:'button',class:'secondary'});
@@ -295,6 +328,7 @@
       if(focusPath===path){const target=focusKind==='up'?up:focusKind==='down'?down:handle;(target.disabled?handle:target).focus();}
     }
     $('save-order').disabled=!orderDirty||!bootstrap.canPublish||listNeedsReload;$('reset-order').disabled=!orderDirty;
+    paintPublication();
   }
   function listActionAllowed(){if(busy)return false;if(listNeedsReload){listMessage('Reload the list to obtain its latest revision before another action.');return false;}if(dirty||orderDirty){listMessage('Keep your working copy: save or download proposal edits and close the editor; save or reset ordering before another list action.');return false;}return true;}
   function moveOrder(path,target,focusKind='handle'){if(busy||dirty||listNeedsReload){listMessage('Save or download your working proposal and reload a stale list before reordering.');return;}const index=orderPaths.indexOf(path);if(index<0||target<0||target>=orderPaths.length||index===target)return;orderPaths.splice(index,1);orderPaths.splice(target,0,path);orderDirty=true;renderList(path,focusKind);listMessage('Proposed order changed. Save order to commit it; content-update dates stay unchanged.');}
@@ -303,7 +337,7 @@
     if(!bootstrap.canPublish&&action==='status'){populate(item,{path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit});fields.get('status').input.value=status;changed();message('Status staged for local preview. GitHub saving remains disabled.');return;}
     busy=true;listMessage('Saving proposal change…');
     try{
-      await api('lifecycle',{action,path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit,...(status?{status}:{}),...(action==='delete'?{confirmation:item.metadata.proposal_id}:{})});
+      const saved=await api('lifecycle',{action,path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit,...(status?{status}:{}),...(action==='delete'?{confirmation:item.metadata.proposal_id}:{})});trackSaved(saved);
       listNeedsReload=true;
       try{await refreshAfterListSave();listMessage('Committed; checks/build pending. Production publication is not yet confirmed.');}
       catch{listMessage('Committed; checks/build pending. The list could not refresh. Reload the list before another action.');}
@@ -314,7 +348,7 @@
     if(state&&!dirty){const current=(state.supporting?supportingItems:bootstrap.proposals).find(item=>item.path===state.context.path);if(current)populate(current,{path:current.path,sha:current.sha,baseCommit:bootstrap.baseCommit});else{$('editor').hidden=true;state=null;dirty=false;}}
     await loadDeleted();
   }
-  $('save-order').addEventListener('click',async()=>{if(busy||!orderDirty||listNeedsReload)return;if(dirty){listMessage('Reset the proposed order before saving proposal edits. Both working copies are retained.');return;}busy=true;try{await api('lifecycle',{action:'order',baseCommit:bootstrap.baseCommit,order:orderPaths});orderDirty=false;listNeedsReload=true;try{await refreshAfterListSave();listMessage('Order committed; checks/build pending. Content-update dates were preserved.');}catch{renderList();listMessage('Order committed; checks/build pending. Reload the list before another action.');}}catch(error){if(error.status===409)listNeedsReload=true;listMessage(error.message+' The proposed order is retained; reset/reload only after comparing newer changes.');}finally{busy=false;}});
+  $('save-order').addEventListener('click',async()=>{if(busy||!orderDirty||listNeedsReload)return;if(dirty){listMessage('Reset the proposed order before saving proposal edits. Both working copies are retained.');return;}busy=true;try{const saved=await api('lifecycle',{action:'order',baseCommit:bootstrap.baseCommit,order:orderPaths});trackSaved(saved);orderDirty=false;listNeedsReload=true;try{await refreshAfterListSave();listMessage('Order committed; checks/build pending. Content-update dates were preserved.');}catch{renderList();listMessage('Order committed; checks/build pending. Reload the list before another action.');}}catch(error){if(error.status===409)listNeedsReload=true;listMessage(error.message+' The proposed order is retained; reset/reload only after comparing newer changes.');}finally{busy=false;}});
   $('reload-list').addEventListener('click',async()=>{if(busy)return;if(orderDirty&&!confirm('Discard the proposed order and load the latest list? Your proposal form will be kept.'))return;busy=true;try{bootstrap=await api('bootstrap');orderDirty=false;listNeedsReload=false;renderList();listMessage('Latest list loaded. Any working proposal retains its original revision so newer edits cannot be overwritten.');}catch(error){listMessage(error.message);}finally{busy=false;}});
   $('reset-order').addEventListener('click',()=>{if(busy)return;orderDirty=false;renderList();listMessage('The proposed order was reset.');});
   $('cancel-delete').addEventListener('click',()=>$('delete-dialog').close());
@@ -332,5 +366,7 @@
   $('reload').addEventListener('click',()=>{if(confirm('Reload the latest source? Download your working Markdown first; reloading will discard it.')){leaving=true;location.reload();}});
   $('logout').addEventListener('submit',event=>{if((dirty||orderDirty)&&!confirm('Sign out and discard this tab’s working copy and proposed order? Download Markdown first to keep proposal edits.'))event.preventDefault();else leaving=true;});
   addEventListener('beforeunload',event=>{if((dirty||orderDirty)&&!leaving){event.preventDefault();event.returnValue='';}});
+  $('refresh-publication').addEventListener('click',()=>refreshPublication(true));
+  setInterval(()=>{if(!document.hidden)refreshPublication();},20000);
   start();
 })();

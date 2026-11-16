@@ -46,6 +46,7 @@ test('shared-link sessions, failure cases, transport and logging', async () => {
   };
   try {
     assert.equal((await request('/admin/')).status, 401);
+    assert.equal((await request('/admin/api/editor/publication?commit='+'a'.repeat(40))).status,401);
     for (const value of ['', 'bad', randomBytes(32).toString('hex')]) assert.equal((await request('/admin/access?token=' + value)).status, 401);
     assert.equal((await request('/admin/access?token=' + token + '&token=' + token)).status, 401);
     assert.equal((await request('/admin/access?token=' + token, {method: 'HEAD'})).status, 405);
@@ -62,6 +63,7 @@ test('shared-link sessions, failure cases, transport and logging', async () => {
     assert.equal(result.headers.get('referrer-policy'), 'no-referrer');
     assert.ok(result.headers.get('content-security-policy').includes("default-src 'none'"));
     const session = await (await request('/admin/api/session', {headers: {cookie}})).json();
+    const publication=await request('/admin/api/editor/publication?commit='+'a'.repeat(40),{headers:{cookie}});assert.equal(publication.status,200);assert.equal((await publication.json()).state,'local_review');
     assert.ok(/^[a-f0-9]{64}$/.test(session.csrf));
     const post = (headers = {}, body = 'csrf=' + session.csrf) => request('/admin/logout', {method: 'POST', body,
       headers: {cookie, origin: config.origin, 'content-type': 'application/x-www-form-urlencoded', ...headers}});

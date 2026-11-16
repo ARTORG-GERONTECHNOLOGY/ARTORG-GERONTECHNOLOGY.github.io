@@ -3,6 +3,6 @@
   "url": "https://artorg-gerontechnology.github.io/",
   "public": false,
   "hook_attributes": {"active": false},
-  "default_permissions": {"contents": "write", "checks": "read"},
+  "default_permissions": {"contents": "write", "checks": "read", "actions": "read", "deployments": "read"},
   "default_events": []
 }

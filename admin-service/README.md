@@ -159,7 +159,7 @@ Before real activation, a separately authorized operator must:
 1. Register a repository-scoped App using `github-app-manifest.json` as the
    permission template, adjusting the App name/homepage if necessary. Install it
    **only** on the ARTORG GER website repository. Request Contents: read/write,
-   Checks: read and GitHub's mandatory Metadata: read. No Actions write,
+   Checks: read, Actions: read, Deployments: read and GitHub's mandatory Metadata: read. No Actions write,
    Workflows write, Administration, user OAuth or webhook permissions are needed.
 2. Store the App's RSA private key outside the repository and all web/build
    roots, readable only by the service account. Set the private service variables
@@ -534,3 +534,77 @@ upload ownership, whole-candidate validation and SHA conflict gates apply.
 Local checks exercise representative edits, public rendering, history and
 restoration for all four types using isolated providers, without modifying real
 site content or contacting GitHub.
+
+## Save, build and live publication reports (Step 24)
+
+Proposal rows, supporting-content buttons and the open editor show the status of
+their saved version. After any save, status change, reorder, deletion or
+restoration, **Last saved change** keeps that commit's report visible. Unsaved
+form text and downloaded drafts are separate from these reports. **Refresh
+publication status** updates reports without reloading forms or discarding work;
+visible tabs also refresh about every twenty seconds. Background refreshes retain
+keyboard focus in the status links. Reports show when they were checked in
+Europe/Zurich and cache successful responses for fifteen seconds; shared API
+reads have a ten-second cache. Hidden tabs do not poll.
+
+- **Saved — pending**: GitHub has the revision; checks/acceptance/publication are
+  still awaited. A missing run is not proof of success.
+- **Building**: checks or the build/deployment are running.
+- **Live**: the canonical website's `publication.json` identifies the same
+  production revision as a successful GitHub Actions Pages deployment and
+  successful production workflow. Its Git tree contains the saved version of
+  this content. Following the user's choice, a later deployment can contain an
+  earlier save unchanged, even after other proposals were edited. If an older
+  version is still live while a newer one is saved, the earlier report says so;
+  the newer version does not inherit its Live label.
+- **Superseded**: another version replaced this saved version, and this exact
+  earlier version is not confirmed on the website. A maintainer's production
+  edit/revert is distinguished from the staff working branch.
+- **Failed**: the relevant validation, acceptance or production run did not
+  succeed. The saved revision remains in Git and the working copy remains in
+  the tab. Open the linked run details, fix content and save a new revision, or
+  ask a maintainer to retry the workflow.
+- **Status unavailable**: GitHub/public metadata could not confirm the result.
+  A previously cached Live label is not reused after a failed refresh. Retry
+  **Refresh publication status**, reopen the private link if the session ended,
+  or ask the maintainer to check access, workflow activation and Pages.
+- **Local review**: no real GitHub connection exists; publication is not claimed.
+
+The accepting workflow's run title carries the checked revision, so its result
+is not confused with an unrelated save. Candidate branch/parent identities map
+the staff save to the checked production merge. Deployment confirmation uses
+the canonical HTTPS URL from the existing QR/site configuration; no credentials
+are sent to it, and cross-site redirects, malformed metadata and oversized
+responses are rejected. A redirected/legacy site without matching metadata
+therefore reports an unavailable confirmation until the authorized hosting setup
+is resolved. No production domain or CNAME value is edited by this feature.
+
+Only the latest twenty matching workflow/deployment records and twenty candidate
+refs are inspected. Missing/ambiguous or older evidence requires maintainer
+inspection and never becomes Live by assumption. A successful save, a green
+validation check or a finished build alone cannot mark content Live. An already
+confirmed live version may remain live after a failed retry of the same build.
+Deleted content is tracked as absence at its original source address; restoring
+it creates a newer version. Publication reports contain no staff-identity claims.
+
+`GET /admin/api/editor/publication?commit=<saved SHA>` is authenticated, read-only,
+no-store and rate limited. It accepts only allowed content history, rechecks
+session validity after asynchronous work and returns sanitized summaries plus
+fixed-repository GitHub run links. It never downloads raw workflow logs or
+provides a workflow-retry/deployment mutation. Cached reports are also authorized
+on every request. Status-read failures do not sign out unrelated staff or clear
+their working copies.
+
+The existing App now additionally requests **Actions: read** and
+**Deployments: read**. The service rejects write access to either, unrelated App
+permissions and access to another repository. Before separately authorized live
+activation, update the App's installation approval to these narrow read scopes.
+No real App permissions, credentials or hosting settings were changed locally.
+Local fixtures exercise pending/building/live/failed/superseded/unavailable,
+two successive edits, merged revision mapping, deletion/recovery, stale public
+metadata, failed retries, session expiry/revocation and HTTP authorization.
+Actual live GitHub/Pages reporting remains unverified until activation.
+
+API references: [workflow runs](https://docs.github.com/en/rest/actions/workflow-runs),
+[deployments](https://docs.github.com/en/rest/deployments/deployments),
+[deployment statuses](https://docs.github.com/en/rest/deployments/statuses).

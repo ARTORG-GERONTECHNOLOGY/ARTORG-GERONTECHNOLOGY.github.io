@@ -26,7 +26,7 @@ ruby_check.call('scripts/validate-proposals.rb')
   ruby_check.call("scripts/tests/#{name}.rb")
 end
 %w[catalogue-filters search].each { |name| run.call(node, "scripts/tests/#{name}.cjs") }
-run.call(node, '--test', 'admin-service/test/access.test.mjs', 'admin-service/test/content.test.mjs', 'admin-service/test/editor.test.mjs', 'admin-service/test/media.test.mjs', 'admin-service/test/lifecycle.test.mjs', 'admin-service/test/supporting.test.mjs')
+run.call(node, '--test', 'admin-service/test/access.test.mjs', 'admin-service/test/content.test.mjs', 'admin-service/test/editor.test.mjs', 'admin-service/test/media.test.mjs', 'admin-service/test/lifecycle.test.mjs', 'admin-service/test/supporting.test.mjs', 'admin-service/test/publication-status.test.mjs')
 run.call(node, '--test', 'scripts/tests/publication.test.mjs')
 # Use the same Bundler/Jekyll command locally and on the CI runner.
 run.call(RbConfig.ruby, '-S', 'bundle', 'exec', 'jekyll', 'build', '--config', options[:config],

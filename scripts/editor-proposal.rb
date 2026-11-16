@@ -21,6 +21,9 @@ end
 
 begin
   input = JSON.parse(STDIN.read(64 * 1024 * 1024 + 1))
+  if input['operation']=='publication_config'
+    puts JSON.generate({'url'=>SiteQR.destination});exit
+  end
   if input['operation']=='supporting'
     puts JSON.generate(input['action']=='preview_build' ? SupportingContent.preview(input) : SupportingContent.process(input));exit
   end

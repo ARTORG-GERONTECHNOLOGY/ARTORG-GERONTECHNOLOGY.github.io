@@ -2,12 +2,13 @@ import fs from 'node:fs/promises';
 import { sign } from 'node:crypto';
 import { outsideRepository } from './config.mjs';
 import { policy, editable, asset, blobSha, sha, conflict, ContentError } from './content-policy.mjs';
+import {readPublicationFacts} from './publication-status.mjs';
 
 const endpoint = 'https://api.github.com';
 const prefix = '/repos/' + policy.repository;
 const safeFailure = () => new ContentError(503, 'github_unavailable', 'GitHub is unavailable or its configuration needs attention. Your changes have not been retried.');
 export class GitHubContent {
-  #config; #fetch; #now; #token; #minting;
+  #config; #fetch; #now; #token; #minting; #publicationReads=new Map();
   constructor(config, {fetch: fetcher = fetch, now = Date.now} = {}) { this.#config = config; this.#fetch = fetcher; this.#now = now; }
   async #request(method, route, token, body) {
     try {
@@ -33,12 +34,12 @@ export class GitHubContent {
         const unsigned = encode({alg: 'RS256', typ: 'JWT'}) + '.' + encode({iat: time - 60, exp: time + 540, iss: String(this.#config.appId)});
         const jwt = unsigned + '.' + sign('RSA-SHA256', Buffer.from(unsigned), key).toString('base64url');
         const result = await this.#request('POST', '/app/installations/' + this.#config.installationId + '/access_tokens', jwt,
-          {repository_ids: [this.#config.repositoryId], permissions: {contents: 'write', checks: 'read'}});
+          {repository_ids: [this.#config.repositoryId], permissions: {contents: 'write', checks: 'read', actions:'read', deployments:'read'}});
         const expires = Date.parse(result.expires_at);
         if (!result.token || !Number.isFinite(expires) || expires <= this.#now() + 60000 || expires > this.#now() + 3660000
-            || result.permissions?.contents !== 'write' || result.permissions?.checks !== 'read'
+            || result.permissions?.contents !== 'write' || result.permissions?.checks !== 'read' || result.permissions?.actions!=='read' || result.permissions?.deployments!=='read'
             || result.permissions.metadata && result.permissions.metadata !== 'read' || result.repository_selection === 'all'
-            || Object.keys(result.permissions).some(key => !['contents', 'checks', 'metadata'].includes(key))
+            || Object.keys(result.permissions).some(key => !['contents', 'checks', 'actions', 'deployments', 'metadata'].includes(key))
             || result.repositories && (result.repositories.length !== 1 || result.repositories[0].id !== this.#config.repositoryId)) throw safeFailure();
         this.#token = {value: result.token, expires};
         return result.token;
@@ -135,6 +136,16 @@ export class GitHubContent {
     checks.sort((a, b) => b.id - a.id);
     const latest = checks[0];
     return {state: !latest || latest.status !== 'completed' ? 'pending' : latest.conclusion === 'success' ? 'passed' : 'failed', live: false};
+  }
+  async publicationFacts(commit,publicRecord){
+    return readPublicationFacts((method,route)=>{
+      if(method!=='GET')throw safeFailure();
+      for(const [key,item] of this.#publicationReads)if(item.until<=this.#now())this.#publicationReads.delete(key);
+      if(!this.#publicationReads.has(route)){
+        const value=this.#api('GET',prefix+route).catch(error=>{this.#publicationReads.delete(route);throw error;});this.#publicationReads.set(route,{value,until:this.#now()+10000});
+        while(this.#publicationReads.size>64)this.#publicationReads.delete(this.#publicationReads.keys().next().value);
+      }return this.#publicationReads.get(route).value;
+    },commit,publicRecord);
   }
 }
 

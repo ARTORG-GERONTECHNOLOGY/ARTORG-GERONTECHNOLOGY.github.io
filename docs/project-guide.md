@@ -596,6 +596,11 @@ Step 23 prepares [validated publication through GitHub Pages](publication.md),
 with a trusted content-only merge, protected checks, inspected public artifacts
 and recovery through new revisions. Activation remains off and requires separate
 authorization; hosted success/failure/rollback checks are still pending.
+Step 24 adds [saved-version publication reports](../admin-service/README.md#save-build-and-live-publication-reports-step-24)
+to administration rows and save results. Reports distinguish pending, building,
+live, superseded, failed and unavailable without discarding form edits. Live
+requires matching public revision and deployment evidence; local review claims
+no deployment. The App's added workflow/deployment access is read-only.
 Local access is prepared; live HTTPS hosting and production
 credentials remain separate, unperformed operations.
 

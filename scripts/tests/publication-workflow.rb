@@ -17,6 +17,7 @@ validation=YAML.safe_load_file(File.join(root,'.github/workflows/validate.yml'))
   end
 end
 raise 'Use completed validation runs' unless accept.dig('on','workflow_run')=={'workflows'=>['Validate website'],'types'=>['completed'],'branches'=>['content/staff','publication/staff-**']}
+raise 'Publication reports require the checked revision in the acceptance run title' unless accept['run-name']=='Accept checked revision ${{ github.event.workflow_run.head_sha || github.sha }}'
 job=accept.fetch('jobs').fetch('accept')
 raise 'Staff publication must be explicitly enabled' unless job['if'].include?("vars.ENABLE_STAFF_PUBLICATION == 'true'")
 raise 'Publisher has only merge/dispatch and check-read permissions' unless job['permissions']=={'contents'=>'write','actions'=>'write','checks'=>'read'}

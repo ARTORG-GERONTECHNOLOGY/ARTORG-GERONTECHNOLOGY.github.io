@@ -42,13 +42,13 @@ async function fixture() {
     if (route === '/app/installations/34/access_tokens') {
       fake.mints++;
       assert.deepEqual(body.repository_ids, [56]);
-      assert.deepEqual(body.permissions, {contents: 'write', checks: 'read'});
+      assert.deepEqual(body.permissions, {contents: 'write', checks: 'read', actions:'read', deployments:'read'});
       const jwt = options.headers.Authorization.slice(7).split('.');
       assert.ok(verify('RSA-SHA256', Buffer.from(jwt[0] + '.' + jwt[1]), keys.publicKey, Buffer.from(jwt[2], 'base64url')));
       const claims = JSON.parse(Buffer.from(jwt[1], 'base64url'));
       assert.ok(claims.exp - claims.iat <= 600 && claims.iss === '12');
       return response({token: 'fixture-installation-token', expires_at: new Date(Date.now() + 3600000).toISOString(),
-        permissions: {contents: 'write', checks: 'read', metadata: 'read', ...(fake.excessPermissions ? {issues: 'write'} : {})}, repositories: [{id: 56}]});
+        permissions: {contents: 'write', checks: 'read', actions:'read', deployments:'read', metadata: 'read', ...(fake.excessPermissions ? {issues: 'write'} : {})}, repositories: [{id: 56}]});
     }
     assert.ok(options.headers.Authorization === 'Bearer fixture-installation-token');
     const prefix = '/repos/' + policy.repository;
@@ -195,7 +195,7 @@ test('content HTTP routes require session, Origin and CSRF and never expose App 
   await fs.writeFile(state, JSON.stringify({generation: randomBytes(16).toString('hex'), revoked: false, digest: createHash('sha256').update(token).digest('hex')}));
   const config = {origin: 'http://localhost', local: true, accessFile: state, ttl: 7200}; const records = [];
   const store = new ContentStore(f.provider);
-  const server = createAdministration(config, {content: store, log: event => records.push(event)});
+  const server = createAdministration(config, {content: store, publicationRecord:async()=>null, log: event => records.push(event)});
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); config.origin = 'http://localhost:' + server.address().port;
   const request = (route, {method = 'GET', headers = {}, body, splitAt} = {}) => new Promise((resolve, reject) => {
     const req = http.request('http://127.0.0.1:' + server.address().port + route, {method, headers: {host: new URL(config.origin).host, ...headers}}, res => {
@@ -213,6 +213,9 @@ test('content HTTP routes require session, Origin and CSRF and never expose App 
     const listed = await request('/admin/api/content', {headers: {cookie}}); assert.equal(listed.status, 200);
     const listing = JSON.parse(listed.text); assert.ok(listing.files.every(file => editable(file.path)));
     const snapshot = await f.provider.snapshot(); const path = listing.files.find(file => file.path.startsWith('_posts/')).path;
+    f.provider.publicationFacts=async commit=>({head:snapshot.head,main:snapshot.head,paths:[path],selected:{[path]:snapshot.files.get(path).sha},current:{[path]:snapshot.files.get(path).sha},live:null});
+    assert.equal((await request('/admin/api/editor/publication?commit=bad',{headers:{cookie}})).status,422);
+    const publication=await request('/admin/api/editor/publication?commit='+snapshot.head,{headers:{cookie}});assert.equal(publication.status,200);assert.equal(JSON.parse(publication.text).entries[0].state,'pending');
     const read = await request('/admin/api/content/file?path=' + encodeURIComponent(path), {headers: {cookie}});
     assert.equal(read.status, 200); assert.equal(JSON.parse(read.text).content, snapshot.files.get(path).bytes.toString('utf8'));
     assert.equal((await request('/admin/api/content/file?path=_config.yml', {headers: {cookie}})).status, 422);
@@ -262,6 +265,7 @@ test('content HTTP routes require session, Origin and CSRF and never expose App 
     const revoked = await request('/admin/api/content/save', {...options, body: JSON.stringify({baseCommit: beforeRevocation.head, changes: [change(beforeRevocation, path, 66)]})});
     assert.equal(revoked.status, 401); assert.equal(f.fake.mutations, attempts);
     assert.equal((await request('/admin/api/media/file?id='+uploaded.id,{headers:{cookie}})).status,401);
+    assert.equal((await request('/admin/api/editor/publication?commit='+snapshot.head,{headers:{cookie}})).status,401);
   } finally { await new Promise(resolve => server.close(resolve)); await f.close(); }
 });
 

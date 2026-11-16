@@ -55,6 +55,8 @@ group. Running deployments are not cancelled. An obsolete queued candidate
 stops rather than overwriting newer work. GitHub may replace older pending runs
 with a newer pending run. A newer save can exist while an earlier valid site
 remains live; commit-specific editor reporting is Step 24.
+The [Step 24 reports](../admin-service/README.md#save-build-and-live-publication-reports-step-24)
+now implement this distinction locally, with live verification still pending.
 
 ## Activation requires separate authorization
 

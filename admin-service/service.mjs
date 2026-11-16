@@ -8,6 +8,7 @@ import { ProposalEditor } from './editor.mjs';
 import { MediaStore } from './media.mjs';
 import { ContentRevisions } from './revisions.mjs';
 import { SupportingEditor } from './supporting.mjs';
+import { PublicationStatus } from './publication-status.mjs';
 
 const cookieName = '__Host-ger_admin';
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -27,11 +28,12 @@ function page(title, body) {
     + escape(title) + '</h1>' + body + '</main></body></html>';
 }
 
-export function createAdministration(config, {now = Date.now, log = () => {}, content = null} = {}) {
+export function createAdministration(config, {now = Date.now, log = () => {}, content = null, publicationRecord} = {}) {
   const editor = new ProposalEditor(content);
   const supporting = new SupportingEditor(editor);
   const media = new MediaStore(editor,content,{now});
   const revisions = new ContentRevisions(editor,{now,supporting});
+  const publication = new PublicationStatus(content,{now,...(publicationRecord?{publicRecord:publicationRecord}:{})});
   const sessions = new Map();
   const purgeUploads = () => {const active=new Set(sessions.values());media.purge(session=>active.has(session));revisions.purge(session=>active.has(session));};
   const cleanup = setInterval(purgeUploads, 30000); cleanup.unref();
@@ -164,6 +166,10 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
         return send(404, page('Page unavailable', '<p>This administration page is unavailable.</p>'));
       }
       if (req.method === 'HEAD') return denied(405, {'Allow': 'GET'});
+      if(route==='editor'&&url.pathname==='/admin/api/editor/publication'){
+        if(limited('publication:'+ip,30,60))return denied(429,{'Retry-After':'60'});
+        return json(200,await publication.get(url.searchParams.get('commit'),authorize));
+      }
       if (route==='editor'&&url.pathname==='/admin/api/editor/supporting') return json(200,await supporting.bootstrap(authorize));
       if (route === 'editor' && url.pathname === '/admin/api/editor/deleted') return json(200,await revisions.deleted(authorize));
       if (route === 'editor' && url.pathname === '/admin/api/editor/history') return json(200,await revisions.list(url.searchParams.get('path'),Number(url.searchParams.get('page')||1),authorize));

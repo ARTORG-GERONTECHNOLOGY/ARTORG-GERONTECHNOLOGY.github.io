@@ -1,0 +1,48 @@
+name: Accept validated staff content
+
+'on':
+  workflow_run:
+    workflows: ['Validate website']
+    types: [completed]
+    branches: ['content/staff', 'publication/staff-**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staff-publication
+  cancel-in-progress: false
+
+jobs:
+  accept:
+    if: vars.ENABLE_STAFF_PUBLICATION == 'true' && github.repository == 'ARTORG-GERONTECHNOLOGY/ARTORG-GERONTECHNOLOGY.github.io' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: windows-2025
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+      checks: read
+    env:
+      PUBLICATION_ENABLED: ${{ vars.ENABLE_STAFF_PUBLICATION }}
+    steps:
+      # Never check out workflow_run.head_sha or download upstream artifacts here.
+      - name: Check out trusted production tools
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.22.1'
+      - name: Prepare a trusted content-only merge and request validation
+        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_branch == 'content/staff'
+        run: node scripts/publication.mjs prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Accept the exact checked merge and request a Pages build
+        if: github.event_name == 'workflow_run' && startsWith(github.event.workflow_run.head_branch, 'publication/staff-')
+        run: node scripts/publication.mjs promote
+        env:
+          GH_TOKEN: ${{ github.token }}

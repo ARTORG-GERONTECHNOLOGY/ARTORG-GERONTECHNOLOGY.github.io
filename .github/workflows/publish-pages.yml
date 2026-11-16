@@ -1,0 +1,108 @@
+name: Publish website
+
+'on':
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: 'Expected current main commit; leave empty to retry current main'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  BUNDLE_FROZEN: 'true'
+
+# Serialize complete builds/deployments; never cancel a deployment in progress.
+concurrency:
+  group: github-pages-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: vars.ENABLE_PAGES_PUBLICATION == 'true' && github.ref == 'refs/heads/main' && github.repository == 'ARTORG-GERONTECHNOLOGY/ARTORG-GERONTECHNOLOGY.github.io'
+    runs-on: windows-2025
+    timeout-minutes: 30
+    outputs:
+      revision: ${{ github.sha }}
+    steps:
+      - name: Check out the exact production revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1
+        with:
+          ruby-version: '3.3.13'
+          bundler: '2.5.22'
+          bundler-cache: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.22.1'
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12.14'
+      - name: Reject an outdated production build
+        run: node scripts/publication.mjs guard-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_REVISION: ${{ inputs.revision }}
+      - name: Install locked Ruby dependencies
+        run: bundle install
+      - name: Install pinned pnpm
+        run: npm install --global pnpm@11.25.0 --ignore-scripts
+      - name: Install locked PDF dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install pinned Chromium
+        run: pnpm exec playwright install chromium
+      - name: Install verification dependencies
+        run: python -m pip install --disable-pip-version-check -r scripts/requirements-validation.txt
+      - name: Require resolution of recorded release content issues
+        run: bundle exec ruby scripts/validate-proposals.rb --release
+      - name: Validate the revision and generate the complete static site
+        run: bundle exec ruby scripts/validate-site.rb
+      - name: Generate public revision metadata
+        run: node scripts/publication.mjs metadata _site
+      - name: Inspect and package only public website files
+        run: python scripts/package-pages.py _site _pages --revision $env:GITHUB_SHA
+      - name: Upload the inspected Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _pages
+          retention-days: 1
+  deploy:
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out trusted revision guard
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.22.1'
+      - name: Reject a superseded artifact before deployment
+        run: node scripts/publication.mjs guard-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_REVISION: ${{ needs.build.outputs.revision }}
+      - name: Deploy the inspected artifact from this run
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

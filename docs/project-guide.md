@@ -592,6 +592,10 @@ Step 22 adds [Home, News, Team and About editors](../admin-service/README.md#hom
 including images, private draft downloads, shared previews and revision restoration.
 Profile IDs/links remain stable; renaming a profile leaves proposal supervisor
 names unchanged. About's QR destination follows canonical configuration.
+Step 23 prepares [validated publication through GitHub Pages](publication.md),
+with a trusted content-only merge, protected checks, inspected public artifacts
+and recovery through new revisions. Activation remains off and requires separate
+authorization; hosted success/failure/rollback checks are still pending.
 Local access is prepared; live HTTPS hosting and production
 credentials remain separate, unperformed operations.
 

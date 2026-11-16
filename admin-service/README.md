@@ -148,8 +148,9 @@ it cannot prove that the eventual installation/branch rules trigger live checks.
 `content-policy.json` is the trusted allowlist and publication policy. It fixes
 the target repository, the `content/staff` working branch, `main` production
 branch and the **Website validation** required check. The user selected
-**automatic publication after checks pass**. That is eligibility for the later
-publication step, not a deployment action supplied by this service. The service
+**automatic publication after checks pass**. The separate
+[Step 23 publication workflow](../docs/publication.md) is prepared locally with
+activation off; it is not a deployment action supplied by this service. The service
 has no merge, force-push, branch-creation or deployment endpoint and never writes
 to the production branch. Do not grant the App a production-branch bypass.
 
@@ -167,9 +168,8 @@ Before real activation, a separately authorized operator must:
    workflow. Do not put required-success checks on the working branch's initial
    content push: its new commit must exist before checks can run. Prevent force
    pushes/deletion. Protect `main` with the required **Website validation** check
-   from GitHub Actions, with no App bypass. The later trusted publishing path
-   must enforce successful checks on the exact revision before automatic
-   publication, matching the user's choice.
+   from GitHub Actions, with no App bypass. Follow the Step 23 settings and
+   activation guide for exact checked merges and automatic publication.
 4. Verify an App-originated save triggers that check, a failed check prevents
    production advancement and a successful save is still reported as pending
    until the later deployment reports the same revision live. These remote

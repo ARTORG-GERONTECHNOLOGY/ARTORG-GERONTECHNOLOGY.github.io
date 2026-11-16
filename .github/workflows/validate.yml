@@ -51,5 +51,10 @@ jobs:
         run: pnpm exec playwright install chromium
       - name: Install verification dependencies
         run: python -m pip install --disable-pip-version-check -r scripts/requirements-validation.txt
+      - name: Verify trusted publication candidate and previous-content rules
+        if: startsWith(github.ref, 'refs/heads/publication/staff-')
+        run: node scripts/publication.mjs check-candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Validate content and final static output
         run: bundle exec ruby scripts/validate-site.rb

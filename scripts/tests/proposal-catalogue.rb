@@ -45,7 +45,7 @@ home = Nokogiri::HTML5(File.read(File.join(output, "index.html"), encoding: "UTF
     check.call(html.at_css(".catalogue-count").text.strip == "#{expected.length} proposal#{expected.length == 1 ? '' : 's'}", "Archive count: #{base}")
     check.call(JSON.parse(html.at_css('option[value=bme]')["data-values"]) == %w[bme_only bme_and_aim], "BME must include both eligibility types")
     check.call(JSON.parse(html.at_css('option[value=aim]')["data-values"]) == %w[bme_and_aim], "AIM must exclude BME-only projects")
-    check.call(html.at_css('#primary-navigation [aria-current=page]').text == "Archive", "Archive navigation marker")
+    check.call(html.css('#primary-navigation [aria-current=page]').empty?, "Archive has no corresponding main navigation tab")
     html.css(".catalogue-status-links a, .catalogue-view-links a").each do |link|
       check.call(File.file?(File.join(output, link["href"].sub(%r{^/}, ""), "index.html")), "Broken static browsing link")
     end

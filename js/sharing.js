@@ -1,3 +1,0 @@
-(function(){'use strict';var input=document.getElementById('page-share-link'),button=document.getElementById('copy-page-link'),status=document.getElementById('copy-link-status');if(!input||!button)return;button.hidden=false;
-button.addEventListener('click',async function(){var url=new URL(input.defaultValue);url.search=location.search;url.hash=location.hash;input.value=url.href;try{if(!navigator.clipboard||!navigator.clipboard.writeText)throw Error('Unavailable');await navigator.clipboard.writeText(input.value);status.textContent='Link copied.';}catch(error){input.focus();input.select();status.textContent='Copy is unavailable. The link is selected; press Ctrl+C or Command+C to copy.';}});
-}());

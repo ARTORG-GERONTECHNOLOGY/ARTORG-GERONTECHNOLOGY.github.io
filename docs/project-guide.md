@@ -76,7 +76,8 @@ The confirmed final content and preserved source-history details are recorded in
 
 ## Navigation and responsive layout
 
-The main navigation has Home, Proposals, Archive, News, Team, About and Search.
+The main navigation has Home, Proposals, News, About and Search. Archive and
+Team remain accessible through their existing URLs.
 The destination pages, status filters, news collection and team profiles are
 implemented. Real news and real team profiles have not yet been supplied.
 The shared list is `_data/navigation.yml`.
@@ -362,13 +363,13 @@ from public proposal and About pages. The staff submission section and its searc
 text are omitted. Source submission metadata and the staff template are retained
 for maintenance. This instruction overrides the original public template order.
 
-## Feeds, metadata and sharing
+## Feeds and metadata
 
 `feed.xml` preserves the proposal RSS endpoint and its ten most recent proposals.
 Every item carries an availability category and a readable status prefix.
 `news-feed.xml` provides the ten most recent published announcements separately;
-its initial empty channel is valid. RSS autodiscovery links in page heads expose both feeds. Footer links open the
-Proposals and News pages, as requested by the user. Feeds retain initial publication dates and stable
+its initial empty channel is valid. RSS autodiscovery links in page heads expose
+both feeds. The public footer shows the group name. Feeds retain initial publication dates and stable
 canonical GUID URLs. Deleted/unpublished content is absent from normal builds.
 
 Public pages have canonical URLs, page-specific descriptions, Open Graph and
@@ -383,20 +384,14 @@ with known update dates where supplied. It excludes 404, service/admin routes,
 non-output collections, unpublished content and non-HTML build inputs. These
 indexing choices do not restrict access or make public Git content private.
 
-Copy link uses the Clipboard API only on a visitor's button click. It preserves
-the current query and fragment (including search/catalogue filters). On denial or
-unsupported browsers, the URL is selected with instructions for manual copying.
-Without JavaScript the labelled readonly URL remains available. This replaces
-third-party sharing; no tracking or social-network scripts are introduced.
+To share a page, copy its address from the browser address bar.
 
 ```sh
 bundle exec ruby scripts/tests/publishing.rb
 ```
 
 The fixture checks XML/status data, canonical hosts and base paths, escaped preview
-metadata, excluded drafts/admin routes, article dates and sharing fallback markup.
-Actual browser clipboard success/denial, focus and mobile appearance still await
-user review because automated browser access is denied by saved permission.
+metadata, excluded drafts/admin routes and article dates.
 
 
 ## Downloadable website QR

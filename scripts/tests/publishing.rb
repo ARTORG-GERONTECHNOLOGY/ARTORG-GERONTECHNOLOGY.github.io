@@ -37,7 +37,5 @@ Dir.mktmpdir('publishing-fixture-') do |fixture|
  check.call(html.at_css('meta[name=description]')['content']==metadata['summary'],'Page description')
  check.call(html.at_css('meta[property="og:image"]')['content']=='https://example.org/preview/assets/images/branding/bfh.png','Preview image canonical URL')
  check.call(html.at_css('meta[property="article:modified_time"]')['content'].start_with?('2026-02-01'),'Article update date')
- check.call(html.at_css('#page-share-link')['value']=='https://example.org/preview/news/example/' && html.at_css('#page-share-link').key?('readonly'),'Sharing fallback missing')
- check.call(html.at_css('#copy-page-link').key?('hidden'),'Nonfunctional copy button exposed without JavaScript')
- puts "#{checks} feed/metadata/sitemap checks passed: XML, availability, canonical hosts, escaping, draft/admin exclusions and sharing fallback."
+ puts "#{checks} feed/metadata/sitemap checks passed: XML, availability, canonical hosts, escaping and draft/admin exclusions."
 end

@@ -1,7 +1,10 @@
 {% assign section_html = page.proposal.sections[include.name] %}
-{% if section_html and section_html != empty %}
+{% assign place_figure = false %}
+{% if page.layout != 'proposal-print' and page.figure.section == include.name %}{% assign place_figure = true %}{% endif %}
+{% if place_figure or section_html and section_html != empty %}
 <section class="proposal-section" aria-labelledby="{{ include.id | escape }}">
   <h2 id="{{ include.id | escape }}">{{ include.name | escape }}</h2>
   {{ section_html }}
+  {% if place_figure %}{% include media/figure.html figure=page.figure %}{% endif %}
 </section>
 {% endif %}

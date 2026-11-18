@@ -47,13 +47,15 @@ test('editor draft download, reopen, field validation and immutable publication 
 test('preview shares proposal sections, sanitizes authors and renders math without client scripts',async()=>{
   const editor=new ProposalEditor();const bootstrap=await editor.bootstrap(authorize);const original=bootstrap.proposals[0];
   const background='\nÜnicode Parkinson’s\n\n| Test | Value |\n| --- | --- |\n| Data | 42 |\n\n```ruby\nputs "safe"\n## Aim\n```\n\n$$x^2 + y^2 = z^2$$\n\n<script>alert("unsafe")</script>\n<img src="x" onerror="alert(1)">\n{% include secret.txt %}\n\n';
-  const preview=await editor.prepare({operation:'preview',source:original.source,context:{path:original.path},sections:{Background:background},patch:{figure:{src:'/assets/images/branding/bfh.png',alt:'Figure ü',caption:'Safe caption'}}},authorize);
+  assert.ok(bootstrap.figureSections.includes('Background'));
+  const preview=await editor.prepare({operation:'preview',source:original.source,context:{path:original.path},sections:{Background:background},patch:{figure:{src:'/assets/images/branding/bfh.png',alt:'Figure ü',caption:'Safe caption',section:'Background'}}},authorize);
   assert.ok(preview.html);
   assert.match(preview.html,/<table>/);assert.match(preview.html,/<pre/);
   assert.match(preview.html,/MathJax_SVG/);assert.match(preview.html,/<svg/);
   assert.ok(!/<script\b|\sonerror=|\sonclick=|<iframe\b/i.test(preview.html));
   assert.match(preview.html,/{% include secret.txt %}/);
   assert.match(preview.html,/data:image\/png;base64,/);
+  assert.match(preview.html,/<section[^>]*aria-labelledby="background"[^>]*>(?:(?!<\/section>)[\s\S])*<figure class="proposal-figure"/);
   for(const heading of ['Nature of the Thesis','Supervisors','Institutes','Contact'])assert.ok(preview.html.includes(heading));
   assert.doesNotMatch(preview.html,/Student eligibility/);
   assert.match(preview.html,/script-src &#39;none&#39;|script-src 'none'/);

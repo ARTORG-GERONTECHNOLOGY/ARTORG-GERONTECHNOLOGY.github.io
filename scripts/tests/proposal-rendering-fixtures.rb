@@ -16,7 +16,7 @@ Dir.mktmpdir('proposal-fixture-') do |fixture|
   document = Proposals::Document.read(Dir[File.join(Proposals::ROOT, '_posts/*.md')].first)
   document.metadata['title'] = 'Überblick <script>alert(1)</script> & études'
   document.metadata['status'] = 'archived'
-  document.metadata['figure'] = { 'src'=>'/assets/images/branding/bfh.png', 'alt'=>'Fixture <figure>', 'caption'=>'Caption & Unicode — ü' }
+  document.metadata['figure'] = { 'src'=>'/assets/images/branding/bfh.png', 'alt'=>'Fixture <figure>', 'caption'=>'Caption & Unicode — ü', 'section'=>'Materials and Methods' }
   document.metadata['start_date_text'] = 'By arrangement'
   document.metadata['workplace'] = "Bern\nResearch group"
   document.metadata['attachments'] = [{'title'=>'Fixture download — ü','url'=>'/assets/images/branding/bfh.png','mime_type'=>'image/png'}]
@@ -24,6 +24,11 @@ Dir.mktmpdir('proposal-fixture-') do |fixture|
   document.metadata['application_instructions'] = 'Apply with a **CV**. {% include secret.html %}'
   document.body = "## Background\n{{ site.title }} {% include secret.html %}\n<script>alert(2)</script><img src=\"https://example.org/a.png\" onerror=\"alert(3)\">\n\n## Aim\nShort aim.\n\n## Materials and Methods\nScientific method.\n\n## Requirements\n- Programming\n\n## References\nA citation — étude.\n"
   File.write(File.join(source, '_posts/2026-01-01-project-fixture.md'), document.serialize)
+  legacy = Proposals::Document.parse(document.serialize)
+  legacy.metadata['proposal_id'] = 'ger-default-figure-fixture'
+  legacy.metadata['permalink'] = '/projects/default-figure-fixture/'
+  legacy.metadata['figure'].delete('section')
+  File.write(File.join(source, '_posts/2026-01-01-project-default-figure-fixture.md'), legacy.serialize)
   config = Jekyll.configuration('source'=>source, 'destination'=>output, 'config'=>File.join(Proposals::ROOT,'_config.yml'), 'plugins_dir'=>File.join(Proposals::ROOT,'_plugins'), 'baseurl'=>'/preview', 'disable_disk_cache'=>true, 'quiet'=>true)
   Jekyll::Site.new(config).process
   page = Nokogiri::HTML5(File.read(File.join(output, document.metadata.fetch('permalink').sub(%r{^/}, ''), 'index.html')))
@@ -31,6 +36,12 @@ Dir.mktmpdir('proposal-fixture-') do |fixture|
   raise 'Author script executed in title/body' unless page.css('script').none? { |script| script.text.include?('alert(') }
   raise 'Liquid was evaluated or lost' unless article.text.include?('{{ site.title }} {% include secret.html %}')
   raise 'Figure path/escaping broken' unless article.at_css('.proposal-figure img')['src'] == '/preview/assets/images/branding/bfh.png' && article.at_css('figcaption').text == 'Caption & Unicode — ü'
+  selected_section = 'section[aria-labelledby="materials-and-methods"]'
+  raise 'Figure must follow the prose in the selected section' unless article.css('.proposal-figure').length == 1 && article.at_css("#{selected_section} p + .proposal-figure")
+  print_page = Nokogiri::HTML5(File.read(File.join(output, 'print/proposals', document.metadata.fetch('proposal_id'), 'index.html')))
+  raise 'Print must keep the template figure position after Institutes' unless print_page.css('.proposal-figure').length == 1 && print_page.at_css('section[aria-labelledby="institutes"] + .proposal-figure')
+  legacy_page = Nokogiri::HTML5(File.read(File.join(output, 'projects/default-figure-fixture/index.html')))
+  raise 'Legacy figure position changed' unless legacy_page.css('.proposal-figure').length == 1 && legacy_page.at_css('section[aria-labelledby="institutes"] + .proposal-figure')
   raise 'Optional section order' unless article.css('.proposal-content h2').map(&:text).index('References') > article.css('.proposal-content h2').map(&:text).index('Institutes')
   %w[How\ to\ apply Start\ Date Workplace].each { |heading| raise "Missing #{heading}" unless article.css('h3').map(&:text).include?(heading) }
   raise 'Unsafe image attribute' if article.at_css('[onerror]')

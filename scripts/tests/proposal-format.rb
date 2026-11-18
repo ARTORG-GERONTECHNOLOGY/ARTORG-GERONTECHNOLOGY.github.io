@@ -218,6 +218,12 @@ reject.call("missing supervisors", "supervisors") { |data| data["supervisors"] =
 reject.call("unpublished proposal", "published") { |data| data["published"] = false }
 reject.call("unsafe media path", "figure.src") { |data| data["figure"] = {"src" => "/../private.png", "alt" => "Test", "caption" => "Test"} }
 reject.call("figure without alternative text", "figure.alt") { |data| data["figure"] = {"src" => "/figure.png", "caption" => "Test"} }
+reject.call("unknown figure placement", "figure.section") { |data| data["figure"] = {"src" => "/figure.png", "alt" => "Test", "caption" => "Test", "section" => "Contact"} }
+check.call("placement after absent References") do
+  data = metadata.merge("figure" => {"src" => "/figure.png", "alt" => "Test", "caption" => "Test", "section" => "References"})
+  errors = validator.validate(document(data, body.split("## References").first))
+  assert(errors.any? { |error| error.start_with?("figure.section:") }, "Missing placement error: #{errors.inspect}")
+end
 reject.call("malformed attachment", "attachments[0]") { |data| data["attachments"] = ["bad"] }
 
 check.call("CLI separates draft, publication, invalid input and legacy migration") do

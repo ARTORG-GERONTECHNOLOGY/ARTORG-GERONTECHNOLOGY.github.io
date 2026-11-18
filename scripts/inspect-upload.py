@@ -1,15 +1,17 @@
-"""Decode uploaded images and inspect PDF objects; no files or network writes."""
+"""Inspect uploads and optionally resize proposal figures in memory."""
+import base64
 import io
 import json
 import sys
 import warnings
-from PIL import Image
+from PIL import Image, ImageOps
 from pypdf import PdfReader
 from pypdf.generic import IndirectObject, DictionaryObject, ArrayObject
 
 try:
     rules = json.loads(sys.argv[1])
     kind = sys.argv[2]
+    resize_figure = len(sys.argv) > 3 and sys.argv[3] == 'figure'
     data = sys.stdin.buffer.read(rules['max_file_bytes'] + 1)
     if not data or len(data) > rules['max_file_bytes']:
         raise ValueError('The file is empty or exceeds the upload limit')
@@ -18,7 +20,8 @@ try:
         with warnings.catch_warnings():
             warnings.simplefilter('error', Image.DecompressionBombWarning)
             image = Image.open(io.BytesIO(data))
-            if image.format != {'image/png': 'PNG', 'image/jpeg': 'JPEG', 'image/webp': 'WEBP'}[kind]:
+            image_format = {'image/png': 'PNG', 'image/jpeg': 'JPEG', 'image/webp': 'WEBP'}[kind]
+            if image.format != image_format:
                 raise ValueError('Decoded image format disagrees with its type')
             width, height = image.size
             if not (0 < width <= rules['max_image_dimension'] and 0 < height <= rules['max_image_dimension']):
@@ -31,7 +34,29 @@ try:
             for frame in range(frames):
                 image.seek(frame)
                 image.load()
-        result = {'width': width, 'height': height}
+            result = {'width': width, 'height': height}
+            if resize_figure and max(width, height) > rules['max_figure_dimension']:
+                if frames != 1:
+                    raise ValueError('Choose a static image to resize this proposal figure')
+                image = ImageOps.exif_transpose(image)
+                image = image.convert('RGBA' if image.has_transparency_data else 'RGB')
+                limit = rules['max_figure_dimension']
+                # Always resample from the oriented original so retries retain detail.
+                while limit >= 256:
+                    scaled = image.copy()
+                    scaled.thumbnail((limit, limit), Image.Resampling.LANCZOS)
+                    output = io.BytesIO()
+                    options = {'quality': 90} if image_format in ('JPEG', 'WEBP') else {}
+                    scaled.save(output, format=image_format, **options)
+                    if output.tell() <= rules['max_file_bytes']:
+                        result = {
+                            'width': scaled.width, 'height': scaled.height,
+                            'resized': True, 'replacement': base64.b64encode(output.getvalue()).decode('ascii')
+                        }
+                        break
+                    limit = int(limit * 0.8)
+                else:
+                    raise ValueError('The resized figure still exceeds the upload limit')
     else:
         reader = PdfReader(io.BytesIO(data), strict=True)
         if reader.is_encrypted:

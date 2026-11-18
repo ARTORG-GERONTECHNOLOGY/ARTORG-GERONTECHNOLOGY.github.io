@@ -42,6 +42,7 @@ attachments: []
 #   src: "/assets/media/proposals/<proposal_id>/figure.png"
 #   alt: ""
 #   caption: ""
+#   section: "Materials and Methods" # Optional website placement.
 submission_email: "bme.artorg@unibe.ch"
 ---
 

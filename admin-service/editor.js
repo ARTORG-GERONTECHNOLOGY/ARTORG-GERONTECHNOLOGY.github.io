@@ -56,7 +56,7 @@
   function field(parent, label, key, value, options={}) {
     const wrapper=node('div',undefined,{class:'field'}); const id='field-'+key.replace(/[^a-z0-9]/gi,'-');
     wrapper.append(node('label',label,{for:id})); let input;
-    if(options.choices) { input=node('select'); if(!options.multiple) input.append(node('option','Choose…',{value:''})); for(const [v,t] of options.choices) { const option=node('option',t,{value:v}); option.selected=options.multiple ? (value||[]).includes(v) : value===v; input.append(option); } if(options.multiple) input.multiple=true; }
+    if(options.choices) { input=node('select'); if(!options.multiple) input.append(node('option',options.emptyLabel || 'Choose…',{value:''})); for(const [v,t] of options.choices) { const option=node('option',t,{value:v}); option.selected=options.multiple ? (value||[]).includes(v) : value===v; input.append(option); } if(options.multiple) input.multiple=true; }
     else { input=node(options.area ? 'textarea':'input'); if(options.area) input.rows=options.rows||4; else input.type=options.type||'text'; if(input.type==='checkbox') input.checked=Boolean(value); else input.value=value ?? ''; }
     input.id=id; if(options.readonly) input.readOnly=true; if(options.step) input.step=options.step;
     const error=node('p','',{id:id+'-error',class:'field-error'}); input.setAttribute('aria-describedby',error.id); fields.set(key,{input,error});
@@ -91,6 +91,18 @@
     p=group('Proposal text'); for(const name of ['Background','Aim','Materials and Methods','Requirements','References']) field(p,name+' (Markdown)','section.'+name,model.sections[name]||'',{area:true,rows:8,help:name==='Requirements'?'Use a Markdown bullet list for requirements.':'Lists, links, tables, code and mathematical notation are supported.'});
     const optional=node('details'); optional.append(node('summary','Optional figure, downloads and media')); $('proposal-form').append(optional);
     for(const [key,label] of [['src','Existing figure URL or /assets/ path'],['alt','Figure alternative text'],['caption','Figure caption']]) field(optional,label,'figure.'+key,m.figure?.[key]);
+    field(optional,'Figure placement on website','figure.section',m.figure?.section,{
+      choices:bootstrap.figureSections.map(section=>[section,'After '+section]),
+      emptyLabel:'Default position (after Institutes)',
+      help:'The PDF always places the figure after Institutes, as in the proposal template.'
+    });
+    const removeFigure=node('button','Remove figure',{type:'button',class:'secondary'});
+    removeFigure.addEventListener('click',()=>{
+      for(const key of ['src','alt','caption','section']) fields.get('figure.'+key).input.value='';
+      fields.get('figure.src').input.focus();
+      changed();
+    });
+    optional.append(removeFigure);
     rows(optional,'Attachments','attachments',m.attachments,[{key:'title',label:'Title',required:true},{key:'url',label:'Existing file URL',required:true},{key:'mime_type',label:'MIME type',required:true},{key:'size',label:'Bytes (required for external files)',type:'number'}]);
     const picker=node('section',undefined,{id:'media-picker','aria-label':'Media files'});optional.prepend(picker);renderMedia();
     optional.append(node('p','Removing a figure or attachment link keeps its shared file. Temporary uploads expire at sign-out or session expiry. Download your Markdown and temporary files to continue later; upload the files again when reopening the draft. Existing embedded media metadata is preserved.'));
@@ -113,6 +125,7 @@
       else if(value!==''||Object.hasOwn(state.metadata,key)) patch[key]=key==='tags'?value.split('\n').filter(x=>x.trim()):value;
     }
     if(!patch.figure.src&&!patch.figure.alt&&!patch.figure.caption) patch.figure=null;
+    else if(!patch.figure.section) delete patch.figure.section;
     return {source:state.source,context:state.context,patch,sections};
   }
   function populateSupporting(model,context){
@@ -266,31 +279,107 @@
     const permanent=new Set(mediaFiles.filter(file=>!file.temporary).map(file=>file.url));
     mediaFiles=mediaFiles.filter(file=>!file.temporary||!permanent.has(file.url));
   }
+  async function prepareLargeFigure(file,mime,rules) {
+    if(file.size>rules.max_figure_source_bytes) {
+      throw new Error('Choose an image no larger than 32 MiB or resize it first.');
+    }
+    // The browser only pre-processes files that cannot reach the server as-is.
+    // Keep animations intact by asking for a smaller original instead.
+    if(mime!=='image/jpeg') {
+      if(!globalThis.ImageDecoder || !(await ImageDecoder.isTypeSupported(mime))) {
+        throw new Error('This browser cannot check this large image. Resize it to 10 MiB or less before uploading.');
+      }
+      const decoder=new ImageDecoder({data:file.stream(),type:mime});
+      try {
+        await decoder.tracks.ready;
+        if(!decoder.tracks.selectedTrack || decoder.tracks.selectedTrack.animated) {
+          throw new Error('Choose a static image to resize this proposal figure.');
+        }
+      } finally {decoder.close();}
+    }
+    const bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});
+    try {
+      const longest=Math.max(bitmap.width,bitmap.height);
+      if(longest>rules.max_image_dimension || bitmap.width*bitmap.height>rules.max_image_pixels){
+        throw new Error('Image dimensions exceed the permitted limit. Resize the original before uploading.');
+      }
+      const canvas=document.createElement('canvas');
+      const context=canvas.getContext('2d');
+      if(!context)throw new Error('This browser could not resize the image.');
+      for(let limit=rules.max_figure_dimension;limit>=256;limit=Math.floor(limit*0.8)) {
+        const scale=Math.min(1,limit/longest);
+        canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+        canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+        context.imageSmoothingQuality='high';
+        context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+        const encoded=await new Promise(resolve=>canvas.toBlob(resolve,mime,0.9));
+        if(encoded?.type!==mime)throw new Error('This browser could not export the figure in its original format.');
+        if(encoded.size<=rules.max_file_bytes)return encoded;
+      }
+      throw new Error('The resized figure still exceeds 10 MiB. Resize the original before uploading.');
+    } finally {bitmap.close();}
+  }
   function renderMedia() {
     const panel=$('media-picker');if(!panel)return;panel.replaceChildren(node('h3','Choose or upload a file'));
-    const status=node('p','',{role:'status'});
-    const label=node('label',state.supporting?'Upload PNG, JPEG or WebP (up to 10 MiB)':'Upload PNG, JPEG, WebP or PDF (up to 10 MiB)');const input=node('input',undefined,{type:'file',accept:state.supporting?'.png,.jpg,.jpeg,.webp':'.png,.jpg,.jpeg,.webp,.pdf'});label.append(input);panel.append(label,status);
-    input.addEventListener('change',async()=>{
+    const status=node('p','',{id:'media-picker-status',role:'status'});
+    function uploadControl(labelText,accept,figureUpload=false) {
+      const label=node('label',labelText);
+      const input=node('input',undefined,{type:'file',accept});
+      label.append(input);
+      panel.append(label);
+      input.addEventListener('change',()=>upload(input,figureUpload));
+    }
+    const imageExtensions='.png,.jpg,.jpeg,.webp';
+    if(!state.supporting)uploadControl('Upload proposal figure (PNG, JPEG or WebP)',imageExtensions,true);
+    uploadControl(state.supporting?'Upload PNG, JPEG or WebP (up to 10 MiB)':'Upload attachment (PNG, JPEG, WebP or PDF, up to 10 MiB)',state.supporting?imageExtensions:imageExtensions+',.pdf');
+    panel.append(status);
+    async function upload(input,figureUpload) {
       const file=input.files[0];if(!file||busy)return;
-      if(file.size>(mediaRules?.max_file_bytes||10485760)){status.textContent='Choose a file no larger than 10 MiB.';input.value='';return;}
-      busy=true;status.textContent='Checking and uploading file…';
+      const extension='.'+file.name.split('.').at(-1).toLowerCase();
+      busy=true;
       try{
+        if(!mediaRules)await loadMedia();
+        const mime=mediaRules.types[extension]||file.type||'application/octet-stream';
+        const oversized=file.size>mediaRules.max_file_bytes;
+        if(figureUpload&&!['image/png','image/jpeg','image/webp'].includes(mime))throw new Error('Choose a PNG, JPEG or WebP proposal figure.');
+        if(oversized&&!figureUpload)throw new Error('Choose a file no larger than 10 MiB.');
+        status.textContent=oversized?'Resizing the figure before upload…':'Checking and uploading file…';
+        const body=oversized ? await prepareLargeFigure(file,mime,mediaRules) : file;
         const session=await fetch('/admin/api/session',{credentials:'same-origin'});if(!session.ok)throw new Error('Your session ended. Open the private link in another tab, then retry.');
-        const token=(await session.json()).csrf;const extension='.'+file.name.split('.').at(-1).toLowerCase();
-        const response=await fetch('/admin/api/media/upload?'+new URLSearchParams({filename:file.name,...(state.supporting?{target:state.path}:{proposalId:state.metadata.proposal_id})}),{method:'POST',credentials:'same-origin',headers:{'Content-Type':mediaRules?.types[extension]||file.type||'application/octet-stream','X-CSRF-Token':token},body:file});
+        const token=(await session.json()).csrf;
+        const options={filename:file.name,...(state.supporting?{target:state.path}:{proposalId:state.metadata.proposal_id})};
+        if(figureUpload)options.purpose='figure';
+        const response=await fetch('/admin/api/media/upload?'+new URLSearchParams(options),{method:'POST',credentials:'same-origin',headers:{'Content-Type':mime,'X-CSRF-Token':token},body});
         const value=await response.json().catch(()=>({message:'The upload was rejected. Check its type and size.'}));if(!response.ok)throw new Error(value.message);
         dirty=true;
         await loadMedia();renderMedia();$('media-select').value=value.url;$('media-select').dispatchEvent(new Event('change'));
-        message(state.supporting?'Image checked and uploaded privately. Choose “Use image” before saving.':'File checked and uploaded privately. Choose “Use as figure” or “Add as attachment” before saving.');
+        const dimensions=value.width&&value.height?` (${value.width} × ${value.height} px)`:'';
+        const instruction=state.supporting?'Choose “Use image” before saving.':figureUpload?'Choose “Use as figure” before saving.':'Choose “Add as attachment” before saving.';
+        const result=`${oversized||value.resized?'Figure resized and uploaded privately':'File uploaded privately'}${dimensions}. ${instruction}`;
+        $('media-picker-status').textContent=result;
+        message(result);
       }catch(error){status.textContent=error.message+' Your proposal remains unchanged.';}finally{busy=false;input.value='';}
-    });
+    }
     const selectLabel=node('label','Existing and temporary files',{for:'media-select'});const select=node('select',undefined,{id:'media-select'});select.append(node('option','Choose a file…',{value:''}));
     const own=mediaFiles.filter(file=>(!state.supporting||file.mime_type.startsWith('image/'))&&(!file.temporary||(state.supporting?file.ownerPath===state.path:file.url.startsWith('/assets/media/proposals/'+state.metadata.proposal_id+'/'))));
-    for(const file of own)select.append(node('option',(file.temporary?'Temporary · ':'')+file.title+' · '+file.mime_type+' · '+(file.size/1024).toFixed(1)+' KB',{value:file.url}));
+    for(const file of own){
+      const dimensions=file.width&&file.height?` · ${file.width} × ${file.height} px`:'';
+      select.append(node('option',(file.temporary?'Temporary · ':'')+file.title+' · '+file.mime_type+' · '+(file.size/1024).toFixed(1)+' KB'+dimensions,{value:file.url}));
+    }
     const buttons=node('div',undefined,{class:'actions'});const figure=node('button',state.supporting?'Use image':'Use as figure',{type:'button'});const attach=node('button','Add as attachment',{type:'button'});attach.hidden=Boolean(state.supporting);const download=node('a','Download selected file',{hidden:'',class:'media-download'});
     const chosen=()=>own.find(file=>file.url===select.value);
     select.addEventListener('change',()=>{const file=chosen();download.hidden=!file;if(file){download.href='/admin/api/media/file?'+new URLSearchParams(file.temporary?{id:file.id}:{path:file.url.slice(1)});download.textContent=file.temporary?'Download temporary file':'Download selected file';}});
-    figure.addEventListener('click',()=>{const file=chosen();if(!file)return;if(!file.mime_type.startsWith('image/')){status.textContent='Choose an image for a figure. PDFs can be added as attachments.';return;}const key=state.supporting?{home:'hero_image',team:'portrait',news:'image'}[state.kind]:'figure';fields.get(key+'.src').input.value=file.url;fields.get(key+'.alt').input.focus();changed();status.textContent='Image selected. Add alternative text and an optional caption below.';});
+    figure.addEventListener('click',()=>{
+      const file=chosen();if(!file)return;
+      if(!file.mime_type.startsWith('image/')){status.textContent='Choose an image for a figure. PDFs can be added as attachments.';return;}
+      if(!state.supporting&&file.temporary&&Math.max(file.width,file.height)>mediaRules.max_figure_dimension){
+        status.textContent='Use “Upload proposal figure” to resize this image before selecting it as a figure.';
+        return;
+      }
+      const key=state.supporting?{home:'hero_image',team:'portrait',news:'image'}[state.kind]:'figure';
+      fields.get(key+'.src').input.value=file.url;fields.get(key+'.alt').input.focus();changed();
+      status.textContent=state.supporting?'Image selected. Add alternative text below.':'Image selected. Add alternative text and a caption below.';
+    });
     attach.addEventListener('click',()=>{const file=chosen();if(!file)return;fields.get('attachments').add({title:file.title,url:file.url,mime_type:file.mime_type,size:file.size});changed();status.textContent='Attachment added. You can edit its title below.';});
     buttons.append(figure,attach,download);panel.append(selectLabel,select,buttons);
   }

@@ -66,7 +66,12 @@ the project's own contact and `application_instructions`.
 Optional fields include `tags`, `start_date_text`, `workplace`, application
 instructions, contact address/phone, and an explicit stable `permalink`.
 Omit `figure` when unused; otherwise supply `src`, meaningful `alt` text and
-`caption`. Attachments use `title`, `url`, `mime_type` and optional integer byte
+`caption`. Set `figure.section` to Background, Aim, Materials and Methods,
+Requirements or References to put the figure after that section's text on the
+website. Omitting it keeps the default placement after Institutes. PDFs always
+place the figure after Institutes and before References and Contact, following
+the Word template.
+Attachments use `title`, `url`, `mime_type` and optional integer byte
 `size`. Links reject executable schemes, credentials in URLs, and unsafe local
 paths. Actual file signatures, upload limits, sanitization and asset-existence
 checks are later steps, not guarantees of this metadata validator.

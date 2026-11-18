@@ -14,6 +14,11 @@ from pypdf import PdfWriter
 out={}
 for fmt in ('PNG','JPEG','WEBP'):
     b=io.BytesIO();Image.new('RGB',(3,2),'green').save(b,format=fmt);out[fmt]=b.getvalue()
+large = Image.new('RGBA',(3000,1500),(10,20,30,128))
+b=io.BytesIO();large.save(b,format='PNG');out['LARGE_PNG']=b.getvalue()
+oriented = Image.new('RGB',(3000,1500),'green')
+exif = Image.Exif();exif[274]=6
+b=io.BytesIO();oriented.save(b,format='JPEG',exif=exif);out['ORIENTED_JPEG']=b.getvalue()
 for name in ('PDF','JS','ENCRYPTED','EMBEDDED'):
     w=PdfWriter();w.add_blank_page(width=300,height=300)
     if name=='JS':w.add_js('app.alert("unsafe")')
@@ -45,6 +50,29 @@ test('uploads decode PNG/JPEG/WebP/PDF and reject spoofing, malformed files, uns
   await assert.rejects(store.upload(session,{filename:'file.png',proposalId:'../bad',mime:'image/png',bytes:fixture.PNG},authorize),error=>error.status===422);
 });
 
+test('proposal figure uploads preserve transparency and orientation, and leave attachment and small image bytes intact',async()=>{
+  const store=new MediaStore(new ProposalEditor());const session={expires:Date.now()+120000};
+  const upload=(filename,mime,bytes,purpose)=>store.upload(session,{filename,proposalId:'ger-test',mime,bytes,purpose},authorize);
+  const downloadable=async file=>(await store.file(session,{id:file.id},authorize)).bytes;
+  const large=await upload('large.png','image/png',fixture.LARGE_PNG,'figure');
+  assert.deepEqual([large.width,large.height,large.resized],[2400,1200,true]);
+  const largeBytes=await downloadable(large);
+  assert.equal(large.size,largeBytes.length);
+  const image=spawnSync(python,['-c','import sys,io; from PIL import Image; im=Image.open(io.BytesIO(sys.stdin.buffer.read())); print(im.format, im.size, im.getpixel((0,0))[3])'],{input:largeBytes,encoding:'utf8',windowsHide:true});
+  assert.equal(image.status,0);
+  assert.equal(image.stdout.trim(),'PNG (2400, 1200) 128');
+  const rotated=await upload('portrait.jpg','image/jpeg',fixture.ORIENTED_JPEG,'figure');
+  assert.deepEqual([rotated.width,rotated.height],[1200,2400]);
+  const rotatedBytes=await downloadable(rotated);
+  const decoded=await inspectUpload('portrait.jpg','image/jpeg',rotatedBytes,await store.rules());
+  assert.deepEqual([decoded.width,decoded.height],[1200,2400]);
+  const attachment=await upload('large.png','image/png',fixture.LARGE_PNG);
+  assert.deepEqual(await downloadable(attachment),fixture.LARGE_PNG);
+  const small=await upload('small.png','image/png',fixture.PNG,'figure');
+  assert.deepEqual(await downloadable(small),fixture.PNG);
+  await assert.rejects(upload('file.pdf','application/pdf',fixture.PDF,'figure'),error=>error.status===422);
+});
+
 test('temporary files belong to one session, preview safely, download unchanged and expire without repository writes',async()=>{
   let time=Date.now();const editor=new ProposalEditor();const store=new MediaStore(editor,null,{now:()=>time});const session={expires:time+100000};const other={expires:session.expires};
   const before=await localSnapshot();const bootstrap=await editor.bootstrap(authorize);const proposal=bootstrap.proposals[0];
@@ -74,11 +102,13 @@ test('proposal and selected uploads commit atomically; conflicts/failures retain
   }};
   const content=new ContentStore(provider);const editor=new ProposalEditor(content);const store=new MediaStore(editor,content);const session={expires:Date.now()+100000};
   const bootstrap=await editor.bootstrap(authorize);const proposal=bootstrap.proposals[0];const context={path:proposal.path,sha:proposal.sha,baseCommit:bootstrap.baseCommit};
-  const uploaded=await store.upload(session,{filename:'figure.png',proposalId:proposal.metadata.proposal_id,mime:'image/png',bytes:fixture.PNG},authorize);
+  const uploaded=await store.upload(session,{filename:'figure.png',proposalId:proposal.metadata.proposal_id,mime:'image/png',bytes:fixture.LARGE_PNG,purpose:'figure'},authorize);
+  const preparedImage=(await store.file(session,{id:uploaded.id},authorize)).bytes;
+  assert.equal(uploaded.resized,true);
   const candidate=await editor.prepare({operation:'publish',source:proposal.source,context,patch:{figure:{src:uploaded.url,alt:'New figure',caption:'New caption'}}},authorize,store.temporary(session));
   const payload={baseCommit:context.baseCommit,changes:[{path:context.path,sha:context.sha,content:candidate.source}],uploads:[uploaded.id]};
   fail=true;await assert.rejects(store.save(session,payload,authorize));assert.equal(commits,0);assert.ok(!snapshot.files.has(uploaded.url.slice(1)));assert.equal(store.temporary(session).length,1);
-  fail=false;const saved=await store.save(session,payload,authorize);assert.equal(commits,1);assert.equal(saved.files.length,2);assert.deepEqual(snapshot.files.get(uploaded.url.slice(1)).bytes,fixture.PNG);
+  fail=false;const saved=await store.save(session,payload,authorize);assert.equal(commits,1);assert.equal(saved.files.length,2);assert.deepEqual(snapshot.files.get(uploaded.url.slice(1)).bytes,preparedImage);
   assert.equal(store.temporary(session).length,0,'confirmed saves release committed temporary files');
   await assert.rejects(store.save(session,{...payload,uploads:[]},authorize),error=>error.status===409);assert.equal(commits,1);
   const unlinked=await editor.prepare({operation:'publish',source:candidate.source,context:{...context,baseCommit:saved.commit},patch:{figure:null}},authorize);

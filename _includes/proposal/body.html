@@ -14,7 +14,9 @@
   <h2 id="institutes">Institutes</h2>
   <ul>{% for institute in page.institutes %}<li>{% if institute.url %}<a href="{% if institute.url contains '://' %}{{ institute.url | escape }}{% else %}{{ institute.url | relative_url | escape }}{% endif %}">{{ institute.name | escape }}</a>{% else %}{{ institute.name | escape }}{% endif %}</li>{% endfor %}</ul>
 </section>
-{% if page.figure %}{% include media/figure.html figure=page.figure %}{% endif %}
+{% if page.figure %}
+  {% if page.layout == 'proposal-print' or page.figure.section == nil %}{% include media/figure.html figure=page.figure %}{% endif %}
+{% endif %}
 {% include media/proposal.html %}
 {% include proposal/section.html name="References" id="references" %}
 <section class="proposal-section" aria-labelledby="contact">

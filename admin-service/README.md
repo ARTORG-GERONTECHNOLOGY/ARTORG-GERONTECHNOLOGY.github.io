@@ -307,11 +307,21 @@ No live GitHub connection, public hosting or publication has been activated.
 
 ## Media picker and uploads (Step 19)
 
-Open **Optional figure, downloads and media** in a proposal. Choose a file from
-the existing/temporary list, then **Use as figure** or **Add as attachment**.
-Images need meaningful alternative text; captions and attachment titles can be
-edited below the picker. PNG/JPEG/WebP images and PDF attachments are supported.
-Removing a reference never deletes its shared repository file.
+Open **Optional figure, downloads and media** in a proposal. Use **Upload proposal
+figure** for a PNG, JPEG or WebP. The picker shows its processed dimensions.
+Choose **Use as figure**, then enter meaningful alternative text and a caption.
+Use **Figure placement on website** to put the image after a proposal text
+section. Preview shows the website placement. PDFs keep the Word template
+position after Institutes and before References and Contact.
+**Remove figure** clears the fields while keeping the shared file. Use **Upload
+attachment** for files that should keep their original bytes, including PDFs.
+
+New figure uploads have a 2,400 pixel limit on their longest side and retain
+their proportions. Smaller images keep their size. When a static figure file
+exceeds 10 MiB, supported browsers can prepare it before upload from an original
+up to 32 MiB. The server validates the received file under the usual limits.
+If the browser cannot prepare a file or an animation needs resizing, use a
+smaller original. Preview, the public page and the PDF use the processed figure.
 
 Upload inspection also requires Python **3.12.14** with the exact versions in
 `admin-service/requirements-media.txt`. Install those dependencies in a private

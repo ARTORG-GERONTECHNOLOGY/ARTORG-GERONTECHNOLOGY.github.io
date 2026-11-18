@@ -276,11 +276,16 @@ access is denied by the saved permission setting. No production change is deploy
 
 Store public assets at stable paths under `assets/media/proposals/<proposal_id>/`,
 `assets/media/team/<team_id>/` or `assets/media/news/<slug>/`. No real media or
-proposal prose was added in Step 10. The missing writing/drawing Figure 1 remains
-on the release checklist. Removing a reference never deletes its file.
+proposal prose was added in Step 10. The missing writing/drawing Figure 1
+reference was removed during the release review. Removing a reference never
+deletes its file.
 
 A proposal's optional `figure` keeps its existing src/alt/caption format. Images
-are responsive and lazy loaded. An attachment entry has `title`, `url`,
+are responsive and lazy loaded. In the editor, **Upload proposal figure** resizes
+new figures to at most 2,400 pixels on the longest side. The processed file is
+used for preview, public HTML and the generated PDF. Website placement can be
+chosen in the editor. PDFs keep the template position after Institutes. An
+attachment entry has `title`, `url`,
 `mime_type`, and optional `size` in bytes for local assets. The build derives local
 sizes and checks any supplied size. External attachments require an explicit
 HTTPS URL, supported MIME type and declared byte size. Links show type and size;
@@ -433,7 +438,8 @@ Local browser access was enabled and verified during Step 14.
 
 Every published proposal has a stable, revision-labelled PDF download after the
 PDF stage runs. This includes available, taken and archived proposals. PDFs use
-the same sanitized content and section order as the webpage, with A4 pages,
+the same sanitized content as the webpage and the Word template's figure
+position after Institutes, with A4 pages,
 12pt titles, 10pt body text, 9pt captions, institutional logos,
 program branding and page numbers. The administration/submission instruction is
 omitted from both formats at the user's request. Liberation Sans is the bundled,

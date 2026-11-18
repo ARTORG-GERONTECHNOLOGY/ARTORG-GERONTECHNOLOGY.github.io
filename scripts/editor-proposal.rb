@@ -58,7 +58,8 @@ begin
     indexed = proposals.to_h { |item| [item['metadata']['proposal_id'], item] }
     proposals = Proposals.ordered(proposals.map { |item| item['metadata'] }).map { |metadata| indexed.fetch(metadata['proposal_id']) }
     puts JSON.generate({'proposals' => proposals, 'categories' => Proposals.categories!(Proposals.load_yaml(input.fetch('categories'), mapping: false)),
-      'statuses' => Proposals::SCHEMA['statuses'], 'transitions' => Proposals::SCHEMA['status_transitions']})
+      'statuses' => Proposals::SCHEMA['statuses'], 'transitions' => Proposals::SCHEMA['status_transitions'],
+      'figureSections' => Proposals::FIGURE_SECTIONS})
     exit
   end
   source = input.fetch('source')

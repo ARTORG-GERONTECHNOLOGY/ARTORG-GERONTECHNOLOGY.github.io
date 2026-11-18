@@ -11,6 +11,7 @@ require "kramdown-parser-gfm"
 module Proposals
   ROOT = File.expand_path("../..", __dir__)
   SCHEMA = YAML.safe_load_file(File.join(ROOT, "_data/proposal_schema.yml"))
+  FIGURE_SECTIONS = (SCHEMA.fetch("required_sections") + SCHEMA.fetch("optional_sections")).freeze
 
   def self.public_url?(value, local_only: false)
     return true if value.is_a?(String) && value.start_with?("/") && !value.start_with?("//") && !value.match?(/[\\\s%?#<>]/) && value.split("/").none? { |part| %w[. ..].include?(part) }
@@ -205,7 +206,7 @@ module Proposals
       contact(data["contact"])
       email(data["submission_email"], "submission_email")
       workload(data["workload"])
-      figure(data["figure"]) unless data["figure"].nil?
+      figure(data["figure"], document.sections) unless data["figure"].nil?
       attachments(data["attachments"]) if data.key?("attachments")
       url(data["permalink"], "permalink", local_only: true) if data.key?("permalink")
       allowed = @schema.fetch("required_sections") + @schema.fetch("optional_sections")
@@ -375,13 +376,21 @@ module Proposals
       error(field, "is not a valid URL")
     end
 
-    def figure(value)
+    def figure(value, sections)
       unless value.is_a?(Hash)
         error("figure", "must contain src, alt and caption, or be omitted")
         return
       end
       url(value["src"], "figure.src")
       %w[alt caption].each { |key| text(value[key], "figure.#{key}", required: true) }
+      return unless value.key?("section")
+
+      section = value["section"]
+      if !FIGURE_SECTIONS.include?(section)
+        error("figure.section", "choose a proposal text section or use the default position")
+      elsif !@draft && !meaningful?(sections[section].to_s)
+        error("figure.section", "add text to the selected section or choose a different placement")
+      end
     end
 
     def attachments(value)

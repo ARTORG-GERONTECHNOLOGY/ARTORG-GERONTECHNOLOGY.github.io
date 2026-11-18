@@ -134,7 +134,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
         if (csrf.length !== 1 || !/^[a-f0-9]{64}$/.test(csrf[0]) || !equal(csrf[0], session.csrf)) return denied(403);
         // Re-read after an asynchronous request body: rotation/expiry wins races.
         await authorize();
-        if (uploadRequest) return json(201, await media.upload(session,{filename:url.searchParams.get('filename'),proposalId:url.searchParams.get('proposalId'),target:url.searchParams.get('target'),mime:contentType,bytes:data},authorize));
+        if (uploadRequest) return json(201, await media.upload(session,{filename:url.searchParams.get('filename'),proposalId:url.searchParams.get('proposalId'),target:url.searchParams.get('target'),purpose:url.searchParams.get('purpose'),mime:contentType,bytes:data},authorize));
         if (route === '/admin/logout') {
           sessions.delete(digest(id));
           purgeUploads();

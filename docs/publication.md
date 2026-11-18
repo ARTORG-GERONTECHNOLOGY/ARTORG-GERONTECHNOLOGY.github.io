@@ -88,11 +88,11 @@ Once live activation is separately approved:
 - Select GitHub Actions as the Pages source. Restrict the `github-pages`
   environment to `main`, without required human reviewers, matching the chosen
   automatic-publication policy. Preserve the configured domain and HTTPS.
-- Resolve the recorded temporary statuses, eligibility, workloads, example
-  profiles and missing Figure 1. Update `_data/proposal_migration.yml` only after
-  the underlying issues are actually resolved. Production deliberately runs
-  `bundle exec ruby scripts/validate-proposals.rb --release` and will stop while
-  those blockers remain; ordinary development checks still allow them.
+- Recheck the final editorial review in `_data/proposal_migration.yml`. The user
+  confirmed statuses, older eligibility and workloads, removed the example
+  profiles, and resolved the Figure 1 cross-reference during Step 25. Production
+  still runs `bundle exec ruby scripts/validate-proposals.rb --release`; do not
+  remove a future blocker until its underlying issue has been resolved.
 - Enable `ENABLE_STAFF_PUBLICATION` and `ENABLE_PAGES_PUBLICATION` only after
   authorization and the above checks. Test an actual App save, a failed
   candidate, a successful deployment and a recovery before claiming activation.

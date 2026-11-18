@@ -12,6 +12,15 @@ and Rehabilitation Group at the ARTORG Center, University of Bern.
 
 [Project guide](docs/project-guide.md): source layout, current features, and known issues.
 
+## Maintenance
+
+- [Staff editor and operations](admin-service/README.md): proposals, drafts, media,
+  private access, secret rotation and publication reports.
+- [Publication and recovery](docs/publication.md): checked GitHub Pages publishing,
+  activation requirements and rollback.
+- [Release handover](docs/release-handover.md): verification evidence, final content
+  decisions, dependency maintenance and work still required before launch.
+
 ## License
 
 Adapted from [Carte Noire](https://github.com/jacobtomlinson/carte-noire).

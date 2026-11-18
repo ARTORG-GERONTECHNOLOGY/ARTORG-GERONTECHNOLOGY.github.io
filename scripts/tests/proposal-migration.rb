@@ -32,7 +32,13 @@ records.each do |record|
   assert(document.metadata.fetch("permalink") == record.fetch("permalink"), "URL changed: #{path}")
   assert(document.metadata.fetch("date") == Time.iso8601(record.fetch("publication_date")), "Publication instant changed: #{path}")
   record.fetch("narrative_sha256").each do |section, expected|
-    assert(digest(document.sections.fetch(section)) == expected, "Scientific prose/reference changed in #{path}, #{section}")
+    restored=document.sections.fetch(section)
+    record.fetch('approved_narrative_changes',[]).select { |change| change.fetch('section')==section }.reverse_each do |change|
+      assert(change['confirmed_on'] && change['reason'], 'Editorial exceptions require recorded user approval')
+      assert(restored.scan(change.fetch('after_text')).length==1, 'Approved editorial replacement is missing or ambiguous')
+      restored=restored.sub(change.fetch('after_text'),change.fetch('before_text'))
+    end
+    assert(digest(restored) == expected, "Scientific prose/reference changed beyond approved editorial corrections in #{path}, #{section}")
   end
   %w[contact workload application_instructions].each do |key|
     assert(document.metadata[key] == record[key], "Migrated #{key} changed: #{path}")
@@ -58,7 +64,7 @@ if review.fetch("release_blockers").empty?
 else
   assert(status.exitstatus == 1 && stderr.include?("migration review"), "Unresolved source data must block release")
 end
-puts "PASS #{records.length} migrated proposals, unchanged narrative/references, stable identities/URLs/dates, preserved contact/workload, all ten sources accounted for, strict validation, and release review gate."
+puts "PASS #{records.length} migrated proposals, narrative/references preserved except approved corrections, stable identities/URLs/dates, preserved contact/workload, all ten sources accounted for, strict validation, and release review gate."
 
 if ARGV[0]
   output = File.expand_path(ARGV[0])

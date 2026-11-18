@@ -4,12 +4,7 @@ created_at_policy: First recorded Git author timestamp along the detected rename
   not a verified date of original research authorship.
 updated_at_policy: 'Actual migration time: the user confirmed eligibility, supervisors
   and institute, and authorized assigning status metadata.'
-release_blockers:
-- Confirm all ten randomly assigned proposal statuses.
-- Confirm the five randomly assigned eligibility choices for older proposals.
-- Confirm temporary workload splits for markerless tracking and seismographic gait.
-- Resolve the writing/drawing source reference to Figure 1; no figure was supplied.
-- Replace the user-supplied temporary Max Mustermann and Petra Musterfrau profiles and review Max's example supervisor assignment before release.
+release_blockers: []
 proposals:
 - file: _posts/2026-05-05-project-ai-decision-support-for-personalized-brain-health-risk-profiling.md
   proposal_id: ger-ai-decision-support-for-personalized-brain-health-risk-profiling
@@ -36,6 +31,10 @@ proposals:
     name: Dr. Vassilis Skaramagkas
     email: vasileios.skaramagkas@unibe.ch
   application_instructions:
+  final_content_review:
+    confirmed_on: '2026-11-16'
+    status: available
+    workload_confirmed: true
 - file: _posts/2026-05-05-project-gait-analysis-wrist-accelerometers.md
   proposal_id: ger-gait-analysis-wrist-accelerometers
   permalink: "/gait-analysis/2026/05/05/project-gait-analysis-wrist-accelerometers/"
@@ -62,6 +61,10 @@ proposals:
   application_instructions: Apply for this project by sending your CV, course transcripts,
     and a short motivation letter (max. ¾ A4 page) to [aaron.colombo@unibe.ch](mailto:aaron.colombo@unibe.ch)
     with "MT Gait Wrist - Firstname Lastname" as the subject.
+  final_content_review:
+    confirmed_on: '2026-11-16'
+    status: taken
+    workload_confirmed: true
 - file: _posts/2026-05-05-project-multimodal-digital-biomarkers-for-early-brain-health-monitoring.md
   proposal_id: ger-multimodal-digital-biomarkers-for-early-brain-health-monitoring
   permalink: "/biomarkers/2026/05/05/project-multimodal-digital-biomarkers-for-early-brain-health-monitoring/"
@@ -87,6 +90,10 @@ proposals:
     name: Dr. Vassilis Skaramagkas
     email: vasileios.skaramagkas@unibe.ch
   application_instructions:
+  final_content_review:
+    confirmed_on: '2026-11-16'
+    status: available
+    workload_confirmed: true
 - file: _posts/2026-05-05-project-quantification-of-writing-and-drawing-from-sensor-data-in-people-with-Parkinsons-disease.md
   proposal_id: ger-quantification-of-writing-and-drawing-from-sensor-data-in-people-with-parkinsons-disease
   permalink: "/sensor-tracking/2026/05/05/project-quantification-of-writing-and-drawing-from-sensor-data-in-people-with-Parkinsons-disease/"
@@ -110,6 +117,17 @@ proposals:
     name: Kevin Möri, MSc
     email: kevin.moeri@unibe.ch
   application_instructions:
+  approved_narrative_changes:
+  - section: Background
+    before_text: gyroscope (see Figure 1).
+    after_text: gyroscope.
+    confirmed_on: '2026-11-16'
+    reason: User requested removal of only the unavailable Figure 1 cross-reference;
+      scientific prose otherwise preserved.
+  final_content_review:
+    confirmed_on: '2026-11-16'
+    status: archived
+    workload_confirmed: true
 - file: _posts/2026-05-05-project-vital-signs-seismographic-signals.md
   proposal_id: ger-vital-signs-seismographic-signals
   permalink: "/sleep-analysis/2026/05/05/project-vital-signs-seismographic-signals/"
@@ -135,6 +153,10 @@ proposals:
     name: Noora Angelva, MSc
     email: noora.angelva@unibe.ch
   application_instructions:
+  final_content_review:
+    confirmed_on: '2026-11-16'
+    status: taken
+    workload_confirmed: true
 - file: _posts/2025-04-30-project-markerless-tracking-validation.md
   proposal_id: ger-markerless-tracking-validation
   permalink: "/post_archive/2025-04-30-project-markerless-tracking-validation/"
@@ -162,6 +184,11 @@ proposals:
     name: Kevin Möri, MSc
     email: kevin.moeri@unibe.ch
   application_instructions:
+  final_content_review:
+    confirmed_on: '2026-11-16'
+    status: archived
+    workload_confirmed: true
+    student_eligibility: bme_and_aim
 - file: _posts/2025-09-01-project-arm-use-children-hemiparesis.md
   proposal_id: ger-arm-use-children-hemiparesis
   permalink: "/post_archive/2025-09-01-project-arm-use-children-hemiparesis/"
@@ -188,6 +215,11 @@ proposals:
     email: kevin.moeri@unibe.ch
     address: Freiburgstrasse 3, CH-3010 Bern
   application_instructions:
+  final_content_review:
+    confirmed_on: '2026-11-16'
+    status: archived
+    workload_confirmed: true
+    student_eligibility: bme_only
 - file: _posts/2025-09-04-project-gait-analysis-using-seismographs.md
   proposal_id: ger-gait-analysis-using-seismographs
   permalink: "/post_archive/2025-09-04-project-gait-analysis-using-seismographs/"
@@ -213,6 +245,11 @@ proposals:
     name: Michael Single, PhD
     email: michael.single@unibe.ch
   application_instructions:
+  final_content_review:
+    confirmed_on: '2026-11-16'
+    status: taken
+    workload_confirmed: true
+    student_eligibility: bme_and_aim
 - file: _posts/2025-09-30-project-bcg-ai-sleep-stage.md
   proposal_id: ger-bcg-ai-sleep-stage
   permalink: "/post_archive/2025-09-30-project-bcg-ai-sleep-stage/"
@@ -240,6 +277,11 @@ proposals:
     name: Matilde Castelli
     email: matilde.castelli@unibe.ch
   application_instructions: Apply for this project by sending an email to [matilde.castelli@unibe.ch](mailto:matilde.castelli@unibe.ch).
+  final_content_review:
+    confirmed_on: '2026-11-16'
+    status: taken
+    workload_confirmed: true
+    student_eligibility: bme_and_aim
 - file: _posts/2026-05-05-project-eyetracker-emotion-pd.md
   proposal_id: ger-eyetracker-emotion-pd
   permalink: "/post_archive/2026-05-05-project-eyetracker-emotion-pd/"
@@ -268,6 +310,11 @@ proposals:
   application_instructions: Apply for this project by sending your CV, course transcripts,
     and a short motivation letter (max. ¾ A4 page) to [aaron.colombo@unibe.ch](mailto:aaron.colombo@unibe.ch)
     with "MT Eye Emotion PD - Firstname Lastname" as the subject.
+  final_content_review:
+    confirmed_on: '2026-11-16'
+    status: archived
+    workload_confirmed: true
+    student_eligibility: bme_and_aim
 older_sources:
 - file: post_archive/2025-04-30-project-markerless-tracking-validation.md
   sha256: ae513acc6299f578fe6f58595e7b6c5ff08df201e1c2f99d69ca057c70c34d93
@@ -300,3 +347,15 @@ older_sources:
     choices require correction before release.
   migrated_file: _posts/2026-05-05-project-eyetracker-emotion-pd.md
 older_migrated_at: '2026-11-11T16:28:39Z'
+final_content_review:
+  confirmed_on: '2026-11-16'
+  applied_at: '2026-11-18T06:50:19Z'
+  all_ten_statuses_confirmed: true
+  older_eligibility_confirmed: true
+  all_workloads_confirmed: true
+  figure_resolution: Removed only (see Figure 1) from the writing/drawing proposal
+    at the user request.
+  example_profiles_removed:
+  - max-musterman
+  - petra-musterfrau
+  example_supervisor_removed: Max Mustermann; Kevin Möri retained.

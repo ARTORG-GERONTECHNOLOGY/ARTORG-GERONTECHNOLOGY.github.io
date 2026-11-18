@@ -1,7 +1,8 @@
 # Administration access service
 
-Steps 16–21 provide private-link entry, protected sessions, a GitHub content
-save API, proposal editing/uploads, lifecycle controls and revision restoration. GitHub integration is
+Steps 16–24 provide private-link entry, protected sessions, a GitHub content
+save API, proposal/supporting-content editing, uploads, lifecycle controls,
+revision restoration and saved-version publication reports. GitHub integration is
 disabled until explicitly configured; the local access demo needs no GitHub
 credentials. The public website remains static and separate.
 
@@ -15,7 +16,13 @@ node --test admin-service/test/content.test.mjs
 node --test admin-service/test/editor.test.mjs
 node --test admin-service/test/media.test.mjs
 node --test admin-service/test/lifecycle.test.mjs
+node --test admin-service/test/supporting.test.mjs
+node --test admin-service/test/publication-status.test.mjs
 ```
+
+The [release handover](../docs/release-handover.md) records what was verified and
+which live-hosting checks remain. The full website check command is documented
+in the [project guide](../docs/project-guide.md#validate-changes-before-publication).
 
 ## Private access configuration
 

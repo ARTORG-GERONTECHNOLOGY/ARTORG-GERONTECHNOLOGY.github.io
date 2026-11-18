@@ -10,13 +10,11 @@ status: archived
 student_eligibility: bme_only
 supervisors:
 - name: Kevin Möri, MSc
-- name: Max Mustermann
-  team_id: max-musterman
 schema_version: 1
 template_version: 1
 proposal_id: ger-quantification-of-writing-and-drawing-from-sensor-data-in-people-with-parkinsons-disease
 created_at: '2026-05-05T13:26:14Z'
-updated_at: '2026-11-12T12:23:46Z'
+updated_at: '2026-11-18T06:50:19Z'
 priority: 100
 featured: false
 language: en
@@ -41,7 +39,7 @@ attachments: []
 
 Parkinson’s disease (PD) is a progressive neurodegenerative disorder primarily affecting the basal ganglia and characterized by both motor symptoms and non-motor symptoms. Clinical diagnosis is based on assessment of characteristic motor features using the MDS-UPDRS as the gold standard for evaluating PD severity, yet it relies on subjective scoring and lacks detailed kinematic information.
 To address this limitation, research has explored objective movement assessment using handwriting and drawing tasks. Key kinematic variables include movement size, duration, velocity, fluency, and force application. Drawing tasks are valuable because they emphasize sensorimotor control while minimizing linguistic demands. Augmented Reality (AR) has also emerged as a potential tool for motor assessment, though most research has focused on gait rather than upper limb function.
-To evaluate hand use during the study a smart stylus within an AR environment will be used, with integrated accelerometer and gyroscope (see Figure 1). Participants perform writing and drawing tasks while movement metrics are recorded and compared between PD patients and healthy controls.
+To evaluate hand use during the study a smart stylus within an AR environment will be used, with integrated accelerometer and gyroscope. Participants perform writing and drawing tasks while movement metrics are recorded and compared between PD patients and healthy controls.
 
 ## Aim
 

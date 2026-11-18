@@ -14,11 +14,11 @@ tags: []
 attachments: []
 submission_email: bme.artorg@unibe.ch
 status: archived
-student_eligibility: bme_only
+student_eligibility: bme_and_aim
 proposal_id: ger-eyetracker-emotion-pd
 permalink: "/post_archive/2026-05-05-project-eyetracker-emotion-pd/"
 created_at: '2025-09-01T09:46:35Z'
-updated_at: '2026-11-11T16:28:39Z'
+updated_at: '2026-11-18T06:50:19Z'
 contact:
   name: Aaron Colombo, MSc
   email: aaron.colombo@unibe.ch

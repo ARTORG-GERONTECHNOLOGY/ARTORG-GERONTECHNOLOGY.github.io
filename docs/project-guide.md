@@ -21,23 +21,24 @@ with a blank template and separate draft/publication validation. The
 - `feed.xml`, `404.html`: RSS and recovery navigation.
 
 The workspace's `AGENTS.md`, `new-features.md`, and `template.docx` contain project
-rules, the future implementation plan, and the original proposal reference.
+rules, the implementation/progress plan, and the original proposal reference.
 The catalogue and archive support status/category/year/program filters. Homepage
-content, news and team profiles can be maintained in source files. Staff browser
-editing and automated deployment remain planned. The separate administration
-access service is described below. QR codes and proposal PDF
+content, news and team profiles can be maintained in source files or the separate
+staff editor. The publishing workflows are implemented with activation off.
+The administration service is described below. QR codes and proposal PDF
 generation are implemented.
 About provides editable group information and project application guidance.
 
 ## Baseline issues preserved during setup
 
-All ten proposals retain their scientific prose, filenames, publication dates
-and existing public URLs. Metadata now includes immutable IDs, eligibility,
-supervisors and institutes. Statuses for all ten and eligibility for the five
-older proposals were randomized at the user's request. Two older proposals have
-approved temporary workload splits. Replace those choices before release.
-The handwriting proposal refers to a missing Figure 1, and an older gait proposal
-has a preserved filename/front-matter date mismatch; see the migration review.
+All ten proposals retain their filenames, original publication/creation dates
+and existing public URLs. The user confirmed all statuses, older eligibility and
+all workload percentages on 2026-11-16. Those decisions were applied on 2026-11-18.
+The only prose correction removes the missing Figure 1 cross-reference as
+requested. Both example profiles and Max's example supervisor entry were removed;
+Kevin Möri remains. The Team page is intentionally empty. Original migration
+fingerprints and the approved prose exception remain in the migration record.
+The older gait proposal's filename/front-matter date mismatch is preserved.
 
 Some inherited theme settings remain. The checked-in CNAME and
 production URL differ; local overrides leave both untouched. These issues are
@@ -53,11 +54,11 @@ provided. Previous/next links carry status labels; recommended projects are avai
 
 The trusted Jekyll plugin uses `scripts/lib/proposal-renderer.rb` to render and
 sanitize Markdown before Liquid templates or excerpts see it. Author Liquid stays
-literal; metadata is escaped in shared includes. This renderer is the common basis
-for later preview and print work. The pinned repository Gemfile is required.
+literal; metadata is escaped in shared includes. This renderer is shared by
+the editor preview and print work. The pinned repository Gemfile is required.
 Custom plugins require an ordinary Jekyll build; GitHub Pages safe-mode builds do
-not run them. Publishing the generated artifact will be handled in the deployment
-step; no production deployment has been made.
+not run them. The prepared publishing workflow builds the complete artifact;
+no production deployment has been activated or verified.
 
 Run from the repository root with its Ruby environment active:
 
@@ -69,15 +70,15 @@ bundle exec ruby scripts/tests/proposal-rendering.rb ../.local/site
 bundle exec ruby scripts/tests/proposal-rendering-fixtures.rb
 ```
 
-The missing Figure 1 and temporary migration choices remain recorded in
-[migration issues](migration-issues.md). A new layout does not resolve those gaps.
+The confirmed final content and preserved source-history details are recorded in
+[migration issues](migration-issues.md).
 
 
 ## Navigation and responsive layout
 
 The main navigation has Home, Proposals, Archive, News, Team, About and Search.
-The new destination pages provide useful links and known group information;
-status filters, news publishing and team profiles belong to later steps.
+The destination pages, status filters, news collection and team profiles are
+implemented. Real news and real team profiles have not yet been supplied.
 The shared list is `_data/navigation.yml`.
 
 At widths below 1024 CSS pixels the menu uses Bootstrap 3 collapse. A real button
@@ -101,11 +102,11 @@ After building, check generated navigation and assets with:
 bundle exec ruby scripts/tests/site-navigation.rb ../.local/site
 ```
 
-Visual review is pending with the supervising user because automated browser
-access to localhost is denied by a saved permission. Check 320, 375, 768, 1024 and
-1440-pixel widths, long titles, 200% zoom, keyboard focus, skip link, Menu open/close,
-Escape, and absence of horizontal page scrolling. Also check navigation with
-JavaScript disabled. Static checks do not establish browser behaviour.
+The final local browser review checked catalogue widths of 320, 375, 768, 1024
+and 1440 CSS pixels, long proposal titles, mobile profiles/About/QR, search,
+keyboard entry, the skip link, Menu/Escape focus and page overflow.
+See the [release handover](release-handover.md) for the exact evidence and
+remaining manual checks; these checks are not a complete accessibility audit.
 
 ## Proposal catalogue and archive
 
@@ -175,14 +176,14 @@ editing an older announcement does not move it to the top.
 
 News has its own output collection, listing, detail layout and homepage section.
 It is separate from proposal `_posts/`, catalogue, homepage proposal highlights
-and the existing proposal RSS feed. News and profiles are included in global search; a separate news feed is planned
-in a later step. Markdown uses the same sanitized renderer as proposals and does not
+and the proposal RSS feed. News and profiles are included in global search;
+news has its own `news-feed.xml`. Markdown uses the same sanitized renderer as proposals and does not
 evaluate author Liquid. Metadata is escaped in the layouts.
 
 `published: false` and future publication dates are excluded from normal builds.
 They do not make files private in a public Git repository. Keep private drafts
 outside this repository. The `_news/.gitkeep` file only retains the empty folder.
-This step provides file-based maintenance; browser editing is a later step.
+Both source maintenance and the News browser editor are implemented.
 
 Verify the settings, ordering, optional images, safe rendering and separation with:
 
@@ -218,14 +219,11 @@ without a published profile. Supervisors without a profile retain their original
 plain-text names. Linking is a substantive metadata change, so advance the
 proposal's `updated_at`; do not alter its ID, publication date or existing URL.
 
-The user explicitly supplied two temporary example profiles: Max Mustermann
-(Postdoc, first) and Petra Musterfrau (PhD student, second), with their biographies
-and interests. Emails are empty and portraits/links omitted as requested. Max is
-an additional supervisor on the writing/drawing proposal, alongside the retained
-Kevin Möri. Petra has no proposal references. This later explicit instruction
-permits only these supplied examples despite the earlier no-dummy-names rule.
-Replace these profiles and review Max's example supervisor assignment before
-release; this is recorded in the release blockers and final user reminder.
+The user requested removal of the two temporary example profiles during the final
+content review. Max's example supervisor entry was also removed; Kevin Möri is
+retained. The Team page is intentionally empty until real profiles are supplied.
+Automated editor checks create their own isolated profile and supervisor link,
+so testing does not require example people in public content.
 
 Check the rendering, active/inactive handling, optional fields, IDs and links with:
 
@@ -233,8 +231,9 @@ Check the rendering, active/inactive handling, optional fields, IDs and links wi
 bundle exec ruby scripts/tests/team.rb
 ```
 
-The tests use temporary profiles outside the preview. Browser verification is
-still limited by the saved permission denying automated localhost access.
+The tests use temporary profiles outside the preview. The final browser review
+verified a profile/backlink before example removal; empty-state output is checked
+again in the final candidate.
 
 Profiles automatically list the proposals whose supervisor entries reference their
 team ID, in the catalogue order and with explicit status labels. Profiles without
@@ -258,7 +257,7 @@ The group and BME program descriptions and institutional links were checked on
 The user confirmed `michael.single@unibe.ch` as the corrections/removal contact.
 It is separate from project application contacts and the staff submission mailbox.
 A missing or malformed corrections address stops the build. This content is
-maintained in files; browser editing comes in a later step.
+maintained in files or the About browser editor.
 
 About displays the downloadable website QR image implemented in Step 13. Its
 destination is the configured public website root, not the About page or localhost.
@@ -482,8 +481,8 @@ fonts, images and maths before printing. Syntax highlighting is already produced
 by Jekyll/Rouge. PDF links point to the public website rather than the temporary
 rendering server. Missing assets stop generation; external figures must first
 be stored at a stable local media path. No scientific content or missing figure
-is invented. The writing/drawing proposal's missing Figure 1 remains a release
-checklist item.
+is invented. The user resolved the missing Figure 1 by requesting removal of
+only its cross-reference; no replacement image was added.
 
 Download links appear only after all PDFs have been generated and their manifest
 revision is unchanged. Each link displays the proposal's substantive update
@@ -557,17 +556,16 @@ environment, write permissions or deployment/upload action is provided.
 Workflow checks guard these constraints and the shared command. A hosted GitHub
 run remains unverified until activation; macOS/Linux validation is unverified.
 
-Passing technical checks does not resolve the migration review's temporary
-statuses, eligibility, workloads, example team profiles or missing Figure 1.
-Before a real release, resolve those recorded issues and run:
+The final user review resolved the originally temporary content choices.
+Before a real release, verify the current editorial record with:
 
 ```sh
 bundle exec ruby scripts/validate-proposals.rb --release
 ```
 
-That release check deliberately fails while recorded source-data issues remain.
-The ordinary validation command accepts the user-approved temporary values so
-development can continue. Neither command publishes or deploys the website.
+That check now passes for the confirmed content and still fails if new editorial
+blockers are recorded. Hosting and live acceptance remain separate requirements
+in the [release handover](release-handover.md). Neither command deploys the site.
 
 ## Private administration access
 
@@ -608,7 +606,8 @@ The [service guide](../admin-service/README.md#github-saves-step-17) describes t
 locally verified GitHub connection, fixed content branch, allowed file types,
 shared validation, atomic saves and conflict responses. Successful saves are
 reported as committed with checks pending, never live. The user selected eventual
-automatic publication after checks pass; the publishing path comes later.
+automatic publication after checks pass; the publishing path is prepared with
+activation off.
 Actual App installation, remote branch protection and workflow triggering remain
 deferred at the user's request. No GitHub credentials or remote writes were
 provisioned as part of this local preparation.

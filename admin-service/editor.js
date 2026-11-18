@@ -8,6 +8,8 @@
   let historyPath,historyPage=0,historyBusy=false;
   let supportingItems=[],supportingBase,qrDestination;
   const publicationReports=new Map();let publicationBusy=false,lastSaved;
+  const contentTabs=[...document.querySelectorAll('#content-tabs [data-content-tab]')];
+  let activeContentTab='proposals';
   const listMessage=text=>{$('list-state').textContent=text;};
   const formatDate = value => value ? new Intl.DateTimeFormat('en-GB', {dateStyle:'medium', timeStyle:'short', timeZone:'Europe/Zurich'}).format(new Date(value)) : 'Not yet published';
   function node(tag, text, attributes = {}) { const item = document.createElement(tag); if (text !== undefined) item.textContent = text; for (const [name,value] of Object.entries(attributes)) item.setAttribute(name,value); return item; }
@@ -23,7 +25,37 @@
     if (!response.ok) { const error = new Error(value.message || 'The request failed. Your working copy is still in this tab.'); error.data=value; error.status=response.status; throw error; }
     return value;
   }
-  function changed() { dirty=true; message('Unsaved changes — download a draft to keep unfinished work.'); $('preview-state').textContent='Preview is outdated. Refresh it to see your latest changes.'; paintPublication(); }
+  function editorContentTab(){return state?.supporting ? state.kind : 'proposals';}
+  function updateWorkingTabNote(){
+    const note=$('working-tab-note');
+    const owner=editorContentTab();
+    const away=Boolean(state&&dirty&&owner!==activeContentTab);
+    const text=away?`Your unsaved work is still in the ${$('content-tab-'+owner).textContent} tab.`:'';
+    if(note.textContent!==text)note.textContent=text;
+    note.hidden=!away;
+  }
+  function activateContentTab(kind){
+    activeContentTab=kind;
+    for(const tab of contentTabs){
+      const selected=tab.dataset.contentTab===kind;
+      tab.setAttribute('aria-selected',String(selected));
+      tab.tabIndex=selected?0:-1;
+      $(tab.getAttribute('aria-controls')).hidden=!selected;
+    }
+    updateWorkingTabNote();
+  }
+  function showEditor(reveal=true){
+    const owner=editorContentTab();
+    const panel=$('content-'+owner);
+    const editor=$('editor');
+    if(editor.parentNode!==panel)panel.querySelector('h2').after(editor);
+    editor.hidden=false;
+    if(reveal){
+      activateContentTab(owner);
+      $('editor-title').focus();
+    }else updateWorkingTabNote();
+  }
+  function changed() { dirty=true; message('Unsaved changes — download a draft to keep unfinished work.'); $('preview-state').textContent='Preview is outdated. Refresh it to see your latest changes.'; updateWorkingTabNote();paintPublication(); }
   function publicationSlot(parent,path,commit){const slot=node('div',undefined,{class:'publication-status','data-publication-path':path,'data-publication-commit':commit||''});parent.append(slot);return slot;}
   function paintPublication(){
     if(state?.deleted){const panel=$('editor-publication');if(panel.dataset.version!=='deleted'){panel.dataset.version='deleted';panel.replaceChildren(node('p','This proposal is deleted in the saved source. Review its history before recovery. Last saved change tracks a deletion made in this tab.'));}}
@@ -41,7 +73,7 @@
     }
   }
   function trackSaved(result){
-    lastSaved={commit:result.commit,paths:result.files.filter(item=>/^_(posts|team|news)\/|^_data\//.test(item.path)).map(item=>item.path)};
+    lastSaved={commit:result.commit,paths:result.files.filter(item=>/^_(posts|news)\/|^_data\//.test(item.path)).map(item=>item.path)};
     $('last-publication').hidden=false;$('last-publication-results').replaceChildren(node('p','Saved revision '+result.commit.slice(0,12)));
     for(const path of lastSaved.paths){const item=state?.context?.path===path?state:[...(bootstrap?.proposals||[]),...supportingItems].find(item=>item.path===path);const label=item?.metadata?.title||item?.metadata?.name||({'_data/home.yml':'Home','_data/about.yml':'About','_data/removed_proposals.yml':'Removed proposal addresses','_data/proposal_categories.yml':'Proposal categories'}[path])||'Saved content';const group=node('div');group.append(node('p',label));publicationSlot(group,path,result.commit);$('last-publication-results').append(group);}
     paintPublication();refreshPublication();
@@ -73,8 +105,8 @@
     const error=node('p','',{class:'field-error',id:'field-'+key+'-error'}); parent.append(error);
     fields.set(key,{error,add,read:()=>records.map(record=>{ const value={}; for(const column of columns) { const raw=record.inputs[column.key].value; if(column.type==='number') {if(raw!=='')value[column.key]=Number(raw);} else if(raw!==''||column.required) value[column.key]=raw; } return value; })});
   }
-  function populate(model, context) {
-    if(model.supporting||model.kind){populateSupporting(model,context);return;}
+  function populate(model, context, reveal=true) {
+    if(model.supporting||model.kind){populateSupporting(model,context,reveal);return;}
     $('editor-title').textContent='Proposal editor';$('preview-panel').querySelector('h3').textContent='Proposal preview';
     $('write-tab').hidden=false;$('preview-tab').hidden=false;$('split-view').parentElement.hidden=false;$('publication-actions').hidden=false;
     fields.clear(); $('proposal-form').replaceChildren(); state={...model,context}; const m=model.metadata;
@@ -84,7 +116,7 @@
     field(p,'Language','language',m.language); field(p,'Priority','priority',m.priority,{type:'number',step:'1'}); field(p,'Featured on homepage','featured',m.featured,{type:'checkbox'});
     field(p,'Tags (one per line)','tags',(m.tags||[]).join('\n'),{area:true});
     p=group('Dates and stable identity'); for(const [key,label] of [['proposal_id','Proposal ID'],['permalink','Permanent address'],['created_at','Created'],['date','Initial publication'],['updated_at','Last edited (content/status)']]) {const timestamp=['created_at','date','updated_at'].includes(key);field(p,label,key,timestamp&&m[key]?formatDate(m[key])+' (Europe/Zurich)':m[key],{readonly:true,help:key==='date'&&!m.date?'Assigned when first saved for publication.':timestamp&&m[key]?'Stored value: '+m[key]:''});}
-    p=group('Supervisors and institutes'); rows(p,'Supervisors','supervisors',m.supervisors,[{key:'name',label:'Name',required:true},{key:'team_id',label:'Optional team profile ID'}]); rows(p,'Institutes','institutes',m.institutes,[{key:'name',label:'Institute',required:true},{key:'url',label:'Optional institutional URL'}]);
+    p=group('Supervisors and institutes'); rows(p,'Supervisors','supervisors',m.supervisors,[{key:'name',label:'Name',required:true}]); rows(p,'Institutes','institutes',m.institutes,[{key:'name',label:'Institute',required:true},{key:'url',label:'Optional institutional URL'}]);
     p=group('Nature of the thesis'); rows(p,'Activities','workload',m.workload,[{key:'activity',label:'Activity',required:true},{key:'percentage',label:'Percentage',type:'number'}]); p.append(node('p','Workload percentages must total 100% before publication.'));
     p=group('Contact and applications'); for(const [key,label] of [['name','Contact name'],['email','Public email'],['address','Address'],['phone','Phone']]) field(p,label,'contact.'+key,m.contact?.[key]);
     field(p,'Student application instructions','application_instructions',m.application_instructions,{area:true}); field(p,'Start date or arrangement','start_date_text',m.start_date_text); field(p,'Workplace','workplace',m.workplace,{area:true});
@@ -105,11 +137,11 @@
     optional.append(removeFigure);
     rows(optional,'Attachments','attachments',m.attachments,[{key:'title',label:'Title',required:true},{key:'url',label:'Existing file URL',required:true},{key:'mime_type',label:'MIME type',required:true},{key:'size',label:'Bytes (required for external files)',type:'number'}]);
     const picker=node('section',undefined,{id:'media-picker','aria-label':'Media files'});optional.prepend(picker);renderMedia();
-    optional.append(node('p','Removing a figure or attachment link keeps its shared file. Temporary uploads expire at sign-out or session expiry. Download your Markdown and temporary files to continue later; upload the files again when reopening the draft. Existing embedded media metadata is preserved.'));
+    optional.append(node('p','Removing a figure or attachment link keeps its shared file. Download the draft and temporary files before the session ends if you need to continue later. Upload the files again when reopening the draft.'));
     dirty=false; $('editor').hidden=false; $('errors').hidden=true; $('reload').hidden=true; $('preview-frame').srcdoc=''; $('preview-state').textContent='Preview has not been generated.';
     historyPath=context.path;historyPage=0;$('history-list').replaceChildren();$('revision-detail').hidden=true;$('older-revisions').hidden=true;$('history-state').textContent='Open Revisions to load saved history.';
     $('save').disabled=!bootstrap.canPublish; $('save').title=bootstrap.canPublish?'':'GitHub saving is not connected in this local review.';
-    message('No unsaved changes'); tabs('write'); paintPublication(); $('editor-title').scrollIntoView({block:'start'});
+    message('No unsaved changes'); tabs('write'); paintPublication(); showEditor(reveal);
   }
   function values() {
     if(state.supporting)return supportingValues();
@@ -128,10 +160,10 @@
     else if(!patch.figure.section) delete patch.figure.section;
     return {source:state.source,context:state.context,patch,sections};
   }
-  function populateSupporting(model,context){
+  function populateSupporting(model,context,reveal=true){
     fields.clear();$('proposal-form').replaceChildren();state={...model,supporting:true,context};const m=model.metadata;const kind=model.kind;
     $('write-tab').hidden=false;$('preview-tab').hidden=false;$('split-view').parentElement.hidden=false;$('publication-actions').hidden=false;
-    $('editor-title').textContent={home:'Homepage editor',about:'About editor',team:'Team profile editor',news:'News editor'}[kind];$('preview-panel').querySelector('h3').textContent='Public page preview';
+    $('editor-title').textContent={home:'Homepage editor',about:'About editor',news:'News editor'}[kind];$('preview-panel').querySelector('h3').textContent='Public page preview';
     let p=group('Content');
     if(kind==='home'){
       field(p,'Title','title',m.title);field(p,'Introduction','introduction',m.introduction,{area:true});
@@ -145,24 +177,20 @@
       }
       field(p,'Application steps (one per line)','application_steps',(m.application_steps||[]).join('\n'),{area:true,rows:6});
       p.append(node('p','QR destination: '+qrDestination+' — derived from the website configuration.'));
-    }else if(kind==='team'){
-      field(p,'Stable profile ID','team_id',m.team_id,{readonly:true});field(p,'Name','name',m.name);field(p,'Role','role',m.role);field(p,'Public email (optional)','email',m.email);field(p,'Active — show in Team listing','active',m.active,{type:'checkbox'});field(p,'Display order','display_order',m.display_order,{type:'number',step:'1'});
-      field(p,'Research interests (one per line)','interests',(m.interests||[]).join('\n'),{area:true});rows(p,'Links','links',m.links,[{key:'label',label:'Link text',required:true},{key:'url',label:'URL or site path',required:true}]);field(p,'Biography (Markdown)','body',model.body,{area:true,rows:10});
-      p.append(node('p','Inactive members keep their profiles and proposal links. A changed profile name leaves names on existing proposals unchanged.'));
     }else{
       field(p,'Title','title',m.title);field(p,'Short summary','summary',m.summary,{area:true});field(p,'News text (Markdown)','body',model.body,{area:true,rows:12});
     }
-    if(['team','news'].includes(kind)){
+    if(kind==='news'){
       p=group('Dates and address');field(p,'Permanent address','permalink',m.permalink||'/'+kind+'/'+model.path.split('/')[1].slice(0,-3)+'/',{readonly:true});
-      for(const [key,label] of [['created_at','Created'],['date','Initial publication'],['updated_at','Last edited']]){if(key==='date'&&kind!=='news')continue;field(p,label,key,m[key]?formatDate(m[key])+' (Europe/Zurich)':key==='date'?'Assigned on first publication':'Not recorded; see Revisions',{readonly:true,help:m[key]?'Stored value: '+m[key]:''});}
+      for(const [key,label] of [['created_at','Created'],['date','Initial publication'],['updated_at','Last edited']]){field(p,label,key,m[key]?formatDate(m[key])+' (Europe/Zurich)':key==='date'?'Assigned on first publication':'Not recorded; see Revisions',{readonly:true,help:m[key]?'Stored value: '+m[key]:''});}
     }
     if(kind!=='about'){
-      const imageKey={home:'hero_image',team:'portrait',news:'image'}[kind];p=group('Optional image');const picker=node('section',undefined,{id:'media-picker','aria-label':'Media files'});p.append(picker);
+      const imageKey={home:'hero_image',news:'image'}[kind];p=group('Optional image');const picker=node('section',undefined,{id:'media-picker','aria-label':'Media files'});p.append(picker);
       for(const [key,label] of [['src','Image URL or existing asset path'],['alt','Alternative text'],['caption','Optional caption']])field(p,label,imageKey+'.'+key,m[imageKey]?.[key]);renderMedia();
     }
     dirty=false;$('editor').hidden=false;$('errors').hidden=true;$('reload').hidden=true;$('preview-frame').srcdoc='';$('preview-state').textContent='Preview has not been generated.';
     historyPath=context.sha?model.path:undefined;historyPage=0;$('history-list').replaceChildren();$('revision-detail').hidden=true;$('older-revisions').hidden=true;$('history-state').textContent='Open Revisions to load saved history.';
-    $('save').disabled=!bootstrap.canPublish;message('No unsaved changes');tabs('write');paintPublication();$('editor-title').scrollIntoView({block:'start'});
+    $('save').disabled=!bootstrap.canPublish;message('No unsaved changes');tabs('write');paintPublication();showEditor(reveal);
   }
   function supportingValues(){
     const patch={};let body;
@@ -173,14 +201,40 @@
       else if(['interests','application_steps'].includes(key))patch[key]=value.split('\n').filter(line=>line.trim());
       else if(value!==''||Object.hasOwn(state.metadata,key))patch[key]=value;
     }
-    const imageKey={home:'hero_image',team:'portrait',news:'image'}[state.kind];if(imageKey&&!patch[imageKey].src&&!patch[imageKey].alt&&!patch[imageKey].caption)patch[imageKey]=null;
+    const imageKey={home:'hero_image',news:'image'}[state.kind];if(imageKey&&!patch[imageKey].src&&!patch[imageKey].alt&&!patch[imageKey].caption)patch[imageKey]=null;
     return {source:state.source,path:state.path,context:state.context,patch,...(body===undefined?{}:{body})};
   }
   async function loadSupporting(){
-    const result=await api('supporting');supportingItems=result.items;supportingBase=result.baseCommit;qrDestination=result.qrDestination;$('supporting-list').replaceChildren();
-    for(const item of supportingItems){const wrapper=node('div',undefined,{class:'supporting-item'});const button=node('button',item.kind==='home'?'Home':item.kind==='about'?'About':(item.kind==='team'?'Team: ':'News: ')+(item.metadata.name||item.metadata.title),{type:'button',class:'secondary'});button.addEventListener('click',()=>openSupporting(item));wrapper.append(button);publicationSlot(wrapper,item.path,supportingBase);$('supporting-list').append(wrapper);}paintPublication();
+    const result=await api('supporting');
+    supportingItems=result.items; supportingBase=result.baseCommit; qrDestination=result.qrDestination;
+    for(const kind of ['home','news','about']){
+      const list=$('supporting-list-'+kind);
+      const items=supportingItems.filter(item=>item.kind===kind);
+      list.replaceChildren();
+      if(!items.length){
+        const empty={home:'Homepage content is unavailable.',news:'No news items yet.',about:'About content is unavailable.'};
+        list.append(node('p',empty[kind]));
+      }
+      for(const item of items){
+        const card=node('div',undefined,{class:'supporting-item'});
+        const label=kind==='home'?'Edit homepage':kind==='about'?'Edit About':item.metadata.name||item.metadata.title;
+        const button=node('button',label,{type:'button',class:'secondary'});
+        button.addEventListener('click',()=>openSupporting(item));
+        card.append(button);
+        publicationSlot(card,item.path,supportingBase);
+        list.append(card);
+      }
+    }
+    $('new-news').disabled=false;
+    paintPublication();
   }
-  function openSupporting(item){if(busy||orderDirty){listMessage('Save or reset the proposed order first.');return;}if(dirty&&!confirm('Discard this working copy? Download it first to keep unfinished work.'))return;populateSupporting(item,{path:item.path,kind:item.kind,sha:item.sha,baseCommit:supportingBase});}
+  function openSupporting(item){
+    if(busy)return;
+    if(orderDirty){listMessage('Save or reset the proposed order first.');return;}
+    if(state?.context.path===item.path){showEditor();return;}
+    if(dirty&&!confirm('Discard this working copy? Download it first to keep unfinished work.'))return;
+    populateSupporting(item,{path:item.path,kind:item.kind,sha:item.sha,baseCommit:supportingBase});
+  }
   function errors(value) {
     $('error-list').replaceChildren(); for(const record of fields.values()) if(record.error) {record.error.textContent=''; record.input?.removeAttribute('aria-invalid');}
     const entries=Object.entries(value||{}); $('errors').hidden=!entries.length;
@@ -234,7 +288,7 @@
     if(!value.records.length){$('deleted-proposals').append(node('li','No deleted proposals.'));return;}
     for(const record of value.records){const item=node('li');const button=node('button',record.permalink,{type:'button',class:'link-button'});button.disabled=!record.source_path;
       button.addEventListener('click',()=>{if(!listActionAllowed())return;state={deleted:true,context:{path:record.source_path,sha:null,baseCommit:value.baseCommit}};dirty=false;historyPath=record.source_path;historyPage=0;
-        $('editor').hidden=false;$('write-tab').hidden=true;$('preview-tab').hidden=true;$('split-view').parentElement.hidden=true;$('publication-actions').hidden=true;$('errors').hidden=true;$('revision-detail').hidden=true;$('history-list').replaceChildren();tabs('revisions');message('Deleted proposal — review history before recovery.');paintPublication();loadHistory();$('editor-title').scrollIntoView({block:'start'});});
+        $('editor').hidden=false;$('write-tab').hidden=true;$('preview-tab').hidden=true;$('split-view').parentElement.hidden=true;$('publication-actions').hidden=true;$('errors').hidden=true;$('revision-detail').hidden=true;$('history-list').replaceChildren();tabs('revisions');message('Deleted proposal — review history before recovery.');paintPublication();loadHistory();showEditor();});
       item.append(button,node('small',record.source_path?'Removed '+formatDate(record.removed_at):'Source filename is absent; ask a maintainer to locate its history.'));$('deleted-proposals').append(item);}
   }
   function clientErrors(patch) {
@@ -259,11 +313,11 @@
         if(!result.ready) {message('Please correct the highlighted fields. Your working copy is unchanged.'); return;}
         if(state.supporting&&result.changed===false){message('There are no changes to save.');return;}
         const path=state.supporting?state.path:state.context.path||result.metadata.date.slice(0,10)+'-project-'+result.metadata.proposal_id+'.md';
-        const selected=new Set(state.supporting?[payload.patch[{home:'hero_image',news:'image',team:'portrait'}[state.kind]]?.src]:[payload.patch.figure?.src,...payload.patch.attachments.map(file=>file.url)]);
+        const selected=new Set(state.supporting?[payload.patch[{home:'hero_image',news:'image'}[state.kind]]?.src]:[payload.patch.figure?.src,...payload.patch.attachments.map(file=>file.url)]);
         const uploads=mediaFiles.filter(file=>file.temporary&&selected.has(file.url)).map(file=>file.id);
         const savedPath=state.supporting?path:path.startsWith('_posts/')?path:'_posts/'+path;
         const saved=await api('save',{baseCommit:state.context.baseCommit,changes:[{path:savedPath,sha:state.context.sha??null,content:result.source}],uploads});
-        populate(result,{path:savedPath,baseCommit:saved.commit,sha:saved.files.find(file=>file.path===savedPath).sha});
+        populate(result,{path:savedPath,baseCommit:saved.commit,sha:saved.files.find(file=>file.path===savedPath).sha},activeContentTab===editorContentTab());
         trackSaved(saved);
         message('Committed; validation/build pending. This is not a live deployment confirmation.');
         try { bootstrap=await api('bootstrap'); await loadSupporting();await loadMedia();renderList();renderMedia(); } catch { message('Committed; validation/build pending. The list could not refresh. Reload it before editing more content.'); }
@@ -271,7 +325,13 @@
     } catch(error) { errors(error.data?.errors||{});message(error.message+' Your working copy remains in this tab.');if(error.status===409)$('reload').hidden=false; }
     finally {busy=false;}
   }
-  async function open(item) {if(busy)return;if(orderDirty||listNeedsReload){listMessage('Save/reset the proposed order and reload a stale list before opening a proposal.');return;}if(dirty&&!confirm('Discard the current working copy? Download Markdown first if you want to keep it.'))return;populate(item,{path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit});}
+  function open(item) {
+    if(busy)return;
+    if(orderDirty||listNeedsReload){listMessage('Save/reset the proposed order and reload a stale list before opening a proposal.');return;}
+    if(state?.context.path===item.path&&!state.deleted){showEditor();return;}
+    if(dirty&&!confirm('Discard the current working copy? Download Markdown first if you want to keep it.'))return;
+    populate(item,{path:item.path,sha:item.sha,baseCommit:bootstrap.baseCommit});
+  }
   async function loadMedia() {
     const response=await fetch('/admin/api/media/list',{credentials:'same-origin'});if(!response.ok)throw new Error('The media list is unavailable. Please try again.');
     const value=await response.json();mediaFiles=value.files;mediaRules=value.rules;
@@ -376,7 +436,7 @@
         status.textContent='Use “Upload proposal figure” to resize this image before selecting it as a figure.';
         return;
       }
-      const key=state.supporting?{home:'hero_image',team:'portrait',news:'image'}[state.kind]:'figure';
+      const key=state.supporting?{home:'hero_image',news:'image'}[state.kind]:'figure';
       fields.get(key+'.src').input.value=file.url;fields.get(key+'.alt').input.focus();changed();
       status.textContent=state.supporting?'Image selected. Add alternative text below.':'Image selected. Add alternative text and a caption below.';
     });
@@ -388,7 +448,9 @@
       const session=await fetch('/admin/api/session',{credentials:'same-origin'}).then(r=>r.json());csrf=session.csrf;
       bootstrap=await api('bootstrap'); $('connection').textContent=bootstrap.canPublish?'Connected to the staff content branch. Saves wait for validation.':'Local review — GitHub saving is not connected. You can edit, preview and download drafts.';
       renderList();
+      $('new-proposal').disabled=false;
       try{await loadSupporting();}catch(error){listMessage(error.message);}
+      $('open-draft').disabled=false;
       try{await loadDeleted();}catch(error){listMessage(error.message);}
       try{await loadMedia();}catch(error){$('connection').textContent+=' '+error.message;}
       await refreshPublication();
@@ -436,7 +498,11 @@
   }
   async function refreshAfterListSave(){
     bootstrap=await api('bootstrap');await loadSupporting();orderDirty=false;listNeedsReload=false;renderList();
-    if(state&&!dirty){const current=(state.supporting?supportingItems:bootstrap.proposals).find(item=>item.path===state.context.path);if(current)populate(current,{path:current.path,sha:current.sha,baseCommit:bootstrap.baseCommit});else{$('editor').hidden=true;state=null;dirty=false;}}
+    if(state&&!dirty){
+      const current=(state.supporting?supportingItems:bootstrap.proposals).find(item=>item.path===state.context.path);
+      if(current)populate(current,{path:current.path,kind:current.kind,sha:current.sha,baseCommit:state.supporting?supportingBase:bootstrap.baseCommit},activeContentTab===editorContentTab());
+      else{$('editor').hidden=true;state=null;updateWorkingTabNote();}
+    }
     await loadDeleted();
   }
   $('save-order').addEventListener('click',async()=>{if(busy||!orderDirty||listNeedsReload)return;if(dirty){listMessage('Reset the proposed order before saving proposal edits. Both working copies are retained.');return;}busy=true;try{const saved=await api('lifecycle',{action:'order',baseCommit:bootstrap.baseCommit,order:orderPaths});trackSaved(saved);orderDirty=false;listNeedsReload=true;try{await refreshAfterListSave();listMessage('Order committed; checks/build pending. Content-update dates were preserved.');}catch{renderList();listMessage('Order committed; checks/build pending. Reload the list before another action.');}}catch(error){if(error.status===409)listNeedsReload=true;listMessage(error.message+' The proposed order is retained; reset/reload only after comparing newer changes.');}finally{busy=false;}});
@@ -447,15 +513,60 @@
   $('confirm-delete').addEventListener('click',()=>{const item=deleteTarget;$('delete-dialog').close();if(item)lifecycleAction(item,'delete');});
   $('delete-dialog').addEventListener('close',()=>{deleteTarget=null;});
   $('proposal-form').addEventListener('input',changed); $('proposal-form').addEventListener('change',changed);
-  $('close-editor').addEventListener('click',()=>{if(busy)return;if(dirty&&!confirm('Close and discard this working copy? Download the draft and temporary files first to keep unfinished work.'))return;$('editor').hidden=true;state=null;dirty=false;fields.clear();listMessage('Editor closed. Downloaded files are kept; temporary uploads remain available only while this session is active.');});
-  for(const kind of ['news','team'])$('new-'+kind).addEventListener('click',async()=>{if(busy||orderDirty)return;if(dirty&&!confirm('Discard this working copy? Download it first to keep unfinished work.'))return;busy=true;try{const value=await api('support-prepare',{operation:'new',kind});populateSupporting(value,{path:value.path,kind,sha:null,baseCommit:supportingBase||bootstrap.baseCommit});}catch(error){listMessage(error.message);}finally{busy=false;}});
-  $('new-proposal').addEventListener('click',async()=>{if(busy)return;if(orderDirty){listMessage('Save or reset the proposed order first.');return;}if(dirty&&!confirm('Discard the current working copy? Download Markdown first to keep it.'))return;try{const value=await api('prepare',{operation:'new'});populate(value,{baseCommit:bootstrap.baseCommit,sha:null});}catch(error){message(error.message);}});
-  $('open-draft').addEventListener('change',async event=>{const file=event.target.files[0];if(!file||busy)return;if(orderDirty){listMessage('Save or reset the proposed order first.');event.target.value='';return;}if(file.size>131072){alert('Choose a draft file smaller than 128 KiB.');return;}if(dirty&&!confirm('Replace the current working copy?'))return;try{const source=await file.text();let value=await api('support-prepare',{operation:'parse',source});if(value.isProposal)value=await api('prepare',{operation:'parse',source});populate(value,{baseCommit:value.supporting?supportingBase:bootstrap.baseCommit,sha:null,...value.context,path:value.supporting?value.path:value.context?.path});}catch(error){message(error.message);}event.target.value='';});
+  $('close-editor').addEventListener('click',()=>{if(busy)return;if(dirty&&!confirm('Close and discard this working copy? Download the draft and temporary files first to keep unfinished work.'))return;$('editor').hidden=true;state=null;dirty=false;fields.clear();updateWorkingTabNote();$('content-tab-'+activeContentTab).focus();listMessage('Editor closed. Temporary uploads remain available while this session is active.');});
+  $('new-news').addEventListener('click',async()=>{
+    if(busy)return;
+    if(orderDirty){listMessage('Save or reset the proposed order first.');return;}
+    if(dirty&&!confirm('Discard this working copy? Download it first to keep unfinished work.'))return;
+    busy=true;
+    try{
+      const value=await api('support-prepare',{operation:'new',kind:'news'});
+      populateSupporting(value,{path:value.path,kind:'news',sha:null,baseCommit:supportingBase||bootstrap.baseCommit});
+    }catch(error){listMessage(error.message);}finally{busy=false;}
+  });
+  $('new-proposal').addEventListener('click',async()=>{
+    if(busy)return;
+    if(orderDirty){listMessage('Save or reset the proposed order first.');return;}
+    if(dirty&&!confirm('Discard the current working copy? Download Markdown first to keep it.'))return;
+    busy=true;
+    try{
+      const value=await api('prepare',{operation:'new'});
+      populate(value,{baseCommit:bootstrap.baseCommit,sha:null});
+    }catch(error){listMessage(error.message);}finally{busy=false;}
+  });
+  $('open-draft').addEventListener('change',async event=>{
+    const input=event.target;
+    const file=input.files[0];
+    input.value='';
+    if(!file||busy)return;
+    if(orderDirty){listMessage('Save or reset the proposed order first.');return;}
+    if(file.size>131072){listMessage('Choose a draft file smaller than 128 KiB.');return;}
+    if(dirty&&!confirm('Replace the current working copy?'))return;
+    busy=true;
+    try{
+      const source=await file.text();
+      let value=await api('support-prepare',{operation:'parse',source});
+      if(value.isProposal)value=await api('prepare',{operation:'parse',source});
+      populate(value,{
+        baseCommit:value.supporting?supportingBase:bootstrap.baseCommit,sha:null,
+        ...value.context,path:value.supporting?value.path:value.context?.path
+      });
+    }catch(error){listMessage(error.message);}finally{busy=false;}
+  });
   $('write-tab').addEventListener('click',()=>tabs('write'));$('preview-tab').addEventListener('click',()=>{tabs('preview');action('preview');});$('revisions-tab').addEventListener('click',()=>{tabs('revisions');if(!historyPage)loadHistory();});$('older-revisions').addEventListener('click',()=>loadHistory(true));$('split-view').addEventListener('change',()=>tabs($('revisions-tab').getAttribute('aria-selected')==='true'?'revisions':$('preview-tab').getAttribute('aria-selected')==='true'?'preview':'write'));
   const editorTabs=[$('write-tab'),$('preview-tab'),$('revisions-tab')];for(const tab of editorTabs)tab.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();const visible=editorTabs.filter(item=>!item.hidden);const index=visible.indexOf(tab);visible[(index+(event.key==='ArrowRight'?1:visible.length-1))%visible.length].focus();}});
   $('refresh-preview').addEventListener('click',()=>action('preview'));$('validate').addEventListener('click',()=>action('compose'));$('download').addEventListener('click',()=>action('download'));$('save').addEventListener('click',()=>action('publish'));
   $('reload').addEventListener('click',()=>{if(confirm('Reload the latest source? Download your working Markdown first; reloading will discard it.')){leaving=true;location.reload();}});
-  $('logout').addEventListener('submit',event=>{if((dirty||orderDirty)&&!confirm('Sign out and discard this tab’s working copy and proposed order? Download Markdown first to keep proposal edits.'))event.preventDefault();else leaving=true;});
+  for(const [index,tab] of contentTabs.entries()){
+    tab.addEventListener('click',()=>activateContentTab(tab.dataset.contentTab));
+    tab.addEventListener('keydown',event=>{
+      const last=contentTabs.length-1;
+      const targets={ArrowLeft:index===0?last:index-1,ArrowRight:index===last?0:index+1,Home:0,End:last};
+      if(!Object.hasOwn(targets,event.key))return;
+      event.preventDefault();
+      contentTabs[targets[event.key]].focus();
+    });
+  }
   addEventListener('beforeunload',event=>{if((dirty||orderDirty)&&!leaving){event.preventDefault();event.returnValue='';}});
   $('refresh-publication').addEventListener('click',()=>refreshPublication(true));
   setInterval(()=>{if(!document.hidden)refreshPublication();},20000);

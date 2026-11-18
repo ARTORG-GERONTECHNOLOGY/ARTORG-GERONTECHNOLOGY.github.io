@@ -11,7 +11,7 @@ time { overflow-wrap: anywhere; }
 main:has(#proposal-list) { max-width: 90rem; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-.table-wrap { overflow-x: auto; }
+.table-wrap { max-width: 100%; overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: .85rem; }
 th, td { padding: .65rem; text-align: left; border-bottom: 1px solid #ccd6d5; }
 td:first-child { min-width: 16rem; }
@@ -19,6 +19,11 @@ td:first-child { min-width: 16rem; }
 .secondary, [role=tab][aria-selected=false] { background: #e4eeed; color: #173f3d; }
 button:disabled { opacity: .6; cursor: default; }
 .toolbar, .actions, [role=tablist] { display: flex; gap: .7rem; flex-wrap: wrap; align-items: center; margin: 1rem 0; }
+.admin-toolbar { align-items: end; }
+.admin-toolbar > *, #content-tabs button { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+#content-tabs { border-bottom: 1px solid #bdcecb; padding: 0 0 .8rem; }
+.content-panel { min-width: 0; }
+#editor { margin-top: 1.5rem; }
 fieldset { min-width: 0; border: 1px solid #bdcecb; padding: 1rem; margin: 1rem 0; }
 legend { font-weight: bold; padding: 0 .4rem; }
 .field { margin-bottom: 1rem; }
@@ -52,6 +57,23 @@ button[draggable=true] { cursor: grab; }
 .publication-badge { display: inline-block; padding: .2rem .5rem; background: #e4eeed; color: #173f3d; }
 .publication-badge[data-state=live] { background: #d8f3df; color: #164f32; }
 .publication-badge[data-state=failed], .publication-badge[data-state=unavailable] { background: #ffe0df; color: #82232b; }
-.supporting-item { padding: .7rem; border: 1px solid #bdcecb; max-width: 100%; min-width: 0; }
+.supporting-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: .7rem;
+  align-items: stretch;
+}
+.supporting-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .45rem;
+  min-width: 0;
+  padding: .7rem;
+  border: 1px solid #bdcecb;
+  overflow-wrap: anywhere;
+}
+.supporting-item > button { max-width: 100%; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.supporting-item .publication-status { max-width: 100%; margin: 0; }
 button[aria-disabled=true] { opacity: .6; cursor: wait; }
 @media (min-width: 1100px) { #editor-panels.split { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1.5rem; } }

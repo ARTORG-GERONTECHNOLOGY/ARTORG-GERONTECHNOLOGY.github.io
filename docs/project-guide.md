@@ -23,7 +23,7 @@ with a blank template and separate draft/publication validation. The
 The workspace's `AGENTS.md`, `new-features.md`, and `template.docx` contain project
 rules, the implementation/progress plan, and the original proposal reference.
 The catalogue and archive support status/category/year/program filters. Homepage
-content, news and team profiles can be maintained in source files or the separate
+content and news can be maintained in source files or the separate
 staff editor. The publishing workflows are implemented with activation off.
 The administration service is described below. QR codes and proposal PDF
 generation are implemented.
@@ -36,7 +36,7 @@ and existing public URLs. The user confirmed all statuses and
 workload percentages on 2026-11-16. Those decisions were applied on 2026-11-18.
 The only prose correction removes the missing Figure 1 cross-reference as
 requested. Both example profiles and Max's example supervisor entry were removed;
-Kevin Möri remains. The Team page is intentionally empty. Original migration
+Kevin Möri remains. Original migration
 fingerprints and the approved prose exception remain in the migration record.
 The older gait proposal's filename/front-matter date mismatch is preserved.
 
@@ -76,10 +76,7 @@ The confirmed final content and preserved source-history details are recorded in
 
 ## Navigation and responsive layout
 
-The main navigation has Home, Proposals, News, About and Search. Archive and
-Team remain accessible through their existing URLs.
-The destination pages, status filters, news collection and team profiles are
-implemented. Real news and real team profiles have not yet been supplied.
+The main navigation has Home, Proposals, News, About and Search. Archive remains accessible through its existing URL.
 The shared list is `_data/navigation.yml`.
 
 At widths below 1024 CSS pixels the menu uses Bootstrap 3 collapse. A real button
@@ -104,7 +101,7 @@ bundle exec ruby scripts/tests/site-navigation.rb ../.local/site
 ```
 
 The final local browser review checked catalogue widths of 320, 375, 768, 1024
-and 1440 CSS pixels, long proposal titles, mobile profiles/About/QR, search,
+and 1440 CSS pixels, long proposal titles, mobile About/QR, search,
 keyboard entry, the skip link, Menu/Escape focus and page overflow.
 See the [release handover](release-handover.md) for the exact evidence and
 remaining manual checks; these checks are not a complete accessibility audit.
@@ -175,7 +172,7 @@ editing an older announcement does not move it to the top.
 
 News has its own output collection, listing, detail layout and homepage section.
 It is separate from proposal `_posts/`, catalogue, homepage proposal highlights
-and the proposal RSS feed. News and profiles are included in global search;
+and the proposal RSS feed. News is included in global search;
 news has its own `news-feed.xml`. Markdown uses the same sanitized renderer as proposals and does not
 evaluate author Liquid. Metadata is escaped in the layouts.
 
@@ -193,51 +190,6 @@ bundle exec ruby scripts/tests/home-news.rb
 The examples used by these checks are created in a temporary directory and never
 published to the real preview. Browser review remains with the supervising user
 because automated localhost access is denied by the saved permission setting.
-
-## Team profiles and supervisor links
-
-Team profiles live in `_team/<team_id>.md`; copy `templates/team.md` and fill in
-confirmed details. `team_id` is a stable lowercase/hyphen identifier matching the
-filename. It determines `/team/<team_id>/` and must not be renamed after linking
-or publication. `name`, boolean `active` and integer `display_order` are required.
-Role, public email, Markdown biography, research-interest list, portrait and
-labelled links can be omitted until confirmed. Roles are ordinary text, including
-PhD student or Postdoctoral researcher; never infer them from a person's name.
-Portraits require an existing site-relative image and meaningful alt text.
-
-Active profiles appear in display_order ascending, then name and stable ID order.
-At the user's request, `active: false` only removes a person from the Team listing;
-the profile and links from proposals remain accessible. This does not make the
-profile private. A profile without a portrait or biography has no dummy image or
-empty biography section. Biography rendering uses the same sanitized Markdown
-pipeline as news/proposals; author Liquid remains literal.
-
-To link a supervisor, keep their original name and add `team_id` to that supervisor
-entry in the proposal. Publication validation and the Jekyll build reject IDs
-without a published profile. Supervisors without a profile retain their original
-plain-text names. Linking is a substantive metadata change, so advance the
-proposal's `updated_at`; do not alter its ID, publication date or existing URL.
-
-The user requested removal of the two temporary example profiles during the final
-content review. Max's example supervisor entry was also removed; Kevin Möri is
-retained. The Team page is intentionally empty until real profiles are supplied.
-Automated editor checks create their own isolated profile and supervisor link,
-so testing does not require example people in public content.
-
-Check the rendering, active/inactive handling, optional fields, IDs and links with:
-
-```sh
-bundle exec ruby scripts/tests/team.rb
-```
-
-The tests use temporary profiles outside the preview. The final browser review
-verified a profile/backlink before example removal; empty-state output is checked
-again in the final candidate.
-
-Profiles automatically list the proposals whose supervisor entries reference their
-team ID, in the catalogue order and with explicit status labels. Profiles without
-linked proposals omit this section. Display-name corrections retain the stable
-team ID and profile URL.
 
 ## About and application guidance
 
@@ -274,8 +226,8 @@ access is denied by the saved permission setting. No production change is deploy
 
 ## Public media and attachment support
 
-Store public assets at stable paths under `assets/media/proposals/<proposal_id>/`,
-`assets/media/team/<team_id>/` or `assets/media/news/<slug>/`. No real media or
+Store public assets at stable paths under `assets/media/proposals/<proposal_id>/` or
+`assets/media/news/<slug>/`. No real media or
 proposal prose was added in Step 10. The missing writing/drawing Figure 1
 reference was removed during the release review. Removing a reference never
 deletes its file.
@@ -308,7 +260,7 @@ local figure/poster/attachment paths and declared external attachment sizes;
 remote image/video bytes are not downloaded or included in that upload budget.
 The Step 19 trusted upload service reuses this validator and adds image decoding,
 dimension limits and PDF inspection. Restart the local server after
-changing the media-rule configuration. Home, news and team image
+changing the media-rule configuration. Home and news image
 references also use the shared asset checks.
 
 Verification:
@@ -327,16 +279,14 @@ user review because automated localhost access is denied by saved permission.
 
 The normal Search link/icon opens `/search/`, with ordinary browsing links when
 JavaScript is disabled. `search.json` serializes the complete index with `jsonify`.
-The index explicitly includes published proposals, public team profiles, published
+The index explicitly includes published proposals, published
 news and Home/About information. Private/administration routes and templates are
-not indexed. Inactive profiles remain searchable because the user chose to retain
-their public profile pages. Future/unpublished news follows normal build settings.
+not indexed. Future/unpublished news follows normal build settings.
 
 The proposal index includes scientific text, application instructions, categories,
-tags, supervisors/institutes, contact details and dates. News and
-people stay distinct from proposals. Search results default to available proposals;
+tags, supervisors/institutes, contact details and dates. News stays distinct from proposals. Search results default to available proposals;
 Include taken and archived proposals expands this scope without hiding other
-content types. The content-type filter can restrict results to projects, people,
+content types. The content-type filter can restrict results to projects,
 news or information.
 
 The former bundled search script is retained but no longer loaded. Its unsafe
@@ -377,8 +327,7 @@ both feeds. The public footer shows the group name. Feeds retain initial publica
 canonical GUID URLs. Deleted/unpublished content is absent from normal builds.
 
 Public pages have canonical URLs, page-specific descriptions, Open Graph and
-Twitter preview tags. Images appear in metadata only when real figure/hero/news/
-portrait metadata exists; no default example image is invented. Article publication
+Twitter preview tags. Images appear in metadata only when real figure, hero or news image metadata exists; no default example image is invented. Article publication
 and substantive update dates use their respective source values. Local previews
 use their configured local URL; production `_config.yml` and CNAME are unchanged.
 All canonical/feed/sitemap links use Jekyll's absolute_url filter.
@@ -521,7 +470,7 @@ files. `NODE` and `PYTHON` can point to specific executable paths when they are
 not on PATH. Run through Bundler so child checks use the same Ruby environment.
 
 The command validates proposal fields and sections, workload totals, timestamps,
-safe content rendering, filters/search, team/news/About behavior, Jekyll output,
+safe content rendering, filters/search, news/About behavior, Jekyll output,
 local links and assets, generated JSON/XML, feeds and sitemap, QR decoding, and
 all proposal PDFs and revision-labelled download links. It also exercises an
 isolated long/figure/math PDF and confirms missing figures fail generation.
@@ -586,10 +535,9 @@ Step 21 adds [revision history and restoration](../admin-service/README.md#revis
 including comparisons, validated previews and recovery of deleted proposals.
 Restoration returns content/status while preserving current order; deleted
 proposals reuse their former priority. Confirmation creates a new revision.
-Step 22 adds [Home, News, Team and About editors](../admin-service/README.md#home-news-team-and-about-editors-step-22),
+Step 22 adds [Home, News and About editors](../admin-service/README.md#home-news-and-about-editors-step-22),
 including images, private draft downloads, shared previews and revision restoration.
-Profile IDs/links remain stable; renaming a profile leaves proposal supervisor
-names unchanged. About's QR destination follows canonical configuration.
+About's QR destination follows canonical configuration.
 Step 23 prepares [validated publication through GitHub Pages](publication.md),
 with a trusted content-only merge, protected checks, inspected public artifacts
 and recovery through new revisions. Activation remains off and requires separate

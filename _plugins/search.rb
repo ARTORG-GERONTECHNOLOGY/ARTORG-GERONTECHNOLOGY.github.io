@@ -13,14 +13,11 @@ module SiteContent
      'updated_at'=>data['proposal']['dates']['updated_at']['iso'],
      'people'=>(data['supervisors']+data['institutes']).map { |person| person['name'] }+[data['contact']['name'],data['contact']['email']]}
    end
-   %w[team news].each do |kind|
-    site.collections.fetch(kind).docs.select { |doc| site.publisher.publish?(doc) }.each do |doc|
-     data=doc.data
-     entries << {'type'=>kind,'title'=>data[kind=='team' ? 'name' : 'title'],'url'=>site.baseurl+doc.url,
-      'summary'=>data['summary'] || data['role'] || '', 'text'=>plain.call(doc.content),
-      'people'=>[data['role'],data['email'],*(data['interests'] || [])].compact,
-      'date'=>data['news_dates']&.dig('date','iso'),'updated_at'=>data['news_dates']&.dig('updated_at','iso')}
-    end
+   site.collections.fetch('news').docs.select { |doc| site.publisher.publish?(doc) }.each do |doc|
+    data=doc.data
+    entries << {'type'=>'news','title'=>data['title'],'url'=>site.baseurl+doc.url,
+     'summary'=>data['summary'] || '', 'text'=>plain.call(doc.content),
+     'date'=>data['news_dates']&.dig('date','iso'),'updated_at'=>data['news_dates']&.dig('updated_at','iso')}
    end
    home=site.data.fetch('home');about=site.data.fetch('about')
    entries << {'type'=>'page','title'=>home['title'],'url'=>site.baseurl+'/','summary'=>home['sections']['introduction'] ? home['introduction'] : '', 'text'=>''}

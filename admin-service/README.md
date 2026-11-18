@@ -108,8 +108,8 @@ that do not accept Secure cookies on localhost require trusted local HTTPS;
 do not disable cookie protection or bypass certificate warnings to compensate.
 Production always uses the separate HTTPS administration origin.
 
-On 2026-11-16 the user confirmed that this local private link opens the active
-administration session and its Sign out button in their browser.
+The page opens the administration editor. Download drafts and temporary files
+before closing the browser or letting the session expire.
 
 ## Security boundary and verification
 
@@ -194,7 +194,7 @@ Before real activation, a separately authorized operator must:
 
 The content validator requires Ruby/Bundler and the repository's locked Gemfile
 in addition to Node. It invokes a fixed trusted Ruby script without a shell,
-loads Bundler explicitly and reuses the same proposal, media, team, news and
+loads Bundler explicitly and reuses the same proposal, media, news and
 Home/About validators as public content. It materializes bounded candidate
 content/media in a temporary directory without copying or executing author
 layouts, plugins, Liquid, scripts or configuration. Windows is locally verified;
@@ -224,7 +224,7 @@ provide unrestricted filesystem operations.
 | `POST /admin/api/content/save` | Accepts `baseCommit` plus `changes`, each with `path`, last-read `sha` (null for a new file) and UTF-8 `content` |
 | `GET /admin/api/content/checks?commit=...` | Reports the matching GitHub Actions check's pending/passed/failed state, always with `live: false` in this step |
 
-Only dated proposal Markdown, stable team/news Markdown and Home/About/category
+Only dated proposal Markdown, stable News Markdown and Home/About/category
 YAML plus the validated removed-URL registry are editable. Schemas, program defaults, workflows, site configuration,
 service code, arbitrary paths and media bytes are not writable through this API.
 Existing approved assets can be referenced and are validated from the same Git
@@ -351,7 +351,7 @@ overwritten. Re-uploading the same original filename/bytes recovers the same URL
 
 Use **Download temporary file** after selecting an upload to keep its original
 bytes and filename. A Markdown download contains references, not file bytes.
-Keep both downloads before signing out; reopen the Markdown and upload the
+Keep both downloads before the session ends. Reopen the Markdown and upload the
 original files again when resuming. Missing/expired figure and attachment
 references are reported beside their fields before preview/publication.
 
@@ -401,7 +401,7 @@ and adds a minimal `_data/removed_proposals.yml` record in the same conditional
 Git commit. Only that proposal can be deleted; this route cannot delete media,
 configuration or arbitrary files. Public Git history still retains the content.
 
-Deleted proposals disappear from generated home/catalogue/team links, search,
+Deleted proposals disappear from generated home/catalogue links, search,
 feeds, sitemap, print pages and PDF inventory. The old address shows a generic
 **Proposal removed** page, with no title, scientific text or download links,
 and links to available projects/contact information. It carries noindex; static
@@ -444,7 +444,7 @@ readable as raw text with a warning. History is paged twenty revisions at a
 time, up to 1,000 file revisions; a maintainer can inspect older Git history.
 
 **Preview restoration** validates the historical proposal against current
-categories, team links, media and schema, and renders it through the same trusted
+categories, media and schema, and renders it through the same trusted
 preview pipeline. Restoration returns content and status, keeps a current
 proposal's priority, and preserves immutable ID, URL, filename and original
 creation/publication dates. Its substantive update date advances. A revision
@@ -493,13 +493,17 @@ are also available in the supporting-content editors described below.
 API references: [GitHub commit history and comparison](https://docs.github.com/en/rest/commits/commits),
 [immutable Git trees](https://docs.github.com/en/rest/git/trees).
 
-## Home, News, Team and About editors (Step 22)
+## Home, News and About editors (Step 22)
 
-Open **Home**, **About**, an existing team/news item, **New team profile** or
-**New news item** in the administration panel. These forms use the same protected
+Choose **Home**, **About** or **News** from the content tabs. Open the
+item you want to edit, or use **New news item** in the administration panel. These forms use the same protected
 save connection, public-content warning, conflict handling, Write/Preview views
 and Revisions tab as proposals. Local review keeps final saving/restoration
 disabled while GitHub is disconnected. No sample announcement is created.
+
+Switching content tabs keeps the open working copy in its original tab. Return
+to that tab to continue. Opening a different item asks before replacing unsaved
+work. Download the draft if you need to keep it beyond the current page.
 
 Home controls its title/introduction, section visibility, list limits, links and
 optional hero image. In About, add a link inside the overview, group or program
@@ -509,16 +513,10 @@ from the canonical website configuration, with the generated QR in the preview;
 it is not a separate editable address. The previously removed staff submission
 section stays absent from both the editor and public page.
 
-Team profiles provide name, role, public email, research interests, biography,
-links, portrait, display order and active flag. Inactive profiles disappear from
-the Team listing while retaining their public profile and proposal links.
-Stable IDs, filenames and addresses cannot be edited. As requested, renaming a
-person does not change the supervisor names stored in existing proposals.
 News provides title, summary, Markdown body and optional image in its separate
 collection; announcements never become student proposals. Original publication
 dates are preserved. New items receive their first publication date on save;
-substantive team/news edits advance the update date, while profile-order changes
-alone do not. Older profiles without recorded dates refer operators to Revisions.
+substantive edits advance the update date.
 
 Preview builds the candidate through the trusted Jekyll templates and shared
 sanitized rendering. Scripts are removed and the embedded page cannot execute
@@ -526,13 +524,13 @@ scripts. Image reads use authenticated, read-only service URLs; the generated QR
 and trusted fonts are embedded. These private preview URLs never enter public
 content. Public output continues to use ordinary static assets.
 
-The existing media picker supports Home hero images, team portraits and news
+The existing media picker supports Home hero images and news
 images. Temporary uploads belong to the current session and content item and
 are inspected with the same image rules as proposal uploads. Selected images
 save atomically with their referencing content. Unlinking keeps shared files.
-Download temporary files before signing out or expiry.
+Download temporary files before closing the browser or letting the session expire.
 
-**Download draft** saves team/news Markdown (`.md`) or Home/About YAML (`.yml`)
+**Download draft** saves News Markdown (`.md`) or Home/About YAML (`.yml`)
 on your computer. **Open downloaded draft** reopens either format, including its
 original revision information for conflict detection. Downloads are marked as
 private drafts and rejected by the public-save validator until prepared for
@@ -540,8 +538,7 @@ publication. They contain no credentials or image bytes. Nothing is stored as a
 durable server draft; unsaved-change warnings also apply to these forms.
 
 History and restoration use the same session-bound confirmation and new-commit
-flow as proposals. Team restoration returns profile content/active state while
-keeping its current display order; news keeps its original publication date.
+flow as proposals. Restoring news keeps its original publication date.
 IDs and addresses remain unchanged. Shared assets must still exist and restored
 content must pass current rules. Deletion/recovery controls remain proposal-only.
 

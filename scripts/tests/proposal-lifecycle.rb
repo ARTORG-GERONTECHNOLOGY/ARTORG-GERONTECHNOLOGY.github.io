@@ -46,7 +46,7 @@ reject.call { Proposals.removed!(registry, documents.call) }
 # search/feed/catalogue/sitemap/print/PDF entry may survive.
 Dir.mktmpdir('proposal-lifecycle-') do |temporary|
   source = File.join(temporary,'source'); output = File.join(temporary,'site'); FileUtils.mkdir_p(source)
-  %w[_layouts _includes _data _team _news assets css js favicons news].each do |directory|
+  %w[_layouts _includes _data _news assets css js favicons news].each do |directory|
     FileUtils.cp_r(File.join(Proposals::ROOT,directory),source) if File.directory?(File.join(Proposals::ROOT,directory))
   end
   Dir[File.join(Proposals::ROOT,'*.{html,json,xml}')].each { |path| FileUtils.cp(path,source) }

@@ -76,9 +76,7 @@ Attachments use `title`, `url`, `mime_type` and optional integer byte
 paths. Actual file signatures, upload limits, sanitization and asset-existence
 checks are later steps, not guarantees of this metadata validator.
 
-`team_id` is optional on supervisors. Reference existence is checked against
-published team profiles during validation and the site build. Names remain usable
-without profiles; inactive profiles can still be linked.
+List supervisors by name.
 
 ## Identity, dates and ordering
 

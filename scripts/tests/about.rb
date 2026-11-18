@@ -11,7 +11,7 @@ root=Proposals::ROOT
 Dir.mktmpdir('about-fixture-') do |fixture|
  source=File.join(fixture,'source'); output=File.join(fixture,'site')
  FileUtils.mkdir_p(source)
- %w[_layouts _includes _data _team assets].each { |dir| FileUtils.cp_r(File.join(root,dir),source) }
+ %w[_layouts _includes _data assets].each { |dir| FileUtils.cp_r(File.join(root,dir),source) }
  FileUtils.cp(File.join(root,'about.html'),source)
  FileUtils.cp(File.join(root,'search.json'),source)
  about=YAML.safe_load_file(File.join(source,'_data/about.yml'))

@@ -53,7 +53,7 @@ export class ContentRevisions {
     return {snapshot,selected,restored,changes,current,removed};
   }
   async preview(session,payload,authorize){
-    if(typeof payload?.path!=='string'||!editable(payload.path)||!payload.path.startsWith('_posts/')&&(!this.supporting||!/^_(?:team|news)\/|^_data\/(?:home|about)\.yml$/.test(payload.path)))throw new ContentError(422,'invalid_restoration','Choose supported content to restore.');
+    if(typeof payload?.path!=='string'||!editable(payload.path)||!payload.path.startsWith('_posts/')&&(!this.supporting||!/^_news\/|^_data\/(?:home|about)\.yml$/.test(payload.path)))throw new ContentError(422,'invalid_restoration','Choose supported content to restore.');
     const preparedAt=new Date(this.now()).toISOString();const value=await this.candidate(payload,authorize,preparedAt);
     const rendered=payload.path.startsWith('_posts/')?await this.editor.prepare({operation:'preview',source:value.restored.source,context:{path:payload.path,baseCommit:payload.baseCommit,sha:payload.sha}},authorize):{html:await this.supporting.render(value.snapshot,payload.path,value.restored.source,authorize)};
     if(!rendered.html)throw new ContentError(422,'invalid_restoration','The restoration cannot be previewed.',{errors:rendered.previewErrors||rendered.errors});

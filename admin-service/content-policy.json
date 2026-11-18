@@ -6,10 +6,10 @@
   "publication": "automatic_after_checks",
   "editablePatterns": [
     "^_posts/[0-9]{4}-[0-9]{2}-[0-9]{2}-project-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\\.md$",
-    "^_(?:team|news)/[a-z0-9]+(?:-[a-z0-9]+)*\\.md$",
+    "^_news/[a-z0-9]+(?:-[a-z0-9]+)*\\.md$",
     "^_data/(?:home|about|proposal_categories|removed_proposals)\\.yml$"
   ],
-  "assetPattern": "^assets/(?:images|media|attachments)/[A-Za-z0-9_./-]+\\.(?:png|jpg|jpeg|webp|pdf)$",
+  "assetPattern": "^assets/(?!media/team/)(?:images|media|attachments)/[A-Za-z0-9_./-]+\\.(?:png|jpg|jpeg|webp|pdf)$",
   "reservedProposalPrefixes": ["/admin/", "/assets/", "/print/", "/posts/", "/posts-by-year/", "/posts-by-categories/", "/archive/", "/team/", "/news/", "/about/", "/search/"],
   "maxTextBytes": 131072,
   "maxChanges": 16,

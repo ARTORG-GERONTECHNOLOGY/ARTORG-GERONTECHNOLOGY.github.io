@@ -17,7 +17,7 @@ export function blobSha(bytes) { return createHash('sha1').update('blob ' + byte
 export const conflict = (currentCommit, paths = []) => new ContentError(409, 'conflict', 'Newer changes exist. Reload and compare before saving again.', {currentCommit, paths});
 export function uploadOwner(target,proposalId){
   if(target==='_data/home.yml')return {folder:'home',id:'homepage',path:target,key:target};
-  if(typeof target==='string'&&editable(target)&&/^_(team|news)\//.test(target)){const folder=target.startsWith('_team/')?'team':'news';return {folder,id:target.split('/')[1].slice(0,-3),path:target,key:target};}
+  if(typeof target==='string'&&editable(target)&&target.startsWith('_news/'))return {folder:'news',id:target.split('/')[1].slice(0,-3),path:target,key:target};
   if(!target&&typeof proposalId==='string'&&proposalId.length<=100&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(proposalId))return {folder:'proposals',id:proposalId,path:null,key:'proposal:'+proposalId};
-  throw new ContentError(422,'invalid_media','Choose a proposal, Home, team profile or news item for uploads.');
+  throw new ContentError(422,'invalid_media','Choose a proposal, Home or a news item for uploads.');
 }

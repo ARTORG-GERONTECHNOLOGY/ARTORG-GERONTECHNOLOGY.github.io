@@ -25,12 +25,6 @@ module Proposals
     value.is_a?(String) && value.length <= 254 && value.match?(/\A#{atom}(?:\.#{atom})*@(?:#{label}\.)+[A-Za-z]{2,63}\z/)
   end
 
-  def self.team_ids(source = ROOT)
-    Dir[File.join(source, "_team/**/*.md")].filter_map do |path|
-      data = Document.read(path).metadata
-      data["team_id"] unless data["published"] == false
-    end
-  end
 
   class FormatError < StandardError; end
 
@@ -96,6 +90,15 @@ module Proposals
       parse_sections
     end
 
+    def remove_retired_profile_links!
+      %w[supervisors institutes].each do |field|
+        entries = metadata[field]
+        next unless entries.is_a?(Array)
+
+        entries.each { |entry| entry.delete("team_id") if entry.is_a?(Hash) }
+      end
+    end
+
     def versioned?
       %w[schema_version template_version proposal_id].any? { |key| metadata.key?(key) }
     end
@@ -156,9 +159,8 @@ module Proposals
   end
 
   class Validator
-    def initialize(team_ids: Proposals.team_ids, categories: CATEGORIES)
+    def initialize(categories: CATEGORIES)
       @schema = SCHEMA
-      @team_ids = team_ids
       @categories = Proposals.categories!(categories)
     end
 
@@ -298,10 +300,7 @@ module Proposals
           next
         end
         text(entry["name"], "#{path}.name", required: true)
-        text(entry["team_id"], "#{path}.team_id") if entry.key?("team_id")
-        if field == "supervisors" && entry["team_id"].is_a?(String) && !entry["team_id"].empty? && !@team_ids.include?(entry["team_id"])
-          error("#{path}.team_id", "no published team profile has ID #{entry['team_id'].inspect}")
-        end
+        error("#{path}.team_id", "profile references are retired") if entry.key?("team_id")
         url(entry["url"], "#{path}.url") if links && !blank?(entry["url"])
       end
     end

@@ -22,10 +22,13 @@ test('editor draft download, reopen, field validation and immutable publication 
   assert.ok(new Date(changed.metadata.updated_at)>new Date(original.metadata.updated_at));
   const draft=await editor.prepare({operation:'download',source:changed.source,context},authorize);
   assert.equal(draft.metadata.published,false);
-  const oldDraft=draft.source.replace(/^---\r?\n/,'---\nstudent_eligibility: bme_only\n');
+  const oldDraft=draft.source.replace(/^---\r?\n/,'---\nstudent_eligibility: bme_only\n')
+    .replace(/^supervisors:\r?\n/m,'supervisors:\n- name: Historical supervisor\n  team_id: retired-profile\n');
   const reopened=await editor.prepare({operation:'parse',source:oldDraft},authorize);
   assert.equal(Object.hasOwn(reopened.metadata,'student_eligibility'),false);
   assert.doesNotMatch(reopened.source,/^student_eligibility:/m);
+  assert.deepEqual(reopened.metadata.supervisors[0],{name:'Historical supervisor'});
+  assert.doesNotMatch(reopened.source,/team_id:/);
   assert.deepEqual(reopened.context,context);
   assert.equal(reopened.metadata.title,changed.metadata.title);
   const publish=await editor.prepare({operation:'publish',source:reopened.source,context:reopened.context},authorize);

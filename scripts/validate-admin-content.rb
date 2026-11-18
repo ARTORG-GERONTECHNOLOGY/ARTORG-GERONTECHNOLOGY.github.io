@@ -3,7 +3,7 @@ require 'bundler/setup'
 require 'json'
 require 'tmpdir'
 require 'fileutils'
-require_relative 'lib/team'
+require_relative 'lib/site-content'
 require_relative 'lib/proposal-lifecycle'
 
 # This process uses only installed trusted validators. Author files are never
@@ -30,9 +30,6 @@ begin
       FileUtils.mkdir_p(File.dirname(destination)); File.binwrite(destination, item.fetch('bytes').unpack1('m0'))
     end
     categories = Proposals.categories!(Proposals.load_yaml(files.fetch('_data/proposal_categories.yml'), mapping: false))
-    profiles = files.select { |path, _| path.start_with?('_team/') }.to_h { |path, content| [path, Proposals::Document.parse(content)] }
-    team_ids = profiles.values.map { |document| document.metadata['team_id'] }
-    raise Proposals::FormatError, 'Duplicate team IDs' unless team_ids.uniq.length == team_ids.length
     proposals = files.select { |path, _| path.start_with?('_posts/') }.to_h { |path, content| [path, Proposals::Document.parse(content)] }
     removed = Proposals.load_yaml(files.fetch('_data/removed_proposals.yml', '[]'), mapping: false)
     old_proposals = previous.select { |path, _| path.start_with?('_posts/') }.to_h { |path, content| [path, Proposals::Document.parse(content)] }
@@ -46,7 +43,7 @@ begin
       restored = proposals.any? { |path, document| (!entry['source_path'] || path == entry['source_path']) && %w[proposal_id permalink].all? { |key| document.metadata[key] == entry[key] } }
       raise Proposals::FormatError, 'Keep removed URLs reserved unless restoring the same proposal' unless removed.include?(entry) || restored
     end
-    validator = Proposals::Validator.new(team_ids: team_ids, categories: categories)
+    validator = Proposals::Validator.new(categories: categories)
     errors.merge!(validator.validate_set(proposals).reject { |_, messages| messages.empty? })
     proposals.each do |path, document|
       messages = []
@@ -67,14 +64,12 @@ begin
         if path.end_with?('.md')
           document = Proposals::Document.parse(content)
           data = document.metadata
-          expected_layout = path.start_with?('_posts/') ? 'post' : path.start_with?('_team/') ? 'team' : 'news'
+          expected_layout = path.start_with?('_posts/') ? 'post' : 'news'
           raise Proposals::FormatError, 'Do not select another layout or enable author execution' if data['layout'] && data['layout'] != expected_layout || (data.keys & %w[render_with_liquid output redirect_to]).any?
           raise Proposals::FormatError, 'Private/unpublished drafts must stay outside the public repository' if data.key?('published') && data['published'] != true
           raise Proposals::FormatError, 'Private draft annotations must stay outside the public repository' if data.key?('_editor_draft')
           raise Proposals::FormatError, 'Proposals require layout: post' if path.start_with?('_posts/') && data['layout'] != 'post'
-          if path.start_with?('_team/')
-            Team.validate!(document, File.join(source, path), source, previous: previous[path] && Proposals::Document.parse(previous[path]))
-          elsif path.start_with?('_news/')
+          if path.start_with?('_news/')
             SiteContent.news!(document, source, previous: previous[path] && Proposals::Document.parse(previous[path]))
             stable = '/news/' + File.basename(path, '.md') + '/'
             raise Proposals::FormatError, 'Retain the news URL derived from its immutable filename' if data['permalink'] && data['permalink'] != stable

@@ -26,7 +26,7 @@ def publication_metadata(source, revision=None):
     paths = set()
     for item in data['content']:
         if (not isinstance(item, dict) or not isinstance(item.get('path'), str)
-                or item['path'] in paths or not re.fullmatch(r'_(?:posts|team|news)/[A-Za-z0-9-]+\.md|_data/(?:home|about|proposal_categories|removed_proposals)\.yml', item['path'])
+                or item['path'] in paths or not re.fullmatch(r'_(?:posts|news)/[A-Za-z0-9-]+\.md|_data/(?:home|about|proposal_categories|removed_proposals)\.yml', item['path'])
                 or not valid_sha(item.get('revision'))
                 or not re.fullmatch('[a-f0-9]{64}', item.get('sha256', ''))):
             raise ValueError('Invalid content revision metadata')

@@ -17,9 +17,8 @@ module Proposals
     }.freeze
     ZURICH = TZInfo::Timezone.get("Europe/Zurich")
 
-    def initialize(baseurl: "", team_ids: Proposals.team_ids, categories: CATEGORIES)
+    def initialize(baseurl: "", categories: CATEGORIES)
       @baseurl = baseurl.to_s.sub(%r{/\z}, "")
-      @team_ids = team_ids
       @categories = Proposals.categories!(categories)
     end
 
@@ -43,7 +42,7 @@ module Proposals
     end
 
     def render(document, mode: :publication)
-      errors = Validator.new(team_ids: @team_ids, categories: @categories).validate(document, mode: mode)
+      errors = Validator.new(categories: @categories).validate(document, mode: mode)
       raise FormatError, errors.join("; ") unless errors.empty?
       sections = document.sections.to_h { |name, body| [name, markdown(body)] }.reject { |_name, html| html.strip.empty? }
       dates = %w[date created_at updated_at].to_h do |field|

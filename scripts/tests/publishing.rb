@@ -9,8 +9,8 @@ checks=0
 check=lambda { |condition,message| raise message unless condition;checks+=1 }
 Dir.mktmpdir('publishing-fixture-') do |fixture|
  source=File.join(fixture,'source');out=File.join(fixture,'site');FileUtils.mkdir_p(source)
- %w[_layouts _includes _data _team assets].each { |dir| FileUtils.cp_r(File.join(Proposals::ROOT,dir),source) }
- %w[index.html about.html team.html news.html feed.xml news-feed.xml sitemap.xml].each { |file| FileUtils.cp(File.join(Proposals::ROOT,file),source) }
+ %w[_layouts _includes _data assets].each { |dir| FileUtils.cp_r(File.join(Proposals::ROOT,dir),source) }
+ %w[index.html about.html news.html feed.xml news-feed.xml sitemap.xml].each { |file| FileUtils.cp(File.join(Proposals::ROOT,file),source) }
  FileUtils.mkdir_p(File.join(source,'_posts'));FileUtils.mkdir_p(File.join(source,'_news'))
  proposal=Proposals::Document.read(Dir[File.join(Proposals::ROOT,'_posts/*.md')].first)
  File.write(File.join(source,'_posts/2026-01-01-project-fixture.md'),proposal.serialize)

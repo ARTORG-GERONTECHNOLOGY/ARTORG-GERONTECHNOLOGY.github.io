@@ -2,12 +2,12 @@ import {editable,asset,blobSha,sha,ContentError} from './content-policy.mjs';
 import {rubyEditor} from './editor.mjs';
 import {validateContent} from './content.mjs';
 import {staticMath} from './preview.mjs';
-export const supportingPath=path=>typeof path==='string'&&editable(path)&&(/^_(team|news)\//.test(path)||['_data/home.yml','_data/about.yml'].includes(path));
+export const supportingPath=path=>typeof path==='string'&&editable(path)&&(/^_news\//.test(path)||['_data/home.yml','_data/about.yml'].includes(path));
 function fieldErrors(errors,path,kind){
   const result={};for(const [file,messages] of Object.entries(errors||{}))for(const message of messages){
     const match=file===path?/^([a-zA-Z_][a-zA-Z0-9_.\[\]]*): (.+)$/.exec(message):null;
     let field=match?match[1].replace(/^(home|about)\./,''):file===path?'content':file;
-    if(field.startsWith('image.'))field=({home:'hero_image',team:'portrait',news:'image'}[kind]||'image')+field.slice(5);
+    if(field.startsWith('image.'))field=({home:'hero_image',news:'image'}[kind]||'image')+field.slice(5);
     (result[field]||=[]).push(match?match[2]:message);
   }return result;
 }

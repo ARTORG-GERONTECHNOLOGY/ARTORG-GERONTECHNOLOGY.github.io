@@ -1,8 +1,0 @@
----
-layout: page
-title: Team
-permalink: /team/
----
-<p>Gerontechnology and Rehabilitation Group<br>ARTORG Center for Biomedical Engineering Research, University of Bern</p>
-<ul class="team-cards">{% for person in site.data.active_team %}{% include team/card.html person=person %}{% else %}<li>No team profiles have been published yet.</li>{% endfor %}</ul>
-<p>For project supervision and contact details, open a <a href="{{ '/posts/' | relative_url }}">research proposal</a>.</p>

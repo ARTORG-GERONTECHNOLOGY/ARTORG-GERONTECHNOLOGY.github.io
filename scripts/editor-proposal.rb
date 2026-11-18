@@ -6,7 +6,6 @@ require 'tmpdir'
 require 'fileutils'
 require 'jekyll'
 require_relative 'lib/proposal-renderer'
-require_relative 'lib/team'
 require_relative 'lib/media'
 require_relative 'lib/proposal-lifecycle'
 require_relative 'lib/content-revisions'
@@ -66,6 +65,7 @@ begin
   document = Proposals::Document.parse(source)
   # Drafts downloaded before this field was retired can still be opened.
   document.metadata.delete(Proposals::Document::RETIRED_FIELD)
+  document.remove_retired_profile_links!
   context = document.metadata.delete('_editor_draft') || input.fetch('context', {})
   raise Proposals::FormatError, 'Invalid downloaded draft revision information' unless context.is_a?(Hash) && (context.keys - %w[path sha baseCommit]).empty? && %w[sha baseCommit].all? { |key| context[key].nil? || context[key].is_a?(String) && context[key].match?(/\A[a-f0-9]{40}\z/) }
   patch = input.fetch('patch', {})
@@ -94,8 +94,7 @@ begin
     publication.metadata['published'] = true
   end
   categories = Proposals.categories!(Proposals.load_yaml(input.fetch('categories'), mapping: false))
-  team = input.fetch('team', {}).to_h { |path, text| [path, Proposals::Document.parse(text).metadata] }
-  validator = Proposals::Validator.new(team_ids: team.values.map { |person| person['team_id'] }, categories: categories)
+  validator = Proposals::Validator.new(categories: categories)
   errors = field_errors(validator.validate(publication, previous: previous))
   operation = input['operation']
   if operation == 'publish'
@@ -106,7 +105,7 @@ begin
   end
   result = {'source' => document.serialize, 'metadata' => document.metadata.reject { |key, _| key == '_editor_draft' }.transform_values { |value| value.is_a?(Time) ? value.iso8601 : value }, 'sections' => document.sections, 'context' => context, 'errors' => errors, 'ready' => errors.empty?}
   if operation == 'preview'
-    renderer = Proposals::Renderer.new(team_ids: team.values.map { |person| person['team_id'] }, categories: categories)
+    renderer = Proposals::Renderer.new(categories: categories)
     draft_errors = validator.validate(document, mode: :draft)
     unless draft_errors.empty?
       result['previewErrors'] = field_errors(draft_errors)
@@ -129,9 +128,6 @@ begin
       view.data = document.metadata.merge('layout' => 'proposal-preview', 'permalink' => '/index.html', 'render_with_liquid' => false, 'proposal' => rendered)
       view.data['title'] = 'Untitled proposal' if view.data['title'].to_s.strip.empty?
       view.data['status'] = 'draft' if view.data['status'].to_s.strip.empty?
-      view.data['supervisor_profiles'] = (view.data['supervisors'] || []).map do |person|
-        id = person['team_id']; {'name' => person['name'], 'url' => team.values.any? { |profile| profile['team_id'] == id } ? '/team/' + id + '/' : nil}
-      end
       view.data['public_attachments'] = (document.metadata['attachments'] || []).map { |file| Media.attachment_view(file, input.fetch('assetSizes', {})[file['url'].to_s.delete_prefix('/')] || file['size']) }
       site.pages << view
       site.generate

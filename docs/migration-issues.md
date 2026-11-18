@@ -76,8 +76,7 @@ narrative fingerprints for all ten files.
 The reminder was given during Step 25. The user confirmed all ten statuses
 and every workload percentage, removed the missing figure
 reference, and requested removal of Max Mustermann and Petra Musterfrau.
-Max's example supervisor entry was removed; Kevin Möri remains. Team is empty
-until real profiles are supplied. No replacement names were invented.
+Max's example supervisor entry was removed; Kevin Möri remains. No replacement names were invented.
 
 `bundle exec ruby scripts/validate-proposals.rb --strict` checks format and
 completeness for all ten proposals. `--release` additionally rejects the

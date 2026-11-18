@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require_relative 'team'
+require_relative 'site-content'
 require_relative 'site-qr'
 require 'securerandom'
 require 'base64'
@@ -12,25 +12,23 @@ module SupportingContent
   FIELDS = {
     'home'=>%w[title introduction sections proposal_limit news_limit links hero_image],
     'about'=>%w[title overview group_text program_text application_steps corrections_text corrections_email],
-    'team'=>%w[name role email active display_order interests links portrait],
     'news'=>%w[title summary image]
   }.freeze
   def self.kind(path)
     return 'home' if path == '_data/home.yml'
     return 'about' if path == '_data/about.yml'
-    return 'team' if path&.match?(%r{\A_team/[a-z0-9]+(?:-[a-z0-9]+)*\.md\z})
     return 'news' if path&.match?(%r{\A_news/[a-z0-9]+(?:-[a-z0-9]+)*\.md\z})
-    raise Proposals::FormatError, 'Choose Home, About, a news item or a team profile'
+    raise Proposals::FormatError, 'Choose Home, About or a news item'
   end
   def self.parse(source, type)
-    return Proposals::Document.parse(source) if %w[team news].include?(type)
+    return Proposals::Document.parse(source) if type=='news'
 
     metadata = Proposals.load_yaml(source)
     SiteContent.upgrade_about!(metadata) if type == 'about'
     Proposals::Document.new(metadata, '')
   end
   def self.serialize(document, type)
-    %w[team news].include?(type) ? document.serialize : YAML.dump(document.metadata)
+    type=='news' ? document.serialize : YAML.dump(document.metadata)
   end
   def self.model(source,path,context={})
     type=kind(path); document=parse(source,type)
@@ -39,28 +37,26 @@ module SupportingContent
   def self.restoration(path, source, current, prepared_at)
     type=kind(path); historical=parse(source,type); previous=parse(current,type)
     raise Proposals::FormatError,'Private historical drafts cannot be restored' if historical.metadata.key?('_editor_draft') || historical.metadata['published']==false
-    immutable=type=='team' ? %w[team_id created_at permalink] : type=='news' ? %w[date created_at permalink] : []
+    immutable=type=='news' ? %w[date created_at permalink] : []
     immutable.each do |field|
       next unless previous.metadata.key?(field)
       raise Proposals::FormatError,"#{field}: retain original identity and publication information" unless historical.metadata[field]==previous.metadata[field]
     end
-    historical.metadata['display_order']=previous.metadata['display_order'] if type=='team'
     candidate(path,historical,previous,prepared_at)
   end
   def self.candidate(path,document,previous,now)
     type=kind(path)
-    if %w[team news].include?(type)
+    if type=='news'
       if previous
-        fields=type=='team' ? %w[team_id created_at] : %w[date created_at]
+        fields=%w[date created_at]
         fields.each { |field| raise Proposals::FormatError,"#{field}: cannot change" if previous.metadata.key?(field) && document.metadata[field]!=previous.metadata[field] }
         previous.metadata.key?('published') ? document.metadata['published']=previous.metadata['published'] : document.metadata.delete('published')
       else
         document.metadata['published']=true
         document.metadata['created_at']=now if document.metadata['created_at'].to_s.empty?
-        document.metadata['date']=now if type=='news' && document.metadata['date'].to_s.empty?
+        document.metadata['date']=now if document.metadata['date'].to_s.empty?
       end
       ignored=%w[updated_at]
-      ignored<<'display_order' if type=='team'
       changed=!previous || document.body!=previous.body || ((document.metadata.keys|previous.metadata.keys)-ignored).any? { |key| document.metadata[key]!=previous.metadata[key] }
       if changed
         earlier=previous&.metadata&.fetch('updated_at',nil)
@@ -77,13 +73,13 @@ module SupportingContent
   def self.process(input)
     action=input.fetch('action'); files=input.fetch('files',{})
     if action=='bootstrap'
-      items=files.filter_map { |path,source| model(source,path) if path.start_with?('_team/','_news/') || %w[_data/home.yml _data/about.yml].include?(path) }
+      items=files.filter_map { |path,source| model(source,path) if path.start_with?('_news/') || %w[_data/home.yml _data/about.yml].include?(path) }
       return {'items'=>items,'qrDestination'=>SiteQR.destination}
     end
     if action=='new'
-      type=input.fetch('kind'); raise Proposals::FormatError,'Create a news item or team profile' unless %w[news team].include?(type)
-      id=(type=='team'?'member-':'news-')+SecureRandom.hex(12); now=Time.now.utc.iso8601; path="_#{type}/#{id}.md"
-      data=type=='team' ? {'team_id'=>id,'name'=>'','role'=>'','email'=>'','active'=>true,'display_order'=>100,'interests'=>[],'links'=>[]} : {'title'=>'','summary'=>'','date'=>'','updated_at'=>now}
+      type=input.fetch('kind'); raise Proposals::FormatError,'Create a news item' unless type=='news'
+      id='news-'+SecureRandom.hex(12); now=Time.now.utc.iso8601; path="_#{type}/#{id}.md"
+      data={'title'=>'','summary'=>'','date'=>'','updated_at'=>now}
       data.merge!('layout'=>type,'published'=>false,'created_at'=>now,'permalink'=>"/#{type}/#{id}/")
       return model(Proposals::Document.new(data,'').serialize,path)
     end
@@ -94,7 +90,6 @@ module SupportingContent
       context=document.metadata.delete('_editor_draft')||context
       raise Proposals::FormatError,'Invalid draft context' unless context.is_a?(Hash) && (context.keys-%w[path sha baseCommit kind]).empty?
       path=context['path']||path
-      path||="_team/#{document.metadata['team_id']}.md" if document.metadata['team_id']
       path||='_data/home.yml' if document.metadata.key?('sections')
       path||='_data/about.yml' if document.metadata.key?('overview')
       path||="_news/#{document.metadata['permalink'].split('/')[2]}.md" if document.metadata['permalink'].is_a?(String) && document.metadata['permalink'].match?(%r{\A/news/[a-z0-9]+(?:-[a-z0-9]+)*/\z})
@@ -111,12 +106,12 @@ module SupportingContent
     raise Proposals::FormatError,'Unsupported content field' unless patch.is_a?(Hash) && (patch.keys-FIELDS.fetch(type)).empty?
     patch.each { |key,value| value.nil? ? document.metadata.delete(key) : document.metadata[key]=value }
     if input.key?('body')
-      raise Proposals::FormatError,'Use Markdown text for the body' unless input['body'].is_a?(String) && %w[news team].include?(type)
+      raise Proposals::FormatError,'Use Markdown text for the body' unless input['body'].is_a?(String) && type=='news'
       document.body=input['body']
     end
     working=serialize(document,type)
     if action=='download'
-      document.metadata['published']=false if %w[team news].include?(type)
+      document.metadata['published']=false if type=='news'
       document.metadata['_editor_draft']=context.merge('path'=>path,'kind'=>type)
       return model(serialize(document,type),path,context)
     end

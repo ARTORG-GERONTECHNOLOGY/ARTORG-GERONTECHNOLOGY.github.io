@@ -196,7 +196,7 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
         }
       }
       if (route === '/admin/') {
-        return send(200, (await fs.readFile(new URL('./editor.html', import.meta.url), 'utf8')).replace('__CSRF__', session.csrf));
+        return send(200, await fs.readFile(new URL('./editor.html', import.meta.url), 'utf8'));
       }
       return send(404, page('Page unavailable', '<p>This administration page is unavailable.</p>'));
     } catch (error) {

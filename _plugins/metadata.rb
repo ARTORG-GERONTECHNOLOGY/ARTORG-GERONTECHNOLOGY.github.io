@@ -15,10 +15,9 @@ module SiteContent
     description=page.is_a?(Jekyll::Document) ? plain.call(page.content) : title if description.nil? || description=='Project Proposal'
     description=site.data['home']['sections']['introduction'] ? site.data['home']['introduction'] : title if page.url=='/'
     description=site.data.dig('about_paragraphs','overview','text') if page.url=='/about/'
-    description=[data['role'],plain.call(data['bio_html'])].compact.join(' — ') if data['layout']=='team'
     description=title if description.to_s.empty?
     description="#{data['status'].capitalize}: #{description}" if data['status']
-    image=data['figure'] || data['image'] || data['portrait']
+    image=data['figure'] || data['image']
     image=site.data['home']['sections']['introduction'] ? site.data['home']['hero_image'] : nil if page.url=='/'
     data['public_metadata']={'title'=>title,'description'=>description[0,200],'image'=>image,'article'=>%w[post news].include?(data['layout'])}
     {'url'=>page.url,'updated_at'=>data['updated_at']}

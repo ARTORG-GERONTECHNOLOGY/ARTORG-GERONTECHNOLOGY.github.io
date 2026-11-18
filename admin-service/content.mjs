@@ -66,7 +66,7 @@ export class ContentStore {
       paths.add(item.path.toLowerCase()); next.delete(item.path); changes.push({...item,delete:true});
     }
     for (const item of assets) {
-      if (!asset(item.path) || !/^assets\/media\/(proposals|team|news|home)\/[a-z0-9-]+\/[a-z0-9-]+-[a-f0-9]{16}\.(png|jpe?g|webp|pdf)$/.test(item.path) || !Buffer.isBuffer(item.bytes) || paths.has(item.path.toLowerCase())) throw new ContentError(422, 'invalid_media', 'Use a validated content upload.');
+      if (!asset(item.path) || !/^assets\/media\/(proposals|news|home)\/[a-z0-9-]+\/[a-z0-9-]+-[a-f0-9]{16}\.(png|jpe?g|webp|pdf)$/.test(item.path) || !Buffer.isBuffer(item.bytes) || paths.has(item.path.toLowerCase())) throw new ContentError(422, 'invalid_media', 'Use a validated content upload.');
       paths.add(item.path.toLowerCase());
       const old = snapshot.files.get(item.path);
       if (old && !old.bytes.equals(item.bytes)) throw new ContentError(409, 'media_conflict', 'An existing file cannot be overwritten. Upload under a new name.');

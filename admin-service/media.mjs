@@ -58,7 +58,7 @@ export class MediaStore {
       const hash=createHash('sha256').update(storedBytes).digest('hex');
       const path='assets/media/'+owner.folder+'/'+owner.id+'/'+stem+'-'+hash.slice(0,16)+extension;
       const existing=this.temporary(session).find(item=>item.path===path);if(existing)return this.describe(existing);
-      if(this.temporary(session).filter(item=>item.ownerKey===owner.key).reduce((sum,item)=>sum+item.bytes.length,0)+storedBytes.length>rules.max_proposal_bytes)throw new ContentError(413,'upload_limit','Temporary files for this content exceed 25 MiB. Save selected files or sign out before uploading more.');
+      if(this.temporary(session).filter(item=>item.ownerKey===owner.key).reduce((sum,item)=>sum+item.bytes.length,0)+storedBytes.length>rules.max_proposal_bytes)throw new ContentError(413,'upload_limit','Temporary files for this content exceed 25 MiB. Save the files you want to keep, or wait for the temporary files to expire before uploading more.');
       if([...this.entries.values()].reduce((sum,item)=>sum+item.bytes.length,0)+storedBytes.length>128*1024*1024||this.entries.size>=200)throw new ContentError(429,'upload_capacity','Temporary upload storage is full. Please try again later.');
       const id=randomBytes(16).toString('hex');
       const item={id,path,proposalId,ownerPath:owner.path,ownerKey:owner.key,filename,bytes:storedBytes,session,...info};this.entries.set(id,item);return this.describe(item);

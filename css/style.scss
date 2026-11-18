@@ -1072,21 +1072,6 @@ button, .site-navigation a { min-height: 44px; }
 .news-body pre { overflow-x: auto; background: #21211e; color: white; }
 .news-body ul { list-style: disc; }
 
-/* Team entries support real portraits or a simple text-only layout. */
-.team-cards { list-style: none; padding: 0; margin: 2rem 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 2rem; }
-.team-card { background: #2d2d29; border-left: 3px solid #3ca2a2; border-radius: .4rem; padding: 1.5rem; min-width: 0; }
-.team-card h2 { font-size: 2.2rem; line-height: 1.3; margin: 0 0 1rem; }
-.team-card a, .team-profile a { overflow-wrap: anywhere; }
-.team-portrait { display: block; max-width: 100%; height: auto; width: 180px; margin: 0 0 1.5rem; border-radius: .4rem; }
-.team-role { color: #b9efc8; font-size: 2rem; }
-.team-profile h2 { font-size: 2.6rem; }
-.team-interests { list-style: disc; }
-.team-links { padding: 0; list-style: none; }
-.team-links li { margin-bottom: .75rem; }
-.team-bio { overflow-wrap: anywhere; }
-.team-bio img { max-width: 100%; height: auto; }
-.team-bio ul { list-style: disc; }
-
 .about-content { overflow-wrap: anywhere; }
 .about-content h2 { font-size: 2.6rem; line-height: 1.3; margin-top: 3rem; }
 .about-content ul { list-style: disc; padding-left: 2.5rem; }

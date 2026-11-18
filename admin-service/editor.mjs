@@ -17,7 +17,7 @@ export async function localSnapshot() {
       else if (editable(name) || asset(name)) { const bytes = await fs.readFile(path.join(root, name)); files.set(name, {bytes, sha: blobSha(bytes)}); }
     }
   }
-  for (const directory of ['_posts', '_team', '_news', '_data', 'assets/images', 'assets/media', 'assets/attachments']) await collect(directory);
+  for (const directory of ['_posts', '_news', '_data', 'assets/images', 'assets/media', 'assets/attachments']) await collect(directory);
   return {head: blobSha(Buffer.from([...files].map(([name, file]) => name + file.sha).sort().join('\n'))), files};
 }
 
@@ -56,7 +56,6 @@ export class ProposalEditor {
       const originalSource = context.path && snapshot.files.get(context.path)?.bytes.toString('utf8');
       const result = await rubyEditor({source, originalSource, operation: payload.operation, patch: payload.patch || {}, sections: payload.sections || {}, context,
         categories: snapshot.files.get('_data/proposal_categories.yml').bytes.toString('utf8'),
-        team: Object.fromEntries([...snapshot.files].filter(([file]) => file.startsWith('_team/')).map(([file, value]) => [file, value.bytes.toString('utf8')])),
         assetSizes: Object.fromEntries([...snapshot.files].filter(([file]) => asset(file)).map(([file,value])=>[file,value.bytes.length]))});
       if (result.error) throw new ContentError(422, result.error, result.message, {errors: result.errors});
       if (result.context.path && (!editable(result.context.path) || !result.context.path.startsWith('_posts/'))) throw new ContentError(422, 'invalid_path', 'Choose a proposal path.');

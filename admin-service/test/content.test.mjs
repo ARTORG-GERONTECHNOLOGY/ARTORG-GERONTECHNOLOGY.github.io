@@ -28,7 +28,7 @@ async function fixture() {
       else if (editable(name) || asset(name)) { const bytes = await fs.readFile(path.join(root, name)); files.set(name, {bytes, sha: blobSha(bytes)}); }
     }
   }
-  for (const directory of ['_posts', '_team', '_news', '_data', 'assets/images']) await collect(directory);
+  for (const directory of ['_posts', '_news', '_data', 'assets/images']) await collect(directory);
   const fake = {head: hash('initial'), files, mutations: 0, mints: 0, race: false, fail: false, loseResponse: false};
   fake.revisions=new Map([[fake.head,{files:new Map(files),parents:[],paths:[...files.keys()],time:'2026-01-15T00:30:00Z'}]]);
   const label=commit=>({sha:commit,parents:fake.revisions.get(commit).parents.map(sha=>({sha})),author:{type:'Bot',login:'ger-admin[bot]'},commit:{committer:{date:fake.revisions.get(commit).time},author:{name:'Shared administration'},message:'Update staff content'}});

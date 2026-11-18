@@ -8,6 +8,7 @@ module Proposals
   def self.restoration(current_source, historical_source, baseline_source, prepared_at: nil)
     historical = Document.parse(historical_source)
     historical.metadata.delete(Document::RETIRED_FIELD)
+    historical.remove_retired_profile_links!
     baseline = Document.parse(baseline_source)
     SCHEMA.fetch('immutable_fields').each do |field|
       raise FormatError, "#{field}: historical identity does not match this proposal" unless historical.metadata[field] == baseline.metadata[field]
@@ -28,6 +29,7 @@ module Proposals
     return nil if source.nil?
     if path.end_with?('.md')
       document = Document.parse(source)
+      document.remove_retired_profile_links! if path.start_with?('_posts/')
       metadata = Marshal.load(Marshal.dump(document.metadata))
       metadata.delete(Document::RETIRED_FIELD) if path.start_with?('_posts/')
       %w[date created_at updated_at].each do |field|

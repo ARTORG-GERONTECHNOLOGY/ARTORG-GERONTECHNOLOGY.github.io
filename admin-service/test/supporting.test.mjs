@@ -10,11 +10,6 @@ import {ContentRevisions} from '../revisions.mjs';
 const authorize=async()=>{};
 async function fixture(){
   let snapshot=await localSnapshot();
-  // Profiles and links belong to this isolated provider, never to public content.
-  const profile=Buffer.from('---\nlayout: team\nteam_id: fixture-supporting-member\nname: Fixture member\nrole: Postdoc\nactive: true\ndisplay_order: 10\ninterests: []\nlinks: []\n---\nFixture biography.\n');
-  snapshot.files.set('_team/fixture-supporting-member.md',{bytes:profile,sha:blobSha(profile)});
-  const proposal=[...snapshot.files.keys()].find(path=>path.startsWith('_posts/'));const linked=Buffer.from(snapshot.files.get(proposal).bytes.toString('utf8').replace(/^supervisors:\r?\n/m,'supervisors:\n- name: Fixture linked supervisor\n  team_id: fixture-supporting-member\n'));
-  snapshot.files.set(proposal,{bytes:linked,sha:blobSha(linked)});snapshot.head=blobSha(Buffer.from([...snapshot.files].map(([path,file])=>path+file.sha).sort().join('\n')));
   let count=0;const versions=new Map([[snapshot.head,{snapshot,parents:[],paths:[...snapshot.files.keys()]}]]);
   const provider={snapshot:async()=>snapshot,commit:async(head,changes)=>{if(head!==snapshot.head)throw conflict(snapshot.head);const files=new Map(snapshot.files);for(const item of changes){const bytes=item.bytes||Buffer.from(item.content);files.set(item.path,{bytes,sha:blobSha(bytes)});}snapshot={head:blobSha(Buffer.from('support '+ ++count)),files};versions.set(snapshot.head,{snapshot,parents:[head],paths:changes.map(item=>item.path)});return snapshot.head;},
     history:async(path)=>({hasMore:false,revisions:[...versions].reverse().filter(([,value])=>value.paths.includes(path)).map(([commit])=>({commit,time:new Date().toISOString(),author:'Fixture shared author (not verified)',message:'Update fixture content'}))}),
@@ -36,6 +31,19 @@ test('Home/About forms retain source on no-op, render trusted public templates a
   const draft=await f.supporting.prepare({operation:'download',source:home.source,path:home.path,context,patch:{title:'Unfinished home'}},authorize);
   await assert.rejects(f.store.save({baseCommit:bootstrap.baseCommit,changes:[{path:home.path,sha:home.sha,content:draft.source}]},authorize),error=>error.status===422);
   const reopened=await f.supporting.prepare({operation:'parse',source:draft.source},authorize);assert.equal(reopened.kind,'home');assert.deepEqual(reopened.context,context);assert.equal(reopened.metadata.title,'Unfinished home');
+});
+
+test('retired Team content cannot be created, imported, uploaded or restored',async()=>{
+  const f=await fixture();
+  const oldPath='_team/retired-profile.md';
+  const oldDraft='---\nlayout: team\nteam_id: retired-profile\nname: Retired profile\n---\n';
+  const revisions=new ContentRevisions(f.editor,{supporting:f.supporting});
+  const session={expires:Date.now()+120000};
+  await assert.rejects(f.supporting.prepare({operation:'new',kind:'team'},authorize),error=>error.status===422);
+  await assert.rejects(f.supporting.prepare({operation:'parse',source:oldDraft},authorize),error=>error.status===422);
+  await assert.rejects(f.media.upload(session,{filename:'old.png',target:oldPath,mime:'image/png',bytes:Buffer.from('image')},authorize),error=>error.status===422);
+  await assert.rejects(revisions.list(oldPath,1,authorize),error=>error.status===422);
+  await assert.rejects(revisions.preview(session,{path:oldPath},authorize),error=>error.status===422);
 });
 
 test('News creation uses a separate collection, preserves dates/URLs and renders safe Markdown',async()=>{
@@ -65,13 +73,13 @@ test('homepage images save with their owner and cannot be published as another c
   await assert.rejects(f.media.upload(session,{filename:'document.pdf',target:home.path,mime:'application/pdf',bytes},authorize),error=>error.status===422);
 });
 
-test('Home/About/Team/News updates expose history and restore safely without altering profile order or news publication',async()=>{
+test('Home/About/News updates expose history and restore safely without altering news publication',async()=>{
   const f=await fixture();const session={expires:Date.now()+7200000};const revisions=new ContentRevisions(f.editor,{supporting:f.supporting});
   const news=await f.supporting.prepare({operation:'new',kind:'news'},authorize);const fresh=await f.supporting.prepare({operation:'publish',source:news.source,path:news.path,patch:{title:'Restorable news fixture',summary:'Original summary'},body:'Original news body'},authorize);
   await f.media.save(session,{baseCommit:f.snapshot().head,changes:[{path:fresh.path,sha:null,content:fresh.source}],uploads:[]},authorize);
-  const initial=await f.supporting.bootstrap(authorize);const selectedCommit=f.snapshot().head;const chosen=['home','about','team','news'].map(kind=>initial.items.find(item=>item.kind===kind&&(kind!=='team'||item.metadata.team_id==='fixture-supporting-member')));
+  const initial=await f.supporting.bootstrap(authorize);const selectedCommit=f.snapshot().head;const chosen=['home','about','news'].map(kind=>initial.items.find(item=>item.kind===kind));
   const changes=[];
-  for(const item of chosen){const patch=item.kind==='home'?{title:'Changed homepage'}:item.kind==='about'?{overview:'Changed overview'}:item.kind==='team'?{name:'Changed profile',active:false,display_order:50}:{summary:'Changed news'};
+  for(const item of chosen){const patch=item.kind==='home'?{title:'Changed homepage'}:item.kind==='about'?{overview:'Changed overview'}:{summary:'Changed news'};
     const changed=await f.supporting.prepare({operation:'publish',path:item.path,source:item.source,patch},authorize);assert.equal(changed.ready,true);changes.push({path:item.path,sha:item.sha,content:changed.source});}
   await f.store.save({baseCommit:f.snapshot().head,changes},authorize);
   for(const item of chosen){const history=await revisions.list(item.path,1,authorize);assert.ok(history.revisions.length>=2);const detail=await revisions.detail(item.path,history.revisions[0].commit,authorize);assert.ok(detail.diff.metadata.length);
@@ -80,21 +88,6 @@ test('Home/About/Team/News updates expose history and restore safely without alt
     const restored=(await f.supporting.bootstrap(authorize)).items.find(value=>value.path===item.path);
     if(item.kind==='home')assert.equal(restored.metadata.title,item.metadata.title);
     if(item.kind==='about')assert.equal(restored.metadata.overview,item.metadata.overview);
-    if(item.kind==='team'){assert.equal(restored.metadata.name,item.metadata.name);assert.equal(restored.metadata.active,true);assert.equal(restored.metadata.display_order,50);assert.equal(restored.metadata.team_id,item.metadata.team_id);}
     if(item.kind==='news'){assert.equal(restored.metadata.summary,item.metadata.summary);assert.equal(restored.metadata.date,item.metadata.date);assert.equal(restored.metadata.permalink,item.metadata.permalink);}
   }
-});
-
-test('Team editing keeps stable IDs, inactive profiles and proposal supervisor names; image commits are atomic',async()=>{
-  const f=await fixture();const bootstrap=await f.supporting.bootstrap(authorize);const profile=bootstrap.items.find(item=>item.metadata.team_id==='fixture-supporting-member');const posts=[...f.snapshot().files].filter(([path])=>path.startsWith('_posts/'));
-  const changed=await f.supporting.prepare({operation:'publish',source:profile.source,path:profile.path,patch:{name:'Fixture profile rename',active:false}},authorize);assert.equal(changed.ready,true);assert.equal(changed.metadata.team_id,profile.metadata.team_id);
-  await f.media.save({expires:Date.now()+7200000},{baseCommit:f.snapshot().head,changes:[{path:profile.path,sha:profile.sha,content:changed.source}],uploads:[]},authorize);
-  for(const [path,file] of posts)assert.deepEqual(f.snapshot().files.get(path).bytes,file.bytes,'stored proposal names must not change');
-  const rendered=await f.supporting.prepare({operation:'preview',source:changed.source,path:profile.path},authorize);assert.ok(rendered.html.includes('Fixture profile rename'));assert.ok(rendered.html.includes('team-proposals-title'),'inactive profile keeps related proposals');
-  await assert.rejects(f.supporting.prepare({operation:'publish',source:changed.source,path:profile.path,patch:{team_id:'changed-id'}},authorize),error=>error.status===422);
-  const session={expires:Date.now()+7200000};const fresh=await f.supporting.prepare({operation:'new',kind:'team'},authorize);const bytes=await fs.readFile(new URL('../../assets/images/branding/bfh.png',import.meta.url));
-  const upload=await f.media.upload(session,{filename:'portrait.png',target:fresh.path,mime:'image/png',bytes},authorize);assert.ok(upload.url.startsWith('/assets/media/team/'));
-  const newProfile=await f.supporting.prepare({operation:'publish',source:fresh.source,path:fresh.path,patch:{name:'Isolated fixture member',portrait:{src:upload.url,alt:'Fixture portrait'}},body:'Biography — ü'},authorize,f.media.temporary(session));assert.equal(newProfile.ready,true);
-  const committed=await f.media.save(session,{baseCommit:f.snapshot().head,changes:[{path:fresh.path,sha:null,content:newProfile.source}],uploads:[upload.id]},authorize);assert.equal(committed.files.length,2);assert.deepEqual(f.snapshot().files.get(upload.url.slice(1)).bytes,bytes);
-  const order=await f.supporting.prepare({operation:'publish',source:newProfile.source,path:fresh.path,patch:{display_order:5}},authorize);assert.equal(order.metadata.updated_at,newProfile.metadata.updated_at);
 });

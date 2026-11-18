@@ -51,7 +51,7 @@ def check_build(directory):
     retained_pages = {entry['page_url'].lstrip('/') + 'index.html' for entry in manifest['proposals']}
     forbidden_roots = {'scripts', 'templates', 'admin-service',
                        'node_modules', '.git', '.github', '.bundle', 'vendor',
-                       'private', 'drafts', '_drafts', 'tmp', 'output'}
+                       'private', 'drafts', '_drafts', 'tmp', 'output', '_team', 'team'}
     forbidden_suffixes = {'.docx', '.doc', '.rb', '.py', '.pyc', '.mjs', '.cjs',
                           '.pem', '.key', '.p12', '.pfx', '.sqlite', '.db', '.log',
                           '.yml', '.yaml', '.toml', '.ps1', '.bak', '.tmp'}
@@ -63,7 +63,8 @@ def check_build(directory):
         if not file.is_file():
             continue
         legacy_source = relative.parts[0] == 'post_archive' and relative.as_posix() not in retained_pages
-        if (relative.parts[0] in forbidden_roots or legacy_source or file.suffix.lower() in forbidden_suffixes
+        if (relative.parts[0] in forbidden_roots or relative.parts[:3] == ('assets', 'media', 'team')
+                or legacy_source or file.suffix.lower() in forbidden_suffixes
                 or file.name.startswith('.env') or file.name in {'AGENTS.md', 'new-features.md', 'Gemfile', 'Gemfile.lock', 'package.json', 'pnpm-lock.yaml', '¨'}):
             raise ValueError(f'Internal/private file in public output: {relative}')
         if credential.search(file.read_bytes()):
@@ -87,7 +88,7 @@ def check_build(directory):
         raise ValueError('Search index missing or empty')
     urls = set()
     for entry in entries:
-        if entry['type'] not in {'proposal', 'team', 'news', 'page'} or not entry['title'].strip():
+        if entry['type'] not in {'proposal', 'news', 'page'} or not entry['title'].strip():
             raise ValueError('Invalid search entry')
         if entry['url'] in urls:
             raise ValueError('Duplicate search URL')

@@ -5,11 +5,10 @@ require_relative "../scripts/lib/proposal-catalogue"
 require_relative "../scripts/lib/media"
 
 Jekyll::Hooks.register :site, :post_read do |site|
-  team_ids = site.collections.fetch("team", nil)&.docs&.map { |profile| profile.data["team_id"] } || []
-  renderer = Proposals::Renderer.new(baseurl: site.baseurl, team_ids: team_ids)
+  renderer = Proposals::Renderer.new(baseurl: site.baseurl)
   posts = site.posts.docs
   documents = posts.to_h { |post| [post.path, Proposals::Document.read(post.path)] }
-  failures = Proposals::Validator.new(team_ids: team_ids).validate_set(documents).reject { |_path, errors| errors.empty? }
+  failures = Proposals::Validator.new.validate_set(documents).reject { |_path, errors| errors.empty? }
   unless failures.empty?
     raise Jekyll::Errors::FatalException, failures.map { |path, errors| "#{path}: #{errors.join('; ')}" }.join("\n")
   end

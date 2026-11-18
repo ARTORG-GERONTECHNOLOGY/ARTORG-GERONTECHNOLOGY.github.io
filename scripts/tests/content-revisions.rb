@@ -32,9 +32,11 @@ raise 'About restoration reintroduced retired guidance' if restored_about['sourc
 current = Proposals::Document.parse(source); current.metadata['priority'] = 10; current.metadata['title'] = 'Later title'
 historical = Proposals::Document.parse(source)
 historical.metadata['student_eligibility'] = 'bme_only'
+historical.metadata['supervisors'].first['team_id'] = 'retired-profile'
 raise 'Retired field leaked into revision comparison' unless Proposals.revision_diff(historical.serialize,source,'_posts/example.md')['metadata'].empty?
 restored = Proposals::Document.parse(Proposals.restoration(current.serialize,historical.serialize,current.serialize)['source'])
 raise 'Restoration reintroduced a retired field' if restored.metadata.key?('student_eligibility')
+raise 'Restoration lost supervisor names or restored a profile link' unless restored.metadata['supervisors'] == document.metadata['supervisors']
 raise 'Restoration did not preserve order' unless restored.metadata['priority'] == 10 && restored.metadata['title'] == document.metadata['title']
 raise 'Restoration did not advance substantive date' unless Proposals.time(restored.metadata['updated_at']) > Proposals.time(current.metadata['updated_at'])
 bad = Proposals::Document.parse(source);bad.metadata['proposal_id'] = 'another-id'

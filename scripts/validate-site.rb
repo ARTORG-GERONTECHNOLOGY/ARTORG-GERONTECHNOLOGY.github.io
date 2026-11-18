@@ -22,7 +22,7 @@ run = lambda do |*command|
 end
 ruby_check = ->(file, *arguments) { run.call(RbConfig.ruby, file, *arguments) }
 ruby_check.call('scripts/validate-proposals.rb')
-%w[validation-workflow publication-workflow proposal-format proposal-rendering-fixtures proposal-lifecycle content-revisions media home-news team about publishing site-qr].each do |name|
+%w[validation-workflow publication-workflow proposal-format proposal-rendering-fixtures proposal-lifecycle content-revisions media home-news about publishing site-qr].each do |name|
   ruby_check.call("scripts/tests/#{name}.rb")
 end
 %w[catalogue-filters search].each { |name| run.call(node, "scripts/tests/#{name}.cjs") }

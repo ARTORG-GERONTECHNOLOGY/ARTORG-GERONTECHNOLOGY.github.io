@@ -19,7 +19,6 @@ tags: []
 language: en
 supervisors:
   - name: ""
-    # team_id: "" # Optional, once a team profile exists.
 institutes:
   - name: ""
     # url: "https://..." # Optional institutional link.

@@ -14,11 +14,10 @@ tags: []
 attachments: []
 submission_email: bme.artorg@unibe.ch
 status: archived
-student_eligibility: bme_only
 proposal_id: ger-arm-use-children-hemiparesis
 permalink: "/post_archive/2025-09-01-project-arm-use-children-hemiparesis/"
 created_at: '2025-09-01T09:56:16Z'
-updated_at: '2026-11-11T16:28:39Z'
+updated_at: '2026-11-18T13:23:10Z'
 contact:
   name: Kevin Möri
   email: kevin.moeri@unibe.ch

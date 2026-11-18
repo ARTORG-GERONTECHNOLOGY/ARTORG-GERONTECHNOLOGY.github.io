@@ -14,11 +14,10 @@ tags: []
 attachments: []
 submission_email: bme.artorg@unibe.ch
 status: archived
-student_eligibility: bme_and_aim
 proposal_id: ger-markerless-tracking-validation
 permalink: "/post_archive/2025-04-30-project-markerless-tracking-validation/"
 created_at: '2025-04-30T12:26:39Z'
-updated_at: '2026-11-18T06:50:19Z'
+updated_at: '2026-11-18T13:23:10Z'
 contact:
   name: Kevin Möri, MSc
   email: kevin.moeri@unibe.ch

@@ -3,7 +3,7 @@ require_relative '../lib/proposal-renderer'
 require 'nokogiri'
 
 output = ARGV[0] ? File.expand_path(ARGV[0]) : File.expand_path('../../../.local/site', __dir__)
-expected = ['Background', 'Aim', 'Materials and Methods', 'Nature of the Thesis', 'Requirements', 'Supervisors', 'Institutes', 'Contact', 'Student eligibility']
+expected = ['Background', 'Aim', 'Materials and Methods', 'Nature of the Thesis', 'Requirements', 'Supervisors', 'Institutes', 'Contact']
 count = 0
 check = lambda do |condition, message|
   raise message unless condition
@@ -23,7 +23,7 @@ paths.each do |path|
   check.call(article.at_css('[itemprop=datePublished]')['datetime'] == Proposals.time(data.fetch('date')).iso8601, "Publication date: #{path}")
   check.call(article.at_css('.proposal-status').text == data.fetch('status').capitalize, "Status: #{path}")
   check.call(article.css('.proposal-related .proposal-status').all? { |badge| badge.text == 'Available' }, "Unavailable recommendation: #{path}")
-  check.call(article.at_css('#eligibility').parent.text.include?(Proposals::SCHEMA.fetch('eligibilities').fetch(data.fetch('student_eligibility'))), "Eligibility: #{path}")
+  check.call(article.css('#eligibility').empty?, "Retired eligibility section: #{path}")
   check.call(article.at_css("a[href='mailto:#{data.fetch('contact').fetch('email')}']"), "Contact link: #{path}")
   article.css('.proposal-program img, .proposal-neighbours a, .proposal-related a').each do |node|
     target = node['src'] || node['href']

@@ -1,7 +1,0 @@
-<div>
-  <label for="filter-eligibility">Student program</label>
-  <select id="filter-eligibility" name="eligibility">
-    <option value="">All programs</option>
-    {% for option in site.data.proposal_schema.eligibility_filters %}<option value="{{ option.id | escape }}" data-values="{{ option.values | jsonify | escape }}">{{ option.label | escape }}</option>{% endfor %}
-  </select>
-</div>

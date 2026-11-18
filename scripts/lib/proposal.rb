@@ -67,6 +67,8 @@ module Proposals
   CATEGORIES = categories!(load_yaml(File.read(File.join(ROOT, '_data/proposal_categories.yml'), encoding: 'UTF-8'), mapping: false))
 
   class Document
+    RETIRED_FIELD = 'student_eligibility'
+
     attr_reader :metadata, :body, :sections, :section_errors
 
     def self.read(path)
@@ -171,7 +173,9 @@ module Proposals
       end
       error("layout", "must be post") unless data["layout"] == "post" || (@draft && blank?(data["layout"]))
       enum(data["status"], "status", @schema.fetch("statuses"))
-      enum(data["student_eligibility"], "student_eligibility", @schema.fetch("eligibilities").keys)
+      if data.key?(Document::RETIRED_FIELD)
+        error(Document::RETIRED_FIELD, "is retired and must be removed")
+      end
       if !blank?(data["proposal_id"]) && (!data["proposal_id"].is_a?(String) || !data["proposal_id"].match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/))
         error("proposal_id", "use lowercase letters, numbers and single hyphens")
       end

@@ -26,12 +26,6 @@
   {% if page.start_date_text and page.start_date_text != empty %}<h3>Start Date</h3><p>{{ page.start_date_text | escape }}</p>{% endif %}
   {% if page.workplace and page.workplace != empty %}<h3>Workplace</h3><p>{{ page.workplace | escape | newline_to_br }}</p>{% endif %}
 </section>
-<section class="proposal-section" aria-labelledby="eligibility">
-  <h2 id="eligibility">Student eligibility</h2>
-  {% if page.layout == 'proposal-print' %}
-  {% for choice in site.data.proposal_schema.eligibilities %}<p><span class="eligibility-box">{% if page.student_eligibility == choice[0] %}x{% endif %}</span> {{ choice[1] | escape }}</p>{% endfor %}
-  {% else %}<p>{{ site.data.proposal_schema.eligibilities[page.student_eligibility] | escape }}</p>{% endif %}
-</section>
 
 <footer class="proposal-program">
   {% for brand in site.data.program.branding %}

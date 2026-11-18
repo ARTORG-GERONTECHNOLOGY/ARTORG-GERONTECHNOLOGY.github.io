@@ -6,14 +6,13 @@ summary: Project Proposal
 categories:
 - biomarkers
 status: available
-student_eligibility: bme_only
 supervisors:
 - name: Dr. Vassilis Skaramagkas
 schema_version: 1
 template_version: 1
 proposal_id: ger-multimodal-digital-biomarkers-for-early-brain-health-monitoring
 created_at: '2026-05-05T13:26:14Z'
-updated_at: '2026-11-11T16:14:29Z'
+updated_at: '2026-11-18T13:23:10Z'
 priority: 100
 featured: false
 language: en

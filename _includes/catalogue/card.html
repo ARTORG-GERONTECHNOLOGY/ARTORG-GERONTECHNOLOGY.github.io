@@ -1,8 +1,8 @@
 {% assign project = include.project %}
-<li class="catalogue-card" data-proposal-id="{{ project.proposal_id | escape }}" data-status="{{ project.status | escape }}" data-categories="{{ project.categories | jsonify | escape }}" data-year="{{ project.year | escape }}" data-eligibility="{{ project.student_eligibility | escape }}"{% unless page.catalogue.statuses contains project.status %} hidden{% endunless %}>
+<li class="catalogue-card" data-proposal-id="{{ project.proposal_id | escape }}" data-status="{{ project.status | escape }}" data-categories="{{ project.categories | jsonify | escape }}" data-year="{{ project.year | escape }}"{% unless page.catalogue.statuses contains project.status %} hidden{% endunless %}>
   <article aria-labelledby="{{ include.group_id | escape }}-{{ project.proposal_id | escape }}">
     <h3 id="{{ include.group_id | escape }}-{{ project.proposal_id | escape }}"><a href="{{ project.url | relative_url }}">{{ project.title | escape }}</a></h3>
-    <p><span class="proposal-status proposal-status-{{ project.status | escape }}">{{ project.status | capitalize | escape }}</span> <span class="catalogue-eligibility">{{ project.eligibility_label | escape }}</span></p>
+    <p><span class="proposal-status proposal-status-{{ project.status | escape }}">{{ project.status | capitalize | escape }}</span></p>
     <p>{{ project.summary | escape }}</p>
     <p class="catalogue-categories">{{ project.category_labels | join: ', ' | escape }}</p>
     <dl class="catalogue-dates">

@@ -10,7 +10,6 @@
     <h2 id="about-applications">How to apply for a project</h2>
     <p><a href="{{ '/posts/' | relative_url }}">Browse available proposals</a> or <a href="{{ '/search/' | relative_url }}">search for a topic</a>.</p>
     <ol>{% for step in site.data.about.application_steps %}<li>{{ step | escape }}</li>{% endfor %}</ol>
-    <p>{{ site.data.about.eligibility_text | escape }}</p>
     <p><a href="{{ '/team/' | relative_url }}">Meet the team</a>. Each proposal lists its supervisors and project contact.</p>
   </section>
 

@@ -10,13 +10,12 @@ schema_version: 1
 template_version: 1
 proposal_id: ger-vital-signs-seismographic-signals
 created_at: '2025-04-30T12:57:12Z'
-updated_at: '2026-11-11T16:14:29Z'
+updated_at: '2026-11-18T13:23:10Z'
 priority: 100
 featured: false
 language: en
 tags: []
 permalink: "/sleep-analysis/2026/05/05/project-vital-signs-seismographic-signals/"
-student_eligibility: bme_and_aim
 supervisors:
 - name: Prof. Dr. Tobias Nef
 - name: Noora Angelva, MSc

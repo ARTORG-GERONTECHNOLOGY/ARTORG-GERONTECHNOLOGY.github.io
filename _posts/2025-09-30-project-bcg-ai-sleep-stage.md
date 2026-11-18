@@ -15,11 +15,10 @@ tags: []
 attachments: []
 submission_email: bme.artorg@unibe.ch
 status: taken
-student_eligibility: bme_and_aim
 proposal_id: ger-bcg-ai-sleep-stage
 permalink: "/post_archive/2025-09-30-project-bcg-ai-sleep-stage/"
 created_at: '2025-09-30T13:37:44Z'
-updated_at: '2026-11-11T16:28:39Z'
+updated_at: '2026-11-18T13:23:10Z'
 contact:
   name: Matilde Castelli
   email: matilde.castelli@unibe.ch

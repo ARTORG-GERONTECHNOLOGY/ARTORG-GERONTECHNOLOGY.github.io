@@ -6,12 +6,11 @@ summary: Project Proposal
 categories:
 - gait-analysis
 status: taken
-student_eligibility: bme_only
 schema_version: 1
 template_version: 1
 proposal_id: ger-gait-analysis-wrist-accelerometers
 created_at: '2025-09-01T09:39:19Z'
-updated_at: '2026-11-11T16:14:29Z'
+updated_at: '2026-11-18T13:23:10Z'
 priority: 100
 featured: false
 language: en

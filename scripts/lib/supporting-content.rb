@@ -11,7 +11,7 @@ require 'nokogiri'
 module SupportingContent
   FIELDS = {
     'home'=>%w[title introduction sections proposal_limit news_limit links hero_image],
-    'about'=>%w[title overview group_text program_text eligibility_text application_steps institutional_links corrections_text corrections_email],
+    'about'=>%w[title overview group_text program_text application_steps institutional_links corrections_text corrections_email],
     'team'=>%w[name role email active display_order interests links portrait],
     'news'=>%w[title summary image]
   }.freeze
@@ -23,7 +23,11 @@ module SupportingContent
     raise Proposals::FormatError, 'Choose Home, About, a news item or a team profile'
   end
   def self.parse(source, type)
-    %w[team news].include?(type) ? Proposals::Document.parse(source) : Proposals::Document.new(Proposals.load_yaml(source), '')
+    return Proposals::Document.parse(source) if %w[team news].include?(type)
+
+    metadata = Proposals.load_yaml(source)
+    SiteContent.upgrade_about!(metadata) if type == 'about'
+    Proposals::Document.new(metadata, '')
   end
   def self.serialize(document, type)
     %w[team news].include?(type) ? document.serialize : YAML.dump(document.metadata)
@@ -95,7 +99,9 @@ module SupportingContent
       path||='_data/about.yml' if document.metadata.key?('overview')
       path||="_news/#{document.metadata['permalink'].split('/')[2]}.md" if document.metadata['permalink'].is_a?(String) && document.metadata['permalink'].match?(%r{\A/news/[a-z0-9]+(?:-[a-z0-9]+)*/\z})
       path||="_news/#{SecureRandom.hex(12)}.md" if document.metadata['layout']=='news'
-      return model(serialize(document,kind(path)),path,context)
+      type=kind(path)
+      SiteContent.upgrade_about!(document.metadata) if type == 'about'
+      return model(serialize(document,type),path,context)
     end
     type=kind(path); document=parse(source,type); document.metadata.delete('_editor_draft')
     if action=='restore'

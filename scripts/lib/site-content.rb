@@ -3,9 +3,27 @@ require_relative "proposal-renderer"
 require_relative "media"
 
 module SiteContent
+  RETIRED_ABOUT_FIELD = 'eligibility_text'
+
+  # Translate the original built-in instructions in older drafts and revisions.
+  # Custom application steps remain intact.
+  def self.upgrade_about!(data)
+    data.delete(RETIRED_ABOUT_FIELD)
+    return unless data['application_steps'].is_a?(Array)
+
+    replacements = {
+      'Browse available proposals and use the student-program filter to find projects open to your program.' =>
+        'Browse available proposals. Use the category or publication year filters to narrow your search.',
+      'Open a proposal and read its aim, methods, workload, requirements and student eligibility. Check any start-date or workplace information.' =>
+        'Open a proposal and read its aim, methods, workload and requirements. Check any start-date or workplace information.'
+    }
+    data['application_steps'] = data['application_steps'].map { |step| replacements.fetch(step, step) }
+  end
+
   def self.about!(data)
     raise Proposals::FormatError, "about: provide named content fields" unless data.is_a?(Hash)
-    %w[title overview group_text program_text eligibility_text administration_text corrections_text].each do |field|
+    raise Proposals::FormatError, "about.#{RETIRED_ABOUT_FIELD}: field is retired" if data.key?(RETIRED_ABOUT_FIELD)
+    %w[title overview group_text program_text administration_text corrections_text].each do |field|
       text!(data[field], "about.#{field}")
     end
     steps = data["application_steps"]

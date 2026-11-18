@@ -22,7 +22,10 @@ test('editor draft download, reopen, field validation and immutable publication 
   assert.ok(new Date(changed.metadata.updated_at)>new Date(original.metadata.updated_at));
   const draft=await editor.prepare({operation:'download',source:changed.source,context},authorize);
   assert.equal(draft.metadata.published,false);
-  const reopened=await editor.prepare({operation:'parse',source:draft.source},authorize);
+  const oldDraft=draft.source.replace(/^---\r?\n/,'---\nstudent_eligibility: bme_only\n');
+  const reopened=await editor.prepare({operation:'parse',source:oldDraft},authorize);
+  assert.equal(Object.hasOwn(reopened.metadata,'student_eligibility'),false);
+  assert.doesNotMatch(reopened.source,/^student_eligibility:/m);
   assert.deepEqual(reopened.context,context);
   assert.equal(reopened.metadata.title,changed.metadata.title);
   const publish=await editor.prepare({operation:'publish',source:reopened.source,context:reopened.context},authorize);
@@ -51,7 +54,8 @@ test('preview shares proposal sections, sanitizes authors and renders math witho
   assert.ok(!/<script\b|\sonerror=|\sonclick=|<iframe\b/i.test(preview.html));
   assert.match(preview.html,/{% include secret.txt %}/);
   assert.match(preview.html,/data:image\/png;base64,/);
-  for(const heading of ['Nature of the Thesis','Supervisors','Institutes','Contact','Student eligibility'])assert.ok(preview.html.includes(heading));
+  for(const heading of ['Nature of the Thesis','Supervisors','Institutes','Contact'])assert.ok(preview.html.includes(heading));
+  assert.doesNotMatch(preview.html,/Student eligibility/);
   assert.match(preview.html,/script-src &#39;none&#39;|script-src 'none'/);
   const changed=await editor.prepare({operation:'compose',source:original.source,sections:{Background:background}},authorize);
   assert.equal(changed.sections.Aim,original.sections.Aim);
@@ -81,7 +85,7 @@ test('editor candidate saves atomically through the existing gate and stale draf
   await assert.rejects(content.save({baseCommit:snapshot.head,changes:[{path:context.path,sha:saved.files[0].sha,content:draft.source}]},authorize));
   assert.equal(commits,1,'private draft is never committed');
   const fresh=await editor.prepare({operation:'new'},authorize);
-  const keys=['title','summary','categories','status','student_eligibility','supervisors','institutes','contact','workload','language'];
+  const keys=['title','summary','categories','status','supervisors','institutes','contact','workload','language'];
   const candidate=await editor.prepare({operation:'publish',source:fresh.source,patch:Object.fromEntries(keys.map(key=>[key,original.metadata[key]])),sections:original.sections},authorize);
   assert.equal(candidate.ready,true);
   const path='_posts/'+candidate.metadata.date.slice(0,10)+'-project-'+candidate.metadata.proposal_id+'.md';

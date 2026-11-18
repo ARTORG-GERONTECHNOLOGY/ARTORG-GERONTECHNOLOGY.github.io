@@ -12,8 +12,6 @@ The requested reminder about temporary content was given. The supervising user
 confirmed the final choices on 2026-11-16; they were applied on 2026-11-18:
 
 - AI decision support is available; the other nine statuses were confirmed.
-- All five older projects' eligibility is confirmed. Markerless tracking and
-  Parkinson's eyetracking changed to BME and AIM; daily arm use remains BME only.
 - All workload percentages are final, including the former temporary splits.
 - Only “(see Figure 1)” was removed from writing/drawing. Its science, contacts
   and requirements remain unchanged.

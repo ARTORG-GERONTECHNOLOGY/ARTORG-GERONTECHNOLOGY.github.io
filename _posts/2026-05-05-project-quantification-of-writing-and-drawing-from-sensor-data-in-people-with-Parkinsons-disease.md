@@ -7,14 +7,13 @@ summary: Project Proposal
 categories:
 - sensor-tracking
 status: archived
-student_eligibility: bme_only
 supervisors:
 - name: Kevin Möri, MSc
 schema_version: 1
 template_version: 1
 proposal_id: ger-quantification-of-writing-and-drawing-from-sensor-data-in-people-with-parkinsons-disease
 created_at: '2026-05-05T13:26:14Z'
-updated_at: '2026-11-18T06:50:19Z'
+updated_at: '2026-11-18T13:23:10Z'
 priority: 100
 featured: false
 language: en

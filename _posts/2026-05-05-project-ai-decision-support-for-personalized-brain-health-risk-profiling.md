@@ -6,14 +6,13 @@ summary: Project Proposal
 categories:
 - decision-support
 status: available
-student_eligibility: bme_only
 supervisors:
 - name: Dr. Vassilis Skaramagkas
 schema_version: 1
 template_version: 1
 proposal_id: ger-ai-decision-support-for-personalized-brain-health-risk-profiling
 created_at: '2026-05-05T13:26:14Z'
-updated_at: '2026-11-18T06:50:19Z'
+updated_at: '2026-11-18T13:23:10Z'
 priority: 100
 featured: false
 language: en

@@ -8,30 +8,27 @@ The editorial release check now passes; live hosting remains a separate gate.
 
 ## Confirmed final choices
 
-The user explicitly requested random status choices for all ten proposals,
-random eligibility for the five older proposals, and temporary workload splits
-where the older sources supplied none. They then confirmed the final values
+The user explicitly requested random status choices for all ten proposals
+and temporary workload splits where the older sources supplied none. They then confirmed the final values
 below, including all workload percentages. Historical random/temporary flags in
 the migration record describe the original migration; final confirmations are
 recorded separately rather than erasing that history.
 
-| Proposal | Status | Eligibility | Eligibility source | Workload |
-| --- | --- | --- | --- | --- |
-| AI Decision Support for Personalized Brain Health Risk Profiling | available | Only BME students | User confirmed | Preserved and confirmed |
-| Gait Analysis via Wrist-Worn Accelerometers | taken | Only BME students | User confirmed | Preserved from source |
-| Multimodal Digital Biomarkers for Early Brain Health Monitoring | available | Only BME students | User confirmed | Preserved from source |
-| Quantification of writing and drawing from sensor data in people with Parkinson’s disease | archived | Only BME students | User confirmed | Preserved from source |
-| Extracting Vital Sings from Seismic Signals | taken | BME students and AIM students | User confirmed | Preserved from source |
-| Development and validation of a markerless motion tracking model | archived | BME students and AIM students | User confirmed | 20% literature, 50% training, 30% validation; confirmed |
-| Quantification of Daily Arm Use from IMU Data in Children with Hemiparesis | archived | Only BME students | User confirmed | Preserved and confirmed |
-| Gait Analysis from Seismographic Measurements on Healthy Individuals | taken | BME students and AIM students | User confirmed | 60% algorithm development, 40% analysis/validation; confirmed |
-| AI-Based Algorithms for Automated Sleep Stage Classification from Ballistocardiogram Signals | taken | BME students and AIM students | User confirmed | Preserved and confirmed |
-| Analysis of Emotion-Related Pupillometry/Eyetracking in Parkinson’s Disease | archived | BME students and AIM students | User confirmed | Preserved and confirmed |
+| Proposal | Status | Workload |
+| --- | --- | --- |
+| AI Decision Support for Personalized Brain Health Risk Profiling | available | Preserved and confirmed |
+| Gait Analysis via Wrist-Worn Accelerometers | taken | Preserved from source |
+| Multimodal Digital Biomarkers for Early Brain Health Monitoring | available | Preserved from source |
+| Quantification of writing and drawing from sensor data in people with Parkinson’s disease | archived | Preserved from source |
+| Extracting Vital Sings from Seismic Signals | taken | Preserved from source |
+| Development and validation of a markerless motion tracking model | archived | 20% literature, 50% training, 30% validation; confirmed |
+| Quantification of Daily Arm Use from IMU Data in Children with Hemiparesis | archived | Preserved and confirmed |
+| Gait Analysis from Seismographic Measurements on Healthy Individuals | taken | 60% algorithm development, 40% analysis/validation; confirmed |
+| AI-Based Algorithms for Automated Sleep Stage Classification from Ballistocardiogram Signals | taken | Preserved and confirmed |
+| Analysis of Emotion-Related Pupillometry/Eyetracking in Parkinson’s Disease | archived | Preserved and confirmed |
 
 ## Explicit confirmations
 
-- Current proposals: BME only for AI decision support, wrist gait analysis,
-  multimodal biomarkers and writing/drawing; BME and AIM for vital signs.
 - The user confirmed existing contacts as supervisors for AI decision support,
   multimodal biomarkers, writing/drawing, markerless tracking and seismographic
   gait. Other named supervisors are preserved from their sources.
@@ -69,15 +66,15 @@ Creation timestamps use the first recorded Git author event found along each
 detected rename history. These are repository evidence, not verified dates of
 original scientific authorship. Source commit evidence is recorded separately;
 some commits only renamed files or changed publication dates. `updated_at`
-advances only on substantive changes, including the final status/eligibility and
-writing/drawing corrections. Original publication fields remain
+advances only on substantive changes, including the status and writing/drawing
+corrections and the removal of the old proposal field. Original publication fields remain
 unchanged. `_data/proposal_migration.yml` records the evidence and preserved
 narrative fingerprints for all ten files.
 
 ## Release reminder requested by the user
 
-The reminder was given during Step 25. The user confirmed all ten statuses,
-older eligibility and every workload percentage, removed the missing figure
+The reminder was given during Step 25. The user confirmed all ten statuses
+and every workload percentage, removed the missing figure
 reference, and requested removal of Max Mustermann and Petra Musterfrau.
 Max's example supervisor entry was removed; Kevin Möri remains. Team is empty
 until real profiles are supplied. No replacement names were invented.

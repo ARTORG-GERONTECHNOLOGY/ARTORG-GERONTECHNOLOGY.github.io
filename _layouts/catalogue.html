@@ -14,7 +14,6 @@ layout: default
     <div><label for="filter-status">Status</label><select id="filter-status" name="status">{% for option in page.catalogue.status_links %}<option value="{{ option.status | escape }}"{% if option.status == page.catalogue.status %} selected{% endif %}>{{ option.label | escape }}</option>{% endfor %}</select></div>
     <div><label for="filter-category">Category</label><select id="filter-category" name="category"><option value="">All categories</option>{% for category in site.data.proposal_categories %}<option value="{{ category.id | escape }}">{{ category.label | escape }}</option>{% endfor %}</select></div>
     <div><label for="filter-year">Publication year</label><select id="filter-year" name="year"><option value="">All years</option>{% for year in site.data.proposal_years %}<option value="{{ year | escape }}">{{ year | escape }}</option>{% endfor %}</select></div>
-    {% include catalogue/eligibility-filter.html %}
     <button type="button" class="catalogue-clear">Clear filters</button>
   </form>
   <noscript><p>Use the status and grouping links to browse without JavaScript. Combined filters require JavaScript.</p></noscript>
@@ -22,7 +21,7 @@ layout: default
   <nav class="catalogue-group-links" aria-label="Jump to proposal group"{% if page.catalogue.mode == 'list' %} hidden{% endif %}>
     <ul>{% for group in page.catalogue.groups %}<li data-group-link="{{ group.id | escape }}"{% unless group.visible %} hidden{% endunless %}><a href="#{{ group.id | escape }}">{{ group.label | escape }}</a></li>{% endfor %}</ul>
   </nav>
-  <p class="catalogue-empty"{% unless page.catalogue.visible_count == 0 %} hidden{% endunless %}>No proposals match these filters. Try another status, category, year or student program.</p>
+  <p class="catalogue-empty"{% unless page.catalogue.visible_count == 0 %} hidden{% endunless %}>No proposals match these filters. Try another status, category or year.</p>
   <div class="catalogue-groups">
     {% for group in page.catalogue.groups %}
     <section class="catalogue-group" id="{{ group.id | escape }}" aria-labelledby="{{ group.id | escape }}-title"{% unless group.visible %} hidden{% endunless %}>

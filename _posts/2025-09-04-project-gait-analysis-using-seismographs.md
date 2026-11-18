@@ -14,11 +14,10 @@ tags: []
 attachments: []
 submission_email: bme.artorg@unibe.ch
 status: taken
-student_eligibility: bme_and_aim
 proposal_id: ger-gait-analysis-using-seismographs
 permalink: "/post_archive/2025-09-04-project-gait-analysis-using-seismographs/"
 created_at: '2025-04-28T15:31:21Z'
-updated_at: '2026-11-11T16:28:39Z'
+updated_at: '2026-11-18T13:23:10Z'
 contact:
   name: Michael Single, PhD
   email: michael.single@unibe.ch

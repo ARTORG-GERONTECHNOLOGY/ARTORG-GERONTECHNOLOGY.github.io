@@ -58,15 +58,17 @@ begin
     indexed = proposals.to_h { |item| [item['metadata']['proposal_id'], item] }
     proposals = Proposals.ordered(proposals.map { |item| item['metadata'] }).map { |metadata| indexed.fetch(metadata['proposal_id']) }
     puts JSON.generate({'proposals' => proposals, 'categories' => Proposals.categories!(Proposals.load_yaml(input.fetch('categories'), mapping: false)),
-      'statuses' => Proposals::SCHEMA['statuses'], 'transitions' => Proposals::SCHEMA['status_transitions'], 'eligibilities' => Proposals::SCHEMA['eligibilities']})
+      'statuses' => Proposals::SCHEMA['statuses'], 'transitions' => Proposals::SCHEMA['status_transitions']})
     exit
   end
   source = input.fetch('source')
   document = Proposals::Document.parse(source)
+  # Drafts downloaded before this field was retired can still be opened.
+  document.metadata.delete(Proposals::Document::RETIRED_FIELD)
   context = document.metadata.delete('_editor_draft') || input.fetch('context', {})
   raise Proposals::FormatError, 'Invalid downloaded draft revision information' unless context.is_a?(Hash) && (context.keys - %w[path sha baseCommit]).empty? && %w[sha baseCommit].all? { |key| context[key].nil? || context[key].is_a?(String) && context[key].match?(/\A[a-f0-9]{40}\z/) }
   patch = input.fetch('patch', {})
-  fields = %w[title summary categories tags language status student_eligibility priority featured supervisors institutes contact workload start_date_text workplace application_instructions figure attachments media]
+  fields = %w[title summary categories tags language status priority featured supervisors institutes contact workload start_date_text workplace application_instructions figure attachments media]
   raise Proposals::FormatError, 'Unsupported editor field' unless patch.is_a?(Hash) && (patch.keys - fields).empty?
   patch.each { |key, value| value.nil? ? document.metadata.delete(key) : document.metadata[key] = value }
   document.replace_sections(input.fetch('sections', {}))

@@ -89,7 +89,7 @@ Once live activation is separately approved:
   environment to `main`, without required human reviewers, matching the chosen
   automatic-publication policy. Preserve the configured domain and HTTPS.
 - Recheck the final editorial review in `_data/proposal_migration.yml`. The user
-  confirmed statuses, older eligibility and workloads, removed the example
+  confirmed statuses and workloads, removed the example
   profiles, and resolved the Figure 1 cross-reference during Step 25. Production
   still runs `bundle exec ruby scripts/validate-proposals.rb --release`; do not
   remove a future blocker until its underlying issue has been resolved.

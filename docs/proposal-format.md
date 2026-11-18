@@ -9,8 +9,8 @@ command, not yet part of Jekyll.
 
 Copy `templates/proposal.md` into a private working folder. Fill in the blank
 fields and narrative sections using the project's actual information. The
-template contains no scientific example, supervisor, eligibility selection or
-figure from the filled Word example. It starts with `published: false`; it is not
+template contains no scientific example, supervisor or figure from the filled
+Word example. It starts with `published: false`; it is not
 a publishable proposal and is excluded from site output along with `scripts/`.
 
 Keep private drafts outside the public repository. `published: false` prevents
@@ -24,12 +24,12 @@ and the complete shared page rendering arrives in Step 4.
 ## Metadata and narrative
 
 The file uses YAML front matter between `---` lines, followed by Markdown.
-`_data/proposal_schema.yml` is authoritative for versions, statuses, eligibility
-labels, narrative section names, immutable metadata, and ordering.
+`_data/proposal_schema.yml` defines versions, statuses, narrative section names,
+immutable metadata and ordering.
 
 Required metadata includes title, immutable `proposal_id`, schema/template
 versions, publication/creation/update timestamps, status, integer priority,
-featured flag, summary, category list, language, eligibility, supervisors,
+featured flag, summary, category list, language, supervisors,
 institutes, contact name/email, workload rows and the proposal-return email.
 Use lowercase letters, numbers and hyphens for the immutable ID. Assign it once.
 
@@ -50,16 +50,14 @@ Use the following level-two headings exactly, in template order:
 Use level-three headings for subsections. Tables, code, links, math and Unicode
 remain in the Markdown. Fenced or quoted `##` text is not treated as a section.
 Duplicate headings, unknown level-two sections and content preceding the first
-section fail validation. Store workload, supervisors, institutes, contact and
-eligibility in metadata, rather than repeating them in narrative sections.
+section fail validation. Store workload, supervisors, institutes and contact in metadata.
 
 Publication requires nonempty required sections and at least one supervisor,
 institute, category, requirement and workload row. Workload rows have an activity
 and a numeric percentage between 0 and 100; their total must be exactly 100%.
 The four blank template rows are suggestions: remove unused rows or add more.
 
-Choose `bme_only` or `bme_and_aim` explicitly. Do not infer eligibility or project
-availability from missing information. `_data/program.yml` defines the program
+Set project availability explicitly. `_data/program.yml` defines the program
 name, proposal-return instruction/email and Word logo source references. Public
 logo files are not extracted until Step 4. The return address
 `bme.artorg@unibe.ch` is for proposal administration; student applications use
@@ -117,8 +115,8 @@ the default: unversioned files are errors rather than skipped legacy content.
 `--strict` remains available for explicit build commands. All ten proposals,
 including the five formerly in `post_archive/`, belong to the validated set.
 `--release` additionally rejects outstanding issues in
-`_data/proposal_migration.yml`, including the randomly assigned statuses and older
-eligibility choices, temporary workload splits, and missing source figure.
+`_data/proposal_migration.yml`, including the historical status and workload choices
+and the missing figure reference.
 Update that record only after resolving the issues.
 Failures include the file, field/section and reason, and return a nonzero exit code.
 

@@ -11,8 +11,7 @@ module Proposals
         "url" => entry.fetch("permalink"), "summary" => entry.fetch("summary"),
         "status" => entry.fetch("status"), "priority" => entry.fetch("priority"),
         "featured" => entry.fetch("featured"),
-        "categories" => entry.fetch("categories"), "student_eligibility" => entry.fetch("student_eligibility"),
-        "eligibility_label" => SCHEMA.fetch("eligibilities").fetch(entry.fetch("student_eligibility")),
+        "categories" => entry.fetch("categories"),
         "category_labels" => entry.fetch("proposal").fetch("category_labels"),
         "year" => entry.fetch("proposal").fetch("dates").fetch("date").fetch("label").split.last,
         "dates" => entry.fetch("proposal").fetch("dates")

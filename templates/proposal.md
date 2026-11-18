@@ -17,7 +17,6 @@ summary: ""
 categories: [] # Choose IDs from _data/proposal_categories.yml.
 tags: []
 language: en
-student_eligibility: "" # Choose bme_only or bme_and_aim explicitly.
 supervisors:
   - name: ""
     # team_id: "" # Optional, once a team profile exists.

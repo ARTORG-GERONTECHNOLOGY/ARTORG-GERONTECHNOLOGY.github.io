@@ -2,7 +2,7 @@
 migrated_at: '2026-11-11T16:14:29Z'
 created_at_policy: First recorded Git author timestamp along the detected rename history,
   not a verified date of original research authorship.
-updated_at_policy: 'Actual migration time: the user confirmed eligibility, supervisors
+updated_at_policy: 'Actual migration time: the user confirmed supervisors
   and institute, and authorized assigning status metadata.'
 release_blockers: []
 proposals:
@@ -166,7 +166,6 @@ proposals:
   created_at_evidence: 2025-04-30T14:26:39+02:00 152e8dcc454f36e145d1e2744fccf34715ce7025
   source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
   status_randomly_assigned: true
-  eligibility_randomly_assigned: true
   workload_temporary: true
   narrative_sha256:
     Background: bbc6ebc9c7a0157151cf9f8edaaa4c70f47a6a79b06870575c59ad12088b6207
@@ -188,7 +187,6 @@ proposals:
     confirmed_on: '2026-11-16'
     status: archived
     workload_confirmed: true
-    student_eligibility: bme_and_aim
 - file: _posts/2025-09-01-project-arm-use-children-hemiparesis.md
   proposal_id: ger-arm-use-children-hemiparesis
   permalink: "/post_archive/2025-09-01-project-arm-use-children-hemiparesis/"
@@ -198,7 +196,6 @@ proposals:
   created_at_evidence: 2025-09-01T11:56:16+02:00 52ae827bea331d07f5a94cd29792040ed4f905bb
   source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
   status_randomly_assigned: true
-  eligibility_randomly_assigned: true
   workload_temporary: false
   narrative_sha256:
     Background: b378c055af791426ce9b0c2f22883b803ab2935dfb2498b03ad0174ad8589755
@@ -219,7 +216,6 @@ proposals:
     confirmed_on: '2026-11-16'
     status: archived
     workload_confirmed: true
-    student_eligibility: bme_only
 - file: _posts/2025-09-04-project-gait-analysis-using-seismographs.md
   proposal_id: ger-gait-analysis-using-seismographs
   permalink: "/post_archive/2025-09-04-project-gait-analysis-using-seismographs/"
@@ -229,7 +225,6 @@ proposals:
   created_at_evidence: 2025-04-28T17:31:21+02:00 de62d4c8e6998784608c0bed8487c0b2340aeffd
   source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
   status_randomly_assigned: true
-  eligibility_randomly_assigned: true
   workload_temporary: true
   narrative_sha256:
     Background: b15ce354d4099347df96e4dafb3ef9e8a848eda0dbee2ebd37a631f1ef15fb0d
@@ -249,7 +244,6 @@ proposals:
     confirmed_on: '2026-11-16'
     status: taken
     workload_confirmed: true
-    student_eligibility: bme_and_aim
 - file: _posts/2025-09-30-project-bcg-ai-sleep-stage.md
   proposal_id: ger-bcg-ai-sleep-stage
   permalink: "/post_archive/2025-09-30-project-bcg-ai-sleep-stage/"
@@ -259,7 +253,6 @@ proposals:
   created_at_evidence: 2025-09-30T15:37:44+02:00 638c76f0e2bca756d301d5009bc1ea8df12f23e4
   source_latest_commit_evidence: 2026-05-05T15:26:14+02:00 72e8fa914c541ff177a5109d5d1f212831c041d9
   status_randomly_assigned: true
-  eligibility_randomly_assigned: true
   workload_temporary: false
   narrative_sha256:
     Background: 81e2686ba44aa13fe216d215f66d96e01c6a51deeff9674cf48df46bc1ceaea3
@@ -281,7 +274,6 @@ proposals:
     confirmed_on: '2026-11-16'
     status: taken
     workload_confirmed: true
-    student_eligibility: bme_and_aim
 - file: _posts/2026-05-05-project-eyetracker-emotion-pd.md
   proposal_id: ger-eyetracker-emotion-pd
   permalink: "/post_archive/2026-05-05-project-eyetracker-emotion-pd/"
@@ -291,7 +283,6 @@ proposals:
   created_at_evidence: 2025-09-01T11:46:35+02:00 391e71f200de27feca435dcc3acfedcb80894e0e
   source_latest_commit_evidence: 2026-05-05T15:38:35+02:00 cb877e2000b05f10992a7630771ad1b08f08d649
   status_randomly_assigned: true
-  eligibility_randomly_assigned: true
   workload_temporary: false
   narrative_sha256:
     Background: 8e88a2271469eff359f9d01c51e1eca0f2eb97becc124be558572e5ea9f72cde
@@ -314,36 +305,35 @@ proposals:
     confirmed_on: '2026-11-16'
     status: archived
     workload_confirmed: true
-    student_eligibility: bme_and_aim
 older_sources:
 - file: post_archive/2025-04-30-project-markerless-tracking-validation.md
   sha256: ae513acc6299f578fe6f58595e7b6c5ff08df201e1c2f99d69ca057c70c34d93
   existing_url: "/post_archive/2025-04-30-project-markerless-tracking-validation/"
-  decision: Migration authorized by supervising user; temporary status/eligibility/workload
+  decision: Migration authorized by supervising user; temporary status/workload
     choices require correction before release.
   migrated_file: _posts/2025-04-30-project-markerless-tracking-validation.md
 - file: post_archive/2025-09-01-project-arm-use-children-hemiparesis.md
   sha256: 40633f5a03b567172789ec4c93051396fda37d40a49a484ca07ff13841b2613c
   existing_url: "/post_archive/2025-09-01-project-arm-use-children-hemiparesis/"
-  decision: Migration authorized by supervising user; temporary status/eligibility/workload
+  decision: Migration authorized by supervising user; temporary status/workload
     choices require correction before release.
   migrated_file: _posts/2025-09-01-project-arm-use-children-hemiparesis.md
 - file: post_archive/2025-09-04-project-gait-analysis-using-seismographs.md
   sha256: e5f67e67178bcdf358f5448d01e4465d9919d1405cdf9ce8b6355e79e35b9b13
   existing_url: "/post_archive/2025-09-04-project-gait-analysis-using-seismographs/"
-  decision: Migration authorized by supervising user; temporary status/eligibility/workload
+  decision: Migration authorized by supervising user; temporary status/workload
     choices require correction before release.
   migrated_file: _posts/2025-09-04-project-gait-analysis-using-seismographs.md
 - file: post_archive/2025-09-30-project-bcg-ai-sleep-stage.md
   sha256: 7a737cbd8219de7e1bcbc2e659a4c6993b8211406d1137018023e0fda713bd09
   existing_url: "/post_archive/2025-09-30-project-bcg-ai-sleep-stage/"
-  decision: Migration authorized by supervising user; temporary status/eligibility/workload
+  decision: Migration authorized by supervising user; temporary status/workload
     choices require correction before release.
   migrated_file: _posts/2025-09-30-project-bcg-ai-sleep-stage.md
 - file: post_archive/2026-05-05-project-eyetracker-emotion-pd.md
   sha256: e1133076222ed3ff44d76e1d1940bed1a5758a25c9a27a67990bd9c3ad091729
   existing_url: "/post_archive/2026-05-05-project-eyetracker-emotion-pd/"
-  decision: Migration authorized by supervising user; temporary status/eligibility/workload
+  decision: Migration authorized by supervising user; temporary status/workload
     choices require correction before release.
   migrated_file: _posts/2026-05-05-project-eyetracker-emotion-pd.md
 older_migrated_at: '2026-11-11T16:28:39Z'
@@ -351,7 +341,6 @@ final_content_review:
   confirmed_on: '2026-11-16'
   applied_at: '2026-11-18T06:50:19Z'
   all_ten_statuses_confirmed: true
-  older_eligibility_confirmed: true
   all_workloads_confirmed: true
   figure_resolution: Removed only (see Figure 1) from the writing/drawing proposal
     at the user request.

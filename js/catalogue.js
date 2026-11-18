@@ -7,23 +7,20 @@
   // Retain static links if a control or required enhancement is unavailable.
   if (!form || !rules.fields.every(function (field) { return form.elements[field] && form.elements[field].options; })) return;
   var defaults = {status: root.dataset.defaultStatus};
-  var options = {}, eligibilityValues = {};
+  var options = {};
   rules.fields.forEach(function (field) {
     options[field] = Array.from(form.elements[field].options).map(function (option) { return option.value; });
   });
-  Array.from(form.elements.eligibility.options).forEach(function (option) {
-    eligibilityValues[option.value] = JSON.parse(option.dataset.values || '[]');
-  });
   var cards = Array.from(root.querySelectorAll('.catalogue-card')).map(function (node) {
     return {node: node, id: node.dataset.proposalId, status: node.dataset.status,
-      categories: JSON.parse(node.dataset.categories), year: node.dataset.year, eligibility: node.dataset.eligibility};
+      categories: JSON.parse(node.dataset.categories), year: node.dataset.year};
   });
   var count = root.querySelector('.catalogue-count');
   var empty = root.querySelector('.catalogue-empty');
   function render(state) {
     var visible = new Set();
     cards.forEach(function (card) {
-      card.node.hidden = !rules.matches(card, state, eligibilityValues);
+      card.node.hidden = !rules.matches(card, state);
       if (!card.node.hidden) visible.add(card.id);
     });
     Array.from(root.querySelectorAll('.catalogue-group')).forEach(function (group) {
@@ -55,7 +52,7 @@
     render(rules.read(url.search, defaults, options));
   });
   form.querySelector('.catalogue-clear').addEventListener('click', function () {
-    var state = {status: defaults.status, category: '', year: '', eligibility: ''};
+    var state = {status: defaults.status, category: '', year: ''};
     window.history.pushState(null, '', rules.url(window.location.href, state, defaults));
     render(state);
   });

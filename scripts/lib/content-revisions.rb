@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 require_relative 'proposal-lifecycle'
+require_relative 'site-content'
 require 'open3'
 require 'tmpdir'
 
 module Proposals
   def self.restoration(current_source, historical_source, baseline_source, prepared_at: nil)
     historical = Document.parse(historical_source)
+    historical.metadata.delete(Document::RETIRED_FIELD)
     baseline = Document.parse(baseline_source)
     SCHEMA.fetch('immutable_fields').each do |field|
       raise FormatError, "#{field}: historical identity does not match this proposal" unless historical.metadata[field] == baseline.metadata[field]
@@ -27,12 +29,14 @@ module Proposals
     if path.end_with?('.md')
       document = Document.parse(source)
       metadata = Marshal.load(Marshal.dump(document.metadata))
+      metadata.delete(Document::RETIRED_FIELD) if path.start_with?('_posts/')
       %w[date created_at updated_at].each do |field|
         begin; metadata[field] = time(metadata[field]).iso8601 if metadata[field]; rescue ArgumentError, TypeError; end
       end
       {'metadata' => metadata, 'body' => document.body}
     else
       data = load_yaml(source, mapping: !%w[_data/proposal_categories.yml _data/removed_proposals.yml].include?(path))
+      SiteContent.upgrade_about!(data) if path == '_data/about.yml'
       {'metadata' => data.is_a?(Hash) ? data : {'entries'=>data}, 'body'=>''}
     end
   end

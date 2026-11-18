@@ -18,7 +18,7 @@ def metadata
     "updated_at" => "2026-11-11T08:00:00Z", "status" => "available", "priority" => 100,
     "featured" => false, "summary" => "A synthetic validation fixture, not a real project.",
     "categories" => ["gait-analysis"], "tags" => ["test"], "language" => "en",
-    "student_eligibility" => "bme_and_aim", "supervisors" => [{"name" => "Test supervisor"}],
+    "supervisors" => [{"name" => "Test supervisor"}],
     "institutes" => [{"name" => "Test institute", "url" => "https://example.org/"}],
     "contact" => {"name" => "Test contact", "email" => "test@example.org"},
     "workload" => [{"activity" => "First activity", "percentage" => 60}, {"activity" => "Second activity", "percentage" => 40}],
@@ -202,7 +202,7 @@ end
 reject.call("unknown category", "categories") { |data| data["categories"] = ["Decsion Support"] }
 reject.call("missing title", "title") { |data| data.delete("title") }
 reject.call("bad schema version", "schema_version") { |data| data["schema_version"] = "1" }
-reject.call("bad eligibility", "student_eligibility") { |data| data["student_eligibility"] = "everyone" }
+reject.call("retired eligibility field", "student_eligibility") { |data| data["student_eligibility"] = "bme_and_aim" }
 reject.call("bad status", "status") { |data| data["status"] = "closed" }
 reject.call("bad contact email", "contact.email") { |data| data["contact"]["email"] = "not an email" }
 reject.call("malformed email domain", "contact.email") { |data| data["contact"]["email"] = "test@example..org" }

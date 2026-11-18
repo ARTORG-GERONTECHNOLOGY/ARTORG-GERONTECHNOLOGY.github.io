@@ -80,7 +80,6 @@
     fields.clear(); $('proposal-form').replaceChildren(); state={...model,context}; const m=model.metadata;
     let p=group('Proposal details'); field(p,'Title','title',m.title); field(p,'Short summary','summary',m.summary,{area:true});
     field(p,'Status','status',m.status,{choices:bootstrap.statuses.map(x=>[x,x[0].toUpperCase()+x.slice(1)])});
-    field(p,'Student eligibility','student_eligibility',m.student_eligibility,{choices:Object.entries(bootstrap.eligibilities)});
     field(p,'Categories','categories',m.categories,{choices:bootstrap.categories.map(x=>[x.id,x.label]),multiple:true,help:'Choose from the shared list. Use Ctrl or Command to select more than one.'});
     field(p,'Language','language',m.language); field(p,'Priority','priority',m.priority,{type:'number',step:'1'}); field(p,'Featured on homepage','featured',m.featured,{type:'checkbox'});
     field(p,'Tags (one per line)','tags',(m.tags||[]).join('\n'),{area:true});
@@ -127,7 +126,7 @@
       field(p,'Maximum proposals on homepage','proposal_limit',m.proposal_limit,{type:'number',step:'1'});field(p,'Maximum news items on homepage','news_limit',m.news_limit,{type:'number',step:'1'});
       rows(p,'Links','links',m.links,[{key:'label',label:'Link text',required:true},{key:'url',label:'URL or site path',required:true}]);
     }else if(kind==='about'){
-      for(const [key,label] of [['title','Title'],['overview','Overview'],['group_text','About the group'],['program_text','Study program'],['eligibility_text','Student eligibility explanation'],['corrections_text','Corrections and removal requests'],['corrections_email','Public corrections email']])field(p,label,key,m[key],{area:!['title','corrections_email'].includes(key)});
+      for(const [key,label] of [['title','Title'],['overview','Overview'],['group_text','About the group'],['program_text','Study program'],['corrections_text','Corrections and removal requests'],['corrections_email','Public corrections email']])field(p,label,key,m[key],{area:!['title','corrections_email'].includes(key)});
       field(p,'Application steps (one per line)','application_steps',(m.application_steps||[]).join('\n'),{area:true,rows:6});
       rows(p,'Institutional links','institutional_links',m.institutional_links,[{key:'label',label:'Link text',required:true},{key:'url',label:'HTTPS institutional URL',required:true}]);p.append(node('p','QR destination: '+qrDestination+' — derived from the website configuration.'));
     }else if(kind==='team'){
@@ -185,7 +184,7 @@
   function diffView(parent,diff){
     parent.append(node('h4',diff.summary));if(diff.warning)parent.append(node('p',diff.warning));
     if(diff.metadata.length){const table=node('table');table.append(node('caption','Metadata changes'));const head=node('tr');for(const label of ['Field','Before','After'])head.append(node('th',label));table.append(head);
-      for(const entry of diff.metadata){const row=node('tr');const labels={proposal_id:'Proposal ID',permalink:'Permanent address',date:'Initial publication',created_at:'Created',updated_at:'Last edited',student_eligibility:'Student eligibility',priority:'Priority / order'};const label=labels[entry.field]||entry.field.replace(/_/g,' ').replace(/^./,letter=>letter.toUpperCase());row.append(node('th',label));for(const value of [entry.before,entry.after]){const cell=node('td');cell.append(node('pre',value===null?'Not set':JSON.stringify(value,null,2)));row.append(cell);}table.append(row);}const wrapper=node('div',undefined,{class:'table-wrap'});wrapper.append(table);parent.append(wrapper);}
+      for(const entry of diff.metadata){const row=node('tr');const labels={proposal_id:'Proposal ID',permalink:'Permanent address',date:'Initial publication',created_at:'Created',updated_at:'Last edited',priority:'Priority / order'};const label=labels[entry.field]||entry.field.replace(/_/g,' ').replace(/^./,letter=>letter.toUpperCase());row.append(node('th',label));for(const value of [entry.before,entry.after]){const cell=node('td');cell.append(node('pre',value===null?'Not set':JSON.stringify(value,null,2)));row.append(cell);}table.append(row);}const wrapper=node('div',undefined,{class:'table-wrap'});wrapper.append(table);parent.append(wrapper);}
     if(diff.narrative.length){parent.append(node('h4','Text changes (+ added, − removed)'));const code=node('pre',undefined,{class:'revision-diff',tabindex:'0'});for(const line of diff.narrative)code.append(node('span',line+'\n',{class:line.startsWith('+')?'diff-added':line.startsWith('-')?'diff-removed':'diff-context'}));parent.append(code);}
   }
   async function showRevision(path,commit){
@@ -224,7 +223,7 @@
   }
   function clientErrors(patch) {
     const result={};
-    for(const key of ['title','summary','status','student_eligibility']) if(!patch[key]?.trim()) result[key]=['Please fill in this field.'];
+    for(const key of ['title','summary','status']) if(!patch[key]?.trim()) result[key]=['Please fill in this field.'];
     if(!patch.categories.length)result.categories=['Choose at least one category.'];
     if(!patch.workload.length||patch.workload.some(row=>!Number.isFinite(row.percentage)||row.percentage<0||row.percentage>100)||Math.abs(patch.workload.reduce((sum,row)=>sum+(row.percentage||0),0)-100)>0.000001)result.workload=['Enter percentages from 0 to 100 totaling 100%.'];
     if(!patch.contact.email||!/^\S+@\S+\.\S+$/.test(patch.contact.email))result['contact.email']=['Enter a public email address.'];

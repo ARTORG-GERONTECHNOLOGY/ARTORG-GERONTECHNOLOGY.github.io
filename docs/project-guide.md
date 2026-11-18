@@ -32,8 +32,8 @@ About provides editable group information and project application guidance.
 ## Baseline issues preserved during setup
 
 All ten proposals retain their filenames, original publication/creation dates
-and existing public URLs. The user confirmed all statuses, older eligibility and
-all workload percentages on 2026-11-16. Those decisions were applied on 2026-11-18.
+and existing public URLs. The user confirmed all statuses and
+workload percentages on 2026-11-16. Those decisions were applied on 2026-11-18.
 The only prose correction removes the missing Figure 1 cross-reference as
 requested. Both example profiles and Max's example supervisor entry were removed;
 Kevin Möri remains. The Team page is intentionally empty. Original migration
@@ -47,8 +47,8 @@ separate from installing the local build environment.
 ## Shared proposal rendering
 
 Proposal pages follow the Word section order, including workload, affiliations,
-student eligibility. Staff submission instructions are retained in source metadata
-and omitted from public pages and PDFs at the user's request. Optional figure,
+contact and application guidance. Staff submission instructions are retained in
+source metadata and omitted from public pages and PDFs at the user's request. Optional figure,
 references, application, start-date and workplace information appears only when
 provided. Previous/next links carry status labels; recommended projects are available.
 
@@ -112,19 +112,17 @@ remaining manual checks; these checks are not a complete accessibility audit.
 ## Proposal catalogue and archive
 
 The catalogue now has static Available, Taken and Archived routes, text status
-badges, shared cards with eligibility and separate created/published/updated dates,
+badges, shared cards with separate created/published/updated dates,
 and list/year/category views. These pages are built from the same priority,
 publication-date and immutable-ID ordering as the available homepage list.
 Grouping keeps that order within each year or category. Status/group links work
 without JavaScript. Original proposal detail URLs remain unchanged.
 
 The catalogue initially shows available proposals; Archive initially shows both
-Taken and Archived, with separate choices for each. All Status includes available, taken
-and archived proposals in both browsing areas. Program filtering follows the
-supervising user's decision: BME includes `bme_only` and `bme_and_aim`; AIM includes
-only `bme_and_aim`. The shared mapping is in `_data/proposal_schema.yml`.
+Taken and Archived, with separate choices for each. All Statuses includes
+available, taken and archived proposals in both browsing areas.
 
-Filters combine status, category, publication year and student program. Counts
+Filters combine status, category and publication year. Counts
 count each proposal once, even when it belongs to several category groups.
 Selections are stored in the URL; refresh, shared links and browser Back/Forward
 restore them. Switching status or grouping keeps other selected filters. Clear
@@ -329,7 +327,7 @@ not indexed. Inactive profiles remain searchable because the user chose to retai
 their public profile pages. Future/unpublished news follows normal build settings.
 
 The proposal index includes scientific text, application instructions, categories,
-tags, supervisors/institutes, contact details, eligibility and dates. News and
+tags, supervisors/institutes, contact details and dates. News and
 people stay distinct from proposals. Search results default to available proposals;
 Include taken and archived proposals expands this scope without hiding other
 content types. The content-type filter can restrict results to projects, people,
@@ -435,7 +433,7 @@ Local browser access was enabled and verified during Step 14.
 Every published proposal has a stable, revision-labelled PDF download after the
 PDF stage runs. This includes available, taken and archived proposals. PDFs use
 the same sanitized content and section order as the webpage, with A4 pages,
-12pt titles, 10pt body text, 9pt captions, eligibility boxes, institutional logos,
+12pt titles, 10pt body text, 9pt captions, institutional logos,
 program branding and page numbers. The administration/submission instruction is
 omitted from both formats at the user's request. Liberation Sans is the bundled,
 SIL OFL-licensed Arial-compatible font; its accented glyphs and pagination have

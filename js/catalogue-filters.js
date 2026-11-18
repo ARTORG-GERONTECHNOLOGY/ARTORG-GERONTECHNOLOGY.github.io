@@ -5,7 +5,7 @@
   else root.ProposalCatalogueFilters = factory();
 }(typeof window !== 'undefined' ? window : this, function () {
   'use strict';
-  var fields = ['status', 'category', 'year', 'eligibility'];
+  var fields = ['status', 'category', 'year'];
   function read(search, defaults, options) {
     var params = new URLSearchParams(search);
     var state = {invalid: false};
@@ -16,15 +16,15 @@
     });
     return state;
   }
-  function matches(project, state, eligibilityValues) {
+  function matches(project, state) {
     if (state.invalid) return false;
     var statusMatch = state.status === 'all' || (state.status === 'unavailable' ? project.status === 'taken' || project.status === 'archived' : project.status === state.status);
     return statusMatch && (!state.category || project.categories.indexOf(state.category) !== -1) &&
-      (!state.year || project.year === state.year) &&
-      (!state.eligibility || eligibilityValues[state.eligibility].indexOf(project.eligibility) !== -1);
+      (!state.year || project.year === state.year);
   }
   function url(href, state, defaults) {
     var result = new URL(href);
+    result.searchParams.delete('eligibility');
     fields.forEach(function (field) {
       if (state[field] === (defaults[field] || '')) result.searchParams.delete(field);
       else result.searchParams.set(field, state[field]);

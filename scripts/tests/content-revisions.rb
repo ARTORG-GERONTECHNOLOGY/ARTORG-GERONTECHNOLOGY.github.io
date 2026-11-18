@@ -17,8 +17,24 @@ raise 'Creation summary incorrect' unless Proposals.revision_diff(nil,source,'pr
 raise 'Legacy/invalid history should remain readable' unless Proposals.revision_diff('Legacy prose without metadata',source,'proposal.md')['warning']
 yaml = Proposals.revision_diff("title: Before\n","title: After\n",'_data/home.yml')
 raise 'Supporting YAML history cannot be compared' unless yaml['metadata'].first == {'field'=>'title','before'=>'Before','after'=>'After'}
+require_relative '../lib/supporting-content'
+about_path = '_data/about.yml'
+about_source = File.read(File.join(Proposals::ROOT, about_path), encoding: 'UTF-8')
+old_about = Proposals.load_yaml(about_source)
+old_about['eligibility_text'] = 'Retired guidance'
+old_about['application_steps'][0] = 'Browse available proposals and use the student-program filter to find projects open to your program.'
+old_about['application_steps'] << 'Keep this custom instruction.'
+old_about_source = YAML.dump(old_about)
+result = SupportingContent.process('action'=>'parse', 'source'=>old_about_source)
+raise 'Legacy About draft retained retired guidance or lost custom instructions' unless result['metadata']['application_steps'] == Proposals.load_yaml(about_source)['application_steps'] + ['Keep this custom instruction.'] && !result['metadata'].key?('eligibility_text')
+restored_about = SupportingContent.restoration(about_path, old_about_source, about_source, Time.now.utc.iso8601)
+raise 'About restoration reintroduced retired guidance' if restored_about['source'].match?(/eligibility_text|student-program filter/)
 current = Proposals::Document.parse(source); current.metadata['priority'] = 10; current.metadata['title'] = 'Later title'
-restored = Proposals::Document.parse(Proposals.restoration(current.serialize,source,current.serialize)['source'])
+historical = Proposals::Document.parse(source)
+historical.metadata['student_eligibility'] = 'bme_only'
+raise 'Retired field leaked into revision comparison' unless Proposals.revision_diff(historical.serialize,source,'_posts/example.md')['metadata'].empty?
+restored = Proposals::Document.parse(Proposals.restoration(current.serialize,historical.serialize,current.serialize)['source'])
+raise 'Restoration reintroduced a retired field' if restored.metadata.key?('student_eligibility')
 raise 'Restoration did not preserve order' unless restored.metadata['priority'] == 10 && restored.metadata['title'] == document.metadata['title']
 raise 'Restoration did not advance substantive date' unless Proposals.time(restored.metadata['updated_at']) > Proposals.time(current.metadata['updated_at'])
 bad = Proposals::Document.parse(source);bad.metadata['proposal_id'] = 'another-id'

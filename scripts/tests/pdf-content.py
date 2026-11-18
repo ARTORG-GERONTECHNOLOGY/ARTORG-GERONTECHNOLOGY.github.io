@@ -54,6 +54,7 @@ for entry in manifest["proposals"]:
     parser.feed((root / print_path / "index.html").read_text(encoding="utf-8"))
     for block in parser.blocks:
         assert normalize(block) in actual, f"PDF omitted content in {entry['id']}: {block[:100]}"
+    assert "Student eligibility" not in text
     assert "Please return this proposal" not in text
     assert "Loading [MathJax]" not in text and "Processing math" not in text
     for page in reader.pages:

@@ -33,7 +33,7 @@ module Proposals
               site.pages << page
             end
             page.data["layout"] = "catalogue"
-            label = lambda { |value| {"all" => "All Status", "unavailable" => "Taken and archived"}.fetch(value, value.capitalize) }
+            label = lambda { |value| {"all" => "All Statuses", "unavailable" => "Taken and archived"}.fetch(value, value.capitalize) }
             page.data["title"] = archive ? "Proposal archive" : (status == "all" ? "All proposals" : "#{label.call(status)} proposals")
             groups = Proposals.catalogue_groups(entries, view.fetch("mode"))
             groups.each { |group| group["visible"] = group.fetch("projects").any? { |project| visible_statuses.include?(project.fetch("status")) } }

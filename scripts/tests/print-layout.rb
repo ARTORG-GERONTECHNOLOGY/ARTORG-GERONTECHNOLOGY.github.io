@@ -11,7 +11,7 @@ manifest['proposals'].each do |entry|
  raise 'Wrong print revision' unless html.at_css('body')['data-revision']==entry['revision']
  raise 'Incorrect print title' unless html.at_css('h1').text==entry['title']
  raise 'Author scripts in print HTML' unless html.css('script').empty?
- raise 'Missing selected eligibility' unless html.css('.eligibility-box').count { |box| box.text=='x' }==1
+ raise 'Retired eligibility controls in print' unless html.css('#eligibility, .eligibility-box').empty?
  raise 'Branding missing' unless html.css('.proposal-program img').length==2
 end
-puts 'Print layouts: all proposal IDs/revisions, title, eligibility choices, branding and script-free HTML pass. PDF rendering not run.'
+puts 'Print layouts: all proposal IDs/revisions, title, branding and script-free HTML pass. PDF rendering not run.'

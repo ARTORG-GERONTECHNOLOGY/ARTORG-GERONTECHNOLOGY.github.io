@@ -16,7 +16,7 @@ layout: default
     <ul class="home-projects">{% for project in site.data.home_proposals limit: site.data.home.proposal_limit %}
       <li>
         <h3><a href="{{ project.url | relative_url | escape }}">{{ project.title | escape }}</a></h3>
-        <p><span class="proposal-status proposal-status-available">Available</span>{% if project.featured %} <span class="featured-label">Featured</span>{% endif %} <span>{{ project.eligibility_label | escape }}</span></p>
+        <p><span class="proposal-status proposal-status-available">Available</span>{% if project.featured %} <span class="featured-label">Featured</span>{% endif %}</p>
         <p>{{ project.summary | escape }}</p>
         <p class="news-date">Published <time datetime="{{ project.dates.date.iso | escape }}">{{ project.dates.date.label | escape }}</time></p>
       </li>

@@ -242,9 +242,10 @@ team ID and profile URL.
 ## About and application guidance
 
 The About page remains at `/about/`. Edit `_data/about.yml` for the group and
-program introduction, institutional links, application steps and corrections
-contact. Text is escaped; institutional URLs must use HTTPS. The shared
-`_includes/about/content.html` renders the editable content.
+program introduction, application steps and corrections contact. Put
+institutional links directly in the overview, group or program paragraph with
+`[link text](https://example.org)`. The public page and editor preview use the
+same renderer. Institutional links require HTTPS and raw HTML is shown as text.
 
 Application guidance directs students to the Contact and How to apply fields on
 individual proposals. It does not impose one document checklist or route student

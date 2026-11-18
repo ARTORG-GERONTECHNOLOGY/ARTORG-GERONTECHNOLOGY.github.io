@@ -27,8 +27,10 @@ test('Home/About forms retain source on no-op, render trusted public templates a
   const same=await f.supporting.prepare({operation:'compose',source:home.source,path:home.path},authorize);assert.equal(same.source,home.source);assert.equal(same.changed,false);
   const page=await f.supporting.prepare({operation:'preview',source:home.source,path:home.path,patch:{title:'Fixture homepage ü',introduction:'Literal {% include secret %} <script>unsafe</script>',sections:{introduction:true,proposals:false,news:true}}},authorize);
   assert.equal(page.ready,true);assert.ok(page.html.includes('Fixture homepage ü'));assert.ok(page.html.includes('{% include secret %}'));assert.ok(!page.html.includes('home-proposals-title'));assert.ok(!/<script\b/i.test(page.html));
-  const info=await f.supporting.prepare({operation:'preview',source:about.source,path:about.path,patch:{overview:'Fixture About overview'}},authorize);
-  assert.equal(info.ready,true);assert.ok(info.html.includes('Fixture About overview'));assert.ok(info.html.includes(bootstrap.qrDestination));assert.ok(info.html.includes('data:image/png;base64,'));
+  const info=await f.supporting.prepare({operation:'preview',source:about.source,path:about.path,patch:{overview:'Fixture About overview links to [this institution](https://example.org/institution).'}},authorize);
+  assert.equal(info.ready,true);assert.match(info.html,/<p>Fixture About overview links to <a href="https:\/\/example\.org\/institution">this institution<\/a>\.<\/p>/);assert.ok(info.html.includes(bootstrap.qrDestination));assert.ok(info.html.includes('data:image/png;base64,'));
+  const invalidLink=await f.supporting.prepare({operation:'preview',source:about.source,path:about.path,patch:{overview:'[Bad link](http://example.org/)'}},authorize);
+  assert.equal(invalidLink.ready,false);assert.match(invalidLink.errors.overview[0],/HTTPS/);
   await assert.rejects(f.supporting.prepare({operation:'publish',source:about.source,path:about.path,patch:{qr_url:'https://wrong.example/'}},authorize),error=>error.status===422);
   const context={path:home.path,kind:'home',baseCommit:bootstrap.baseCommit,sha:home.sha};
   const draft=await f.supporting.prepare({operation:'download',source:home.source,path:home.path,context,patch:{title:'Unfinished home'}},authorize);

@@ -4,11 +4,27 @@ require_relative "media"
 
 module SiteContent
   RETIRED_ABOUT_FIELD = 'eligibility_text'
+  ABOUT_PARAGRAPHS = %w[overview group_text program_text].freeze
 
-  # Translate the original built-in instructions in older drafts and revisions.
-  # Custom application steps remain intact.
+  # Fold the old link list into a sentence and update the original application
+  # instructions when opening older drafts or revisions.
   def self.upgrade_about!(data)
     data.delete(RETIRED_ABOUT_FIELD)
+    if data.key?('institutional_links')
+      links = data.delete('institutional_links')
+      raise Proposals::FormatError, 'About links: expected a list' unless links.is_a?(Array)
+      unless links.empty?
+        text!(data['group_text'], 'about.group_text')
+        citations = links.map do |link|
+          raise Proposals::FormatError, 'About links: expected link text and URL' unless link.is_a?(Hash)
+          text!(link['label'], 'About link text')
+          about_link!(link['url'], 'about.group_text')
+          label = link['label'].gsub(/[\\\[\]]/) { |character| '\\' + character }
+          "[#{label}](#{link['url']})"
+        end
+        data['group_text'] = "#{data['group_text'].rstrip} See also #{citations.join(', ')}."
+      end
+    end
     return unless data['application_steps'].is_a?(Array)
 
     replacements = {
@@ -20,29 +36,49 @@ module SiteContent
     data['application_steps'] = data['application_steps'].map { |step| replacements.fetch(step, step) }
   end
 
+  def self.about_link!(url, field)
+    return if url.is_a?(String) && url.start_with?('https://') && Proposals.public_url?(url)
+
+    raise Proposals::FormatError, "#{field}: use a valid HTTPS address for links"
+  rescue URI::InvalidURIError
+    raise Proposals::FormatError, "#{field}: invalid link address"
+  end
+
+  def self.about_paragraph(value, field)
+    text!(value, field)
+    # About accepts links in a single paragraph. Treat raw HTML as literal text.
+    markdown = value.gsub('<', '&lt;').gsub('>', '&gt;')
+    html = Kramdown::Document.new(markdown, input: 'GFM').to_html
+    fragment = Nokogiri::HTML5.fragment(html)
+    elements = fragment.element_children
+    unless elements.length == 1 && elements.first.name == 'p' && fragment.css('img').empty?
+      raise Proposals::FormatError, "#{field}: use one paragraph of text with optional links"
+    end
+    fragment.css('a').each do |link|
+      text!(link.text, field)
+      about_link!(link['href'], field)
+    end
+    safe = Sanitize.fragment(html, elements: %w[p a], attributes: {'a' => %w[href]},
+      protocols: {'a' => {'href' => %w[https]}})
+    {'html' => safe, 'text' => Nokogiri::HTML5.fragment(safe).text.gsub(/\s+/, ' ').strip}
+  end
+
   def self.about!(data)
     raise Proposals::FormatError, "about: provide named content fields" unless data.is_a?(Hash)
     raise Proposals::FormatError, "about.#{RETIRED_ABOUT_FIELD}: field is retired" if data.key?(RETIRED_ABOUT_FIELD)
-    %w[title overview group_text program_text administration_text corrections_text].each do |field|
+    if data.key?('institutional_links')
+      raise Proposals::FormatError, 'about: put institutional links in the paragraph text'
+    end
+    %w[title administration_text corrections_text].each do |field|
       text!(data[field], "about.#{field}")
     end
     steps = data["application_steps"]
     raise Proposals::FormatError, "about.application_steps: provide a nonempty list" unless steps.is_a?(Array) && !steps.empty?
     steps.each { |step| text!(step, "about.application_steps") }
-    links = data["institutional_links"]
-    raise Proposals::FormatError, "about.institutional_links: provide a list" unless links.is_a?(Array)
-    links.each do |link|
-      raise Proposals::FormatError, "about.institutional_links: provide label and url" unless link.is_a?(Hash)
-      text!(link["label"], "about.institutional_links.label")
-      unless Proposals.public_url?(link["url"]) && link["url"].start_with?("https://")
-        raise Proposals::FormatError, "about.institutional_links.url: use an HTTPS institutional URL"
-      end
-    end
     unless Proposals.public_email?(data["corrections_email"])
       raise Proposals::FormatError, "about.corrections_email: use an institutional email address"
     end
-  rescue URI::InvalidURIError
-    raise Proposals::FormatError, "about.institutional_links.url: invalid URL"
+    ABOUT_PARAGRAPHS.to_h { |field| [field, about_paragraph(data[field], "about.#{field}")] }
   end
 
   def self.home!(data, source)

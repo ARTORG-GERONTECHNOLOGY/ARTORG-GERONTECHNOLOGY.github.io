@@ -11,7 +11,7 @@ require 'nokogiri'
 module SupportingContent
   FIELDS = {
     'home'=>%w[title introduction sections proposal_limit news_limit links hero_image],
-    'about'=>%w[title overview group_text program_text application_steps institutional_links corrections_text corrections_email],
+    'about'=>%w[title overview group_text program_text application_steps corrections_text corrections_email],
     'team'=>%w[name role email active display_order interests links portrait],
     'news'=>%w[title summary image]
   }.freeze

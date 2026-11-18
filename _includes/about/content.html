@@ -1,16 +1,14 @@
 <div class="about-content" id="about-content">
-  <p>{{ site.data.about.overview | escape }}</p>
+  {{ site.data.about_paragraphs.overview.html }}
   <section aria-labelledby="about-group">
     <h2 id="about-group">The group and study program</h2>
-    <p>{{ site.data.about.group_text | escape }}</p>
-    <p>{{ site.data.about.program_text | escape }}</p>
-    <ul>{% for link in site.data.about.institutional_links %}<li><a href="{{ link.url | escape }}">{{ link.label | escape }}</a></li>{% endfor %}</ul>
+    {{ site.data.about_paragraphs.group_text.html }}
+    {{ site.data.about_paragraphs.program_text.html }}
   </section>
   <section aria-labelledby="about-applications">
     <h2 id="about-applications">How to apply for a project</h2>
     <p><a href="{{ '/posts/' | relative_url }}">Browse available proposals</a> or <a href="{{ '/search/' | relative_url }}">search for a topic</a>.</p>
     <ol>{% for step in site.data.about.application_steps %}<li>{{ step | escape }}</li>{% endfor %}</ol>
-    <p><a href="{{ '/team/' | relative_url }}">Meet the team</a>. Each proposal lists its supervisors and project contact.</p>
   </section>
 
   {% if site.data.about.corrections_email %}

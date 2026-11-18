@@ -24,8 +24,9 @@ module SiteContent
    end
    home=site.data.fetch('home');about=site.data.fetch('about')
    entries << {'type'=>'page','title'=>home['title'],'url'=>site.baseurl+'/','summary'=>home['sections']['introduction'] ? home['introduction'] : '', 'text'=>''}
-   entries << {'type'=>'page','title'=>about['title'],'url'=>site.baseurl+'/about/','summary'=>about['overview'],
-    'text'=>[about['group_text'],about['program_text'],about['corrections_text'],about['corrections_email'],*about['application_steps']].join(' ')}
+   paragraphs=site.data.fetch('about_paragraphs')
+   entries << {'type'=>'page','title'=>about['title'],'url'=>site.baseurl+'/about/','summary'=>paragraphs['overview']['text'],
+    'text'=>[paragraphs['group_text']['text'],paragraphs['program_text']['text'],about['corrections_text'],about['corrections_email'],*about['application_steps']].join(' ')}
    site.data['search_index']=entries.sort_by { |entry| entry.fetch('url') }
   end
  end

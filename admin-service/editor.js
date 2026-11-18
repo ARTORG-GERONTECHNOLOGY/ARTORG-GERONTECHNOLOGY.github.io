@@ -126,9 +126,12 @@
       field(p,'Maximum proposals on homepage','proposal_limit',m.proposal_limit,{type:'number',step:'1'});field(p,'Maximum news items on homepage','news_limit',m.news_limit,{type:'number',step:'1'});
       rows(p,'Links','links',m.links,[{key:'label',label:'Link text',required:true},{key:'url',label:'URL or site path',required:true}]);
     }else if(kind==='about'){
-      for(const [key,label] of [['title','Title'],['overview','Overview'],['group_text','About the group'],['program_text','Study program'],['corrections_text','Corrections and removal requests'],['corrections_email','Public corrections email']])field(p,label,key,m[key],{area:!['title','corrections_email'].includes(key)});
+      const linkHelp='To link text in this paragraph, write [link text](https://example.org).';
+      for(const [key,label] of [['title','Title'],['overview','Overview'],['group_text','About the group'],['program_text','Study program'],['corrections_text','Corrections and removal requests'],['corrections_email','Public corrections email']]){
+        field(p,label,key,m[key],{area:!['title','corrections_email'].includes(key),help:['overview','group_text','program_text'].includes(key)?linkHelp:undefined});
+      }
       field(p,'Application steps (one per line)','application_steps',(m.application_steps||[]).join('\n'),{area:true,rows:6});
-      rows(p,'Institutional links','institutional_links',m.institutional_links,[{key:'label',label:'Link text',required:true},{key:'url',label:'HTTPS institutional URL',required:true}]);p.append(node('p','QR destination: '+qrDestination+' — derived from the website configuration.'));
+      p.append(node('p','QR destination: '+qrDestination+' — derived from the website configuration.'));
     }else if(kind==='team'){
       field(p,'Stable profile ID','team_id',m.team_id,{readonly:true});field(p,'Name','name',m.name);field(p,'Role','role',m.role);field(p,'Public email (optional)','email',m.email);field(p,'Active — show in Team listing','active',m.active,{type:'checkbox'});field(p,'Display order','display_order',m.display_order,{type:'number',step:'1'});
       field(p,'Research interests (one per line)','interests',(m.interests||[]).join('\n'),{area:true});rows(p,'Links','links',m.links,[{key:'label',label:'Link text',required:true},{key:'url',label:'URL or site path',required:true}]);field(p,'Biography (Markdown)','body',model.body,{area:true,rows:10});

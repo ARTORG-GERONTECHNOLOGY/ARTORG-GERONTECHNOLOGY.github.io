@@ -1,16 +1,12 @@
 title: About
-overview: This website shares student research and thesis proposals from the Gerontechnology and Rehabilitation Group at the ARTORG Center, University of Bern.
+overview: >-
+  This website shares student research and thesis proposals from the
+  [Gerontechnology and Rehabilitation Group](https://www.artorg.unibe.ch/research/ger/index_eng.html)
+  at the [ARTORG Center](https://www.artorg.unibe.ch/), [University of Bern](https://www.unibe.ch/).
 group_text: The group develops and evaluates assistive and rehabilitative technologies to support independent living and quality of life.
-program_text: The master's program in Biomedical Engineering (BME) is offered jointly by the University of Bern and Bern University of Applied Sciences (BFH).
-institutional_links:
-  - label: Gerontechnology and Rehabilitation Group
-    url: https://www.artorg.unibe.ch/research/ger/index_eng.html
-  - label: ARTORG Center for Biomedical Engineering Research
-    url: https://www.artorg.unibe.ch/
-  - label: Master in Biomedical Engineering
-    url: https://www.bme.master.unibe.ch/index_eng.html
-  - label: University of Bern
-    url: https://www.unibe.ch/
+program_text: >-
+  The [master's program in Biomedical Engineering (BME)](https://www.bme.master.unibe.ch/index_eng.html)
+  is offered jointly by the University of Bern and Bern University of Applied Sciences (BFH).
 application_steps:
   - Browse available proposals. Use the category or publication year filters to narrow your search.
   - Open a proposal and read its aim, methods, workload and requirements. Check any start-date or workplace information.

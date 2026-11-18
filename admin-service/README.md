@@ -492,8 +492,9 @@ and Revisions tab as proposals. Local review keeps final saving/restoration
 disabled while GitHub is disconnected. No sample announcement is created.
 
 Home controls its title/introduction, section visibility, list limits, links and
-optional hero image. About controls its existing public text, application steps,
-institutional links and corrections contact. The QR destination remains derived
+optional hero image. In About, add a link inside the overview, group or program
+paragraph using `[link text](https://example.org)`, then use Preview to check
+it. About also controls application steps and the corrections contact. The QR destination remains derived
 from the canonical website configuration, with the generated QR in the preview;
 it is not a separate editable address. The previously removed staff submission
 section stays absent from both the editor and public page.

@@ -6,10 +6,12 @@ module SiteContent
   RETIRED_ABOUT_FIELD = 'eligibility_text'
   ABOUT_PARAGRAPHS = %w[overview group_text program_text].freeze
 
-  # Fold the old link list into a sentence and update the original application
-  # instructions when opening older drafts or revisions.
+  # Update older drafts and revisions to the current About fields.
   def self.upgrade_about!(data)
     data.delete(RETIRED_ABOUT_FIELD)
+    data.delete('corrections_text')
+    previous_email = data.delete('corrections_email')
+    data['contact_email'] ||= previous_email if previous_email
     if data.key?('institutional_links')
       links = data.delete('institutional_links')
       raise Proposals::FormatError, 'About links: expected a list' unless links.is_a?(Array)
@@ -69,14 +71,15 @@ module SiteContent
     if data.key?('institutional_links')
       raise Proposals::FormatError, 'about: put institutional links in the paragraph text'
     end
-    %w[title administration_text corrections_text].each do |field|
+    %w[title administration_text].each do |field|
       text!(data[field], "about.#{field}")
     end
+    text!(data['contact_name'], 'about.contact_name') if data.key?('contact_name')
     steps = data["application_steps"]
     raise Proposals::FormatError, "about.application_steps: provide a nonempty list" unless steps.is_a?(Array) && !steps.empty?
     steps.each { |step| text!(step, "about.application_steps") }
-    unless Proposals.public_email?(data["corrections_email"])
-      raise Proposals::FormatError, "about.corrections_email: use an institutional email address"
+    unless Proposals.public_email?(data["contact_email"])
+      raise Proposals::FormatError, "about.contact_email: use an institutional email address"
     end
     ABOUT_PARAGRAPHS.to_h { |field| [field, about_paragraph(data[field], "about.#{field}")] }
   end

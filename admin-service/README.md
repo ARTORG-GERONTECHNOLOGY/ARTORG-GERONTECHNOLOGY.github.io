@@ -508,7 +508,7 @@ work. Download the draft if you need to keep it beyond the current page.
 Home controls its title/introduction, section visibility, list limits, links and
 optional hero image. In About, add a link inside the overview, group or program
 paragraph using `[link text](https://example.org)`, then use Preview to check
-it. About also controls application steps and the corrections contact. The QR destination remains derived
+it. About also controls application steps and the website contact. The QR destination remains derived
 from the canonical website configuration, with the generated QR in the preview;
 it is not a separate editable address. The previously removed staff submission
 section stays absent from both the editor and public page.

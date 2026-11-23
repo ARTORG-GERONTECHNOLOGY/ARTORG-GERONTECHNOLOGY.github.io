@@ -12,7 +12,7 @@ schema_version: 1
 template_version: 1
 proposal_id: ger-ai-decision-support-for-personalized-brain-health-risk-profiling
 created_at: '2026-05-05T13:26:14Z'
-updated_at: '2026-11-18T13:23:10Z'
+updated_at: '2026-11-23T10:00:53Z'
 priority: 100
 featured: false
 language: en
@@ -33,6 +33,11 @@ workload:
 - activity: Literature review
   percentage: 25
 submission_email: bme.artorg@unibe.ch
+figure:
+  src: /assets/media/proposals/ger-ai-decision-support-for-personalized-brain-health-risk-profiling/seated-sensor-illustration.jpg
+  alt: Side view of a seated person holding a green handheld device.
+  caption: Illustration of a seated person holding a handheld device.
+  section: Materials and Methods
 attachments: []
 ---
 ## Background

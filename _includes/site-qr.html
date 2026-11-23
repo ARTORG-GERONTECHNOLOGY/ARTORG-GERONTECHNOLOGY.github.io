@@ -3,6 +3,5 @@
 <h2 id="site-qr-title">Open this website on your phone</h2>
 <img src="{{ site.data.site_qr.image | relative_url }}" alt="QR code opening {{ site.data.site_qr.url | escape }}" loading="lazy">
 <p>Destination: <a href="{{ site.data.site_qr.url | escape }}">{{ site.data.site_qr.url | escape }}</a></p>
-<p><a href="{{ site.data.site_qr.image | relative_url }}" download="site-qr.png">Download website QR code (PNG)</a></p>
 </section>
 {% endif %}

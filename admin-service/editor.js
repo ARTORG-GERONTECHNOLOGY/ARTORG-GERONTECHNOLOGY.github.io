@@ -172,8 +172,8 @@
       rows(p,'Links','links',m.links,[{key:'label',label:'Link text',required:true},{key:'url',label:'URL or site path',required:true}]);
     }else if(kind==='about'){
       const linkHelp='To link text in this paragraph, write [link text](https://example.org).';
-      for(const [key,label] of [['title','Title'],['overview','Overview'],['group_text','About the group'],['program_text','Study program'],['corrections_text','Corrections and removal requests'],['corrections_email','Public corrections email']]){
-        field(p,label,key,m[key],{area:!['title','corrections_email'].includes(key),help:['overview','group_text','program_text'].includes(key)?linkHelp:undefined});
+      for(const [key,label] of [['title','Title'],['overview','Overview'],['group_text','About the group'],['program_text','Study program'],['contact_name','Website contact name'],['contact_email','Website contact email']]){
+        field(p,label,key,m[key],{area:['overview','group_text','program_text'].includes(key),help:['overview','group_text','program_text'].includes(key)?linkHelp:undefined});
       }
       field(p,'Application steps (one per line)','application_steps',(m.application_steps||[]).join('\n'),{area:true,rows:6});
       p.append(node('p','QR destination: '+qrDestination+' — derived from the website configuration.'));

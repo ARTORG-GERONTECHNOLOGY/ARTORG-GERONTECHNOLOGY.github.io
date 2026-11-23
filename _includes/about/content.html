@@ -11,11 +11,10 @@
     <ol>{% for step in site.data.about.application_steps %}<li>{{ step | escape }}</li>{% endfor %}</ol>
   </section>
 
-  {% if site.data.about.corrections_email %}
-  <section aria-labelledby="about-corrections">
-    <h2 id="about-corrections">Website corrections and removal requests</h2>
-    <p>{{ site.data.about.corrections_text | escape }}</p>
-    <p><a href="mailto:{{ site.data.about.corrections_email | escape }}">{{ site.data.about.corrections_email | escape }}</a></p>
+  <section aria-labelledby="about-contact">
+    <h2 id="about-contact">Contact</h2>
+    <p>{% if site.data.about.contact_name %}{{ site.data.about.contact_name | escape }}<br>{% endif %}
+      <a href="mailto:{{ site.data.about.contact_email | escape }}">{{ site.data.about.contact_email | escape }}</a>
+    </p>
   </section>
-  {% endif %}
 </div>

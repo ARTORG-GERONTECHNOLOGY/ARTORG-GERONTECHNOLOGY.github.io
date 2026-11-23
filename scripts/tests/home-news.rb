@@ -45,6 +45,8 @@ Dir.mktmpdir('home-news-fixture-') do |fixture|
   end
   site = build.call
   html = Nokogiri::HTML5(File.read(File.join(output,'index.html')))
+  check.call(html.css('.homepage > section').map { |section| section['class'].split.first } ==
+    %w[home-introduction home-news home-proposals], 'News must appear before available proposals')
   project_links = html.css('.home-projects h3 a').map { |link| link['href'] }
   check.call(project_links == %w[featured-early featured-late regular].map { |id| "/preview/fixture/#{id}/" }, 'Featured/available homepage ordering')
   check.call(html.css('.featured-label').length == 2, 'Featured labels missing')

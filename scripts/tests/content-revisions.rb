@@ -22,13 +22,17 @@ about_path = '_data/about.yml'
 about_source = File.read(File.join(Proposals::ROOT, about_path), encoding: 'UTF-8')
 old_about = Proposals.load_yaml(about_source)
 old_about['eligibility_text'] = 'Retired guidance'
+old_about.delete('contact_name')
+old_about['corrections_email'] = old_about.delete('contact_email')
+old_about['corrections_text'] = 'Old website contact description'
 old_about['application_steps'][0] = 'Browse available proposals and use the student-program filter to find projects open to your program.'
 old_about['application_steps'] << 'Keep this custom instruction.'
 old_about_source = YAML.dump(old_about)
 result = SupportingContent.process('action'=>'parse', 'source'=>old_about_source)
 raise 'Legacy About draft retained retired guidance or lost custom instructions' unless result['metadata']['application_steps'] == Proposals.load_yaml(about_source)['application_steps'] + ['Keep this custom instruction.'] && !result['metadata'].key?('eligibility_text')
+raise 'Legacy About draft lost the email or retained retired contact fields' unless result['metadata']['contact_email'] == old_about['corrections_email'] && (result['metadata'].keys & %w[corrections_email corrections_text]).empty?
 restored_about = SupportingContent.restoration(about_path, old_about_source, about_source, Time.now.utc.iso8601)
-raise 'About restoration reintroduced retired guidance' if restored_about['source'].match?(/eligibility_text|student-program filter/)
+raise 'About restoration reintroduced retired guidance' if restored_about['source'].match?(/eligibility_text|student-program filter|corrections_email|corrections_text/)
 current = Proposals::Document.parse(source); current.metadata['priority'] = 10; current.metadata['title'] = 'Later title'
 historical = Proposals::Document.parse(source)
 historical.metadata['student_eligibility'] = 'bme_only'

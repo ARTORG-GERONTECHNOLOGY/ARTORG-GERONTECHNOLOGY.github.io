@@ -16,7 +16,8 @@ Dir.mktmpdir('about-fixture-') do |fixture|
  FileUtils.cp(File.join(root,'search.json'),source)
  about=YAML.safe_load_file(File.join(source,'_data/about.yml'))
  about['title']='About & information <test>'
- about['corrections_email']='corrections@example.org'
+ about['contact_name']='Website Contact & Colleague'
+ about['contact_email']='website@example.org'
  about['overview']='Unicode — ü <script>alert(1)</script> {% include literal.html %} and [the group](https://example.org/about?a=1&b=2).'
  File.write(File.join(source,'_data/about.yml'),YAML.dump(about))
  config=Jekyll.configuration('source'=>source,'destination'=>output,'config'=>File.join(root,'_config.yml'),'plugins_dir'=>File.join(root,'_plugins'),'baseurl'=>'/preview','disable_disk_cache'=>true,'quiet'=>true)
@@ -33,7 +34,10 @@ Dir.mktmpdir('about-fixture-') do |fixture|
  check.call(section.call('about-applications').css('ol li').length==about['application_steps'].length,'Application steps missing')
  check.call(section.call('about-applications').css('a[href^="mailto:"]').empty?,'Student applications routed to a universal mailbox')
  check.call(html.css('#about-staff').empty?, 'Staff administration section remains public')
- check.call(section.call('about-corrections').at_css('a')['href']=='mailto:corrections@example.org','Corrections contact not configurable')
+ contact = section.call('about-contact')
+ check.call(contact.at_css('h2').text=='Contact' && contact.at_css('p').text.include?(about['contact_name']) &&
+   contact.at_css('a')['href']=='mailto:website@example.org','Website contact not configurable')
+ check.call(search['text'].include?(about['contact_name']),'Website contact missing from search')
  check.call(html.css('.about-content a[href^="/preview/"]').map { |link| link['href'] }==%w[/preview/posts/ /preview/search/],'About should link to proposals and search with the configured base URL')
  check.call(html.css('.about-content img, .about-content canvas').empty?,'Unexpected image inside About prose')
  check.call(html.css('.about-content h2').map { |h| h['id'] }.uniq.length==3,'Section heading anchors not unique')
@@ -43,8 +47,8 @@ Dir.mktmpdir('about-fixture-') do |fixture|
   invalid=about.merge(field=>42)
   begin SiteContent.about!(invalid);raise "Invalid #{field} accepted";rescue Proposals::FormatError;checks+=1;end
  end
- begin SiteContent.about!(about.merge('corrections_email'=>'invalid'));raise 'Invalid email accepted';rescue Proposals::FormatError;checks+=1;end
- begin SiteContent.about!(about.merge('corrections_email'=>nil));raise 'Missing email accepted';rescue Proposals::FormatError;checks+=1;end
+ begin SiteContent.about!(about.merge('contact_email'=>'invalid'));raise 'Invalid email accepted';rescue Proposals::FormatError;checks+=1;end
+ begin SiteContent.about!(about.merge('contact_email'=>nil));raise 'Missing email accepted';rescue Proposals::FormatError;checks+=1;end
  ['javascript:alert(1)', 'http://example.org/', '//example.org/', 'https://user@example.org/'].each do |url|
   begin SiteContent.about!(about.merge('group_text'=>"[bad](#{url})"));raise 'Invalid inline URL accepted';rescue Proposals::FormatError;checks+=1;end
  end

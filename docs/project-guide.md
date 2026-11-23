@@ -194,7 +194,7 @@ because automated localhost access is denied by the saved permission setting.
 ## About and application guidance
 
 The About page remains at `/about/`. Edit `_data/about.yml` for the group and
-program introduction, application steps and corrections contact. Put
+program introduction, application steps and website contact. Put
 institutional links directly in the overview, group or program paragraph with
 `[link text](https://example.org)`. The public page and editor preview use the
 same renderer. Institutional links require HTTPS and raw HTML is shown as text.
@@ -206,12 +206,12 @@ applications to the staff address. Staff proposal submissions use the authoritat
 
 The group and BME program descriptions and institutional links were checked on
 2026-11-12 against the official group, ARTORG and BME program pages linked on About.
-The user confirmed `michael.single@unibe.ch` as the corrections/removal contact.
+The About page lists Michael Single at `michael.single@unibe.ch` for website questions.
 It is separate from project application contacts and the staff submission mailbox.
-A missing or malformed corrections address stops the build. This content is
+A missing or malformed website contact address stops the build. This content is
 maintained in files or the About browser editor.
 
-About displays the downloadable website QR image implemented in Step 13. Its
+About displays the website QR image implemented in Step 13. Its
 destination is the configured public website root, not the About page or localhost.
 
 Verify content escaping, application/admin contact separation, institutional links,
@@ -347,10 +347,10 @@ The fixture checks XML/status data, canonical hosts and base paths, escaped prev
 metadata, excluded drafts/admin routes and article dates.
 
 
-## Downloadable website QR
+## Website QR code
 
-The About page displays `assets/images/site-qr.png` and a PNG download link with
-visible destination text. A Jekyll post-write hook generates the image directly
+The About page displays `assets/images/site-qr.png` and its destination address.
+A Jekyll post-write hook generates the image directly
 in the public output, after cleanup; no generated PNG is committed to source.
 The normal `bundle exec jekyll build`/`serve` sequence includes generation.
 

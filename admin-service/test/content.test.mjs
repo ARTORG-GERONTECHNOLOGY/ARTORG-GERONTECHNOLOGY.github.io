@@ -4,31 +4,21 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import http from 'node:http';
-import { fileURLToPath } from 'node:url';
 import { randomBytes, createHash, generateKeyPairSync, verify } from 'node:crypto';
 import { GitHubContent } from '../github.mjs';
 import { ContentStore, validateContent } from '../content.mjs';
 import { policy, editable, asset, blobSha } from '../content-policy.mjs';
 import { createAdministration } from '../service.mjs';
-import { ProposalEditor } from '../editor.mjs';
+import { localSnapshot, ProposalEditor } from '../editor.mjs';
 import { ContentRevisions } from '../revisions.mjs';
 
-const root = fileURLToPath(new URL('../..', import.meta.url));
 const hash = value => createHash('sha1').update(value).digest('hex');
 async function fixture() {
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'ger-github-'));
   const keys = generateKeyPairSync('rsa', {modulusLength: 2048});
   const keyFile = path.join(temporary, 'app.pem');
   await fs.writeFile(keyFile, keys.privateKey.export({type: 'pkcs8', format: 'pem'}));
-  const files = new Map();
-  async function collect(directory) {
-    for (const item of await fs.readdir(path.join(root, directory), {withFileTypes: true})) {
-      const name = directory + '/' + item.name;
-      if (item.isDirectory()) await collect(name);
-      else if (editable(name) || asset(name)) { const bytes = await fs.readFile(path.join(root, name)); files.set(name, {bytes, sha: blobSha(bytes)}); }
-    }
-  }
-  for (const directory of ['_posts', '_news', '_data', 'assets/images']) await collect(directory);
+  const {files} = await localSnapshot();
   const fake = {head: hash('initial'), files, mutations: 0, mints: 0, race: false, fail: false, loseResponse: false};
   fake.revisions=new Map([[fake.head,{files:new Map(files),parents:[],paths:[...files.keys()],time:'2026-01-15T00:30:00Z'}]]);
   const label=commit=>({sha:commit,parents:fake.revisions.get(commit).parents.map(sha=>({sha})),author:{type:'Bot',login:'ger-admin[bot]'},commit:{committer:{date:fake.revisions.get(commit).time},author:{name:'Shared administration'},message:'Update staff content'}});

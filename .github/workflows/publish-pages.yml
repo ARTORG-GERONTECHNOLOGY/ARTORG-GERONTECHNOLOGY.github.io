@@ -1,12 +1,17 @@
 name: Publish website
+run-name: ${{ inputs.commit && format('Publish commit {0}', inputs.commit) || 'Publish current main' }}
 
 'on':
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
+      commit:
+        description: 'Full commit hash from main history; leave blank to build current main'
+        required: false
+        type: string
       revision:
-        description: 'Expected current main commit; leave empty to retry current main'
+        description: 'Expected current main hash for staff automation; leave blank for manual runs'
         required: false
         type: string
 
@@ -27,7 +32,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     outputs:
-      revision: ${{ github.sha }}
+      revision: ${{ steps.select.outputs.revision }}
     steps:
       - name: Check out the exact production revision
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -35,25 +40,32 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.22.1'
+      - name: Verify main and select the build revision
+        id: select
+        run: node scripts/publication.mjs guard-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_REVISION: ${{ inputs.revision }}
+          DEPLOY_COMMIT: ${{ inputs.commit }}
+      - name: Check out the selected commit
+        if: steps.select.outputs.revision != github.sha
+        run: git -c core.hooksPath=NUL checkout --detach $env:BUILD_REVISION
+        env:
+          BUILD_REVISION: ${{ steps.select.outputs.revision }}
       - name: Set up Ruby
         uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1
         with:
           ruby-version: '3.3.13'
           bundler: '2.5.22'
           bundler-cache: false
-      - name: Set up Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: '24.22.1'
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.13.14'
-      - name: Reject an outdated production build
-        run: node scripts/publication.mjs guard-pages
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REQUESTED_REVISION: ${{ inputs.revision }}
       - name: Install locked Ruby dependencies
         run: bundle install
       - name: Install pinned pnpm
@@ -69,9 +81,15 @@ jobs:
       - name: Validate the revision and generate the complete static site
         run: bundle exec ruby scripts/validate-site.rb
       - name: Generate public revision metadata
-        run: node scripts/publication.mjs metadata _site
+        run: |
+          $env:GITHUB_SHA = $env:BUILD_REVISION
+          node scripts/publication.mjs metadata _site
+        env:
+          BUILD_REVISION: ${{ steps.select.outputs.revision }}
       - name: Inspect and package only public website files
-        run: python scripts/package-pages.py _site _pages --revision $env:GITHUB_SHA
+        run: python scripts/package-pages.py _site _pages --revision $env:BUILD_REVISION
+        env:
+          BUILD_REVISION: ${{ steps.select.outputs.revision }}
       - name: Upload the inspected Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
@@ -93,6 +111,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -102,7 +121,9 @@ jobs:
         run: node scripts/publication.mjs guard-pages
         env:
           GH_TOKEN: ${{ github.token }}
-          REQUESTED_REVISION: ${{ needs.build.outputs.revision }}
+          REQUESTED_REVISION: ${{ inputs.revision }}
+          DEPLOY_COMMIT: ${{ inputs.commit }}
+          BUILT_REVISION: ${{ needs.build.outputs.revision }}
       - name: Deploy the inspected artifact from this run
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

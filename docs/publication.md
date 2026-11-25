@@ -109,10 +109,14 @@ or deployment does not intentionally replace the last successful Pages site.
 Inspect the failed run first. Fix invalid content in the editor and save a new
 revision, or fix the trusted code in a reviewed maintainer change. Retry
 **Accept validated staff content** on `main` for the latest staff revision.
-Retry **Publish website** on `main` for a failed production build; leave its
-optional revision blank to build current `main`. It refuses old requested
-revisions. If acceptance advanced `main` but its dispatch failed, rerun the
-successful candidate's accepting run or manually request the production build.
+Retry **Publish website** on `main` for a failed production build. Leave both
+fields blank to deploy current `main`. To deploy a specific commit, enter its full
+40-character hash in **commit** and leave **revision** blank. The commit must be
+on the first-parent history of `main` and support the validated Pages build.
+This changes the live site without moving the branch. A later push to `main` can
+deploy the latest version again. If acceptance advanced `main` but its dispatch
+failed, rerun the successful candidate's accepting run or manually request the
+production build.
 
 Recover content through **Revisions → Preview restoration**, then confirm a new
 revision once the live save connection is active. A maintainer may instead make

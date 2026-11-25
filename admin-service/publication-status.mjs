@@ -3,6 +3,7 @@ import {rubyEditor} from './editor.mjs';
 
 const runUrl=id=>'https://github.com/'+policy.repository+'/actions/runs/'+id;
 const workflowPaths={validation:'.github/workflows/validate.yml',accept:'.github/workflows/publish-content.yml',pages:'.github/workflows/publish-pages.yml'};
+const selectedPagesCommit=run=>run.event==='workflow_dispatch'&&run.display_title?.match(/^Publish commit\s+([a-f0-9]{40})\s*$/i)?.[1].toLowerCase();
 let canonicalConfig;
 function runs(value,kind,revision){
   if(!Array.isArray(value.workflow_runs)||value.workflow_runs.length>20)throw Error('Invalid workflow status response');
@@ -38,7 +39,10 @@ export async function readPublicationFacts(api,commit,publicRecord){
     const match=refs.find(ref=>ref.ref===expected&&sha(ref.object?.sha));
     if(match){const info=(await tree(match.object.sha)).info;if(info.parents.length!==2||info.parents[0].sha!==main||info.parents[1].sha!==head||info.message!==`Publish validated staff content\n\nStaff-Content: ${head}\nMain-Base: ${main}`)throw Error('Candidate mapping mismatch');candidate=match.object.sha;candidateValidation=await workflow('validation',candidate);}
   }
-  const pages=merged?await workflow('pages',main):[];
+  const pages=merged?(await workflow('pages',main)).filter(run=>{
+    const selected=selectedPagesCommit(run);
+    return !selected||selected===main;
+  }):[];
   let live=null,publicUnavailable=!publicRecord;
   if(publicRecord){
     const deployments=await get('/deployments?environment=github-pages&per_page=20');if(!Array.isArray(deployments)||deployments.length>20)throw Error('Invalid deployment history');
@@ -48,9 +52,13 @@ export async function readPublicationFacts(api,commit,publicRecord){
       const statuses=await get('/deployments/'+deployment.id+'/statuses?per_page=1');if(!Array.isArray(statuses))throw Error('Invalid deployment status');
       if(statuses[0]?.state==='success'){active=deployment;break;}
     }
-    if(active?.sha===publicRecord.revision){
-      const completed=await workflow('pages',active.sha);
-      if(completed.some(run=>run.head_branch==='main'&&run.status==='completed'&&run.conclusion==='success'))live={revision:active.sha,files:(await tree(active.sha)).files,url:completed.find(run=>run.status==='completed'&&run.conclusion==='success').url};
+    if(active){
+      const completed=(await workflow('pages',active.sha)).find(run=>{
+        if(run.head_branch!=='main'||run.status!=='completed'||run.conclusion!=='success')return false;
+        const selected=selectedPagesCommit(run);
+        return selected ? selected===publicRecord.revision&&String(run.id)===publicRecord.run_id : active.sha===publicRecord.revision;
+      });
+      if(completed)live={revision:publicRecord.revision,files:(await tree(publicRecord.revision)).files,url:completed.url};
     }
     publicUnavailable=!live;
   }

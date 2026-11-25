@@ -5,7 +5,7 @@ import {spawnSync} from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import {publicationMetadata} from '../publication.mjs';
+import {pagesRevision,publicationMetadata} from '../publication.mjs';
 import {entries,treeSha,mergePlan,prepare,promote,candidate,verifyRun,GitHubPublication} from '../lib/publication.mjs';
 import {policy,blobSha} from '../../admin-service/content-policy.mjs';
 const hash=value=>createHash('sha1').update(value).digest('hex');
@@ -70,6 +70,20 @@ test('only the newest exact GitHub Actions validation counts; API writes are not
 test('command-line publication fails closed while activation is off and never prints its token',()=>{
   const token='private-fixture-do-not-log';const result=spawnSync(process.execPath,['scripts/publication.mjs','prepare'],{encoding:'utf8',windowsHide:true,env:{...process.env,GITHUB_ACTIONS:'true',GITHUB_REPOSITORY:policy.repository,GITHUB_REF:'refs/heads/main',GH_TOKEN:token,PUBLICATION_ENABLED:'false'}});
   assert.equal(result.status,1);assert.match(result.stderr,/Publication stopped/);assert.ok(!(result.stdout+result.stderr).includes(token));
+});
+test('manual Pages builds use the selected main-history commit and recheck the artifact',async()=>{
+  const revision='a'.repeat(40),older='b'.repeat(40),unmerged='c'.repeat(40);
+  const provider={head:async branch=>{assert.equal(branch,'main');return revision;}};
+  const options={readGit:(...args)=>{assert.deepEqual(args,['rev-list','--first-parent',revision]);return `${revision}\r\n${older}`;}};
+  const run={ref:'refs/heads/main',revision,event:'workflow_dispatch'};
+  assert.equal(await pagesRevision(provider,run,options),revision);
+  assert.equal(await pagesRevision(provider,{...run,commit:older.toUpperCase(),built:older},options),older);
+  await assert.rejects(pagesRevision(provider,{...run,commit:unmerged},options),/history of main/);
+  await assert.rejects(pagesRevision(provider,{...run,commit:'1234'},options),/40-character/);
+  await assert.rejects(pagesRevision(provider,{...run,commit:older,event:'push'},options),/manual deployment/);
+  await assert.rejects(pagesRevision(provider,{...run,commit:older,built:revision},options),/artifact revision/);
+  await assert.rejects(pagesRevision(provider,{...run,expected:older},options),/current main/);
+  await assert.rejects(pagesRevision({head:async()=>unmerged},{...run,commit:older},options),/current main/);
 });
 test('public metadata binds content hashes and history to one clean approved revision without author identities',async()=>{
   const folder=await fs.mkdtemp(path.join(os.tmpdir(),'ger-publication-metadata-'));const revision='a'.repeat(40),staff='b'.repeat(40),lastEdit='c'.repeat(40);

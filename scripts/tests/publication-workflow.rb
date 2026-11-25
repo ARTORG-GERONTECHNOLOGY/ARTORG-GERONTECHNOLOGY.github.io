@@ -32,13 +32,18 @@ raise 'Build must remain read-only' if build.key?('permissions')
 runs=build['steps'].filter_map { |step| step['run'] }
 raise 'Production must use full shared validation' unless runs.include?('bundle exec ruby scripts/validate-site.rb')
 raise 'Production must enforce editorial release readiness' unless runs.include?('bundle exec ruby scripts/validate-proposals.rb --release')
-raise 'Revision metadata and final packaging are required' unless runs.include?('node scripts/publication.mjs metadata _site') && runs.include?('python scripts/package-pages.py _site _pages --revision $env:GITHUB_SHA')
+selected='${{ steps.select.outputs.revision }}'
+raise 'Only a verified commit can be built' unless build.dig('outputs','revision')==selected && build['steps'].any? { |step| step['id']=='select' && step['run']=='node scripts/publication.mjs guard-pages' }
+metadata=build['steps'].find { |step| step['run']&.include?('node scripts/publication.mjs metadata _site') }
+package=build['steps'].find { |step| step['run']=='python scripts/package-pages.py _site _pages --revision $env:BUILD_REVISION' }
+raise 'Metadata and packaging must use the selected revision' unless [metadata,package].all? { |step| step&.dig('env','BUILD_REVISION')==selected } && metadata['run'].include?('$env:GITHUB_SHA = $env:BUILD_REVISION')
 upload=build['steps'].last
 raise 'Only the inspected artifact is uploaded with short retention' unless upload['uses'].start_with?('actions/upload-pages-artifact@') && upload['with']=={'path'=>'_pages','retention-days'=>1}
 raise 'Deploy must depend on the complete build' unless deploy['needs']=='build'
 raise 'Deployment permissions must be isolated' unless deploy['permissions']=={'contents'=>'read','pages'=>'write','id-token'=>'write'}
 raise 'Use protected Pages environment' unless deploy.dig('environment','name')=='github-pages'
 raise 'Recheck freshness immediately before deploying' unless deploy['steps'][-2]['run']=='node scripts/publication.mjs guard-pages'
+raise 'Deploy must recheck the built revision' unless deploy['steps'][-2].dig('env','BUILT_REVISION')=='${{ needs.build.outputs.revision }}'
 raise 'Use same-run Pages artifact' unless deploy['steps'].last['uses'].start_with?('actions/deploy-pages@')
 candidate=validation.dig('jobs','validate','steps').find { |step| step['run']=='node scripts/publication.mjs check-candidate' }
 raise 'Merged candidates need previous-content/media validation' unless candidate && candidate['if']=="startsWith(github.ref, 'refs/heads/publication/staff-')"

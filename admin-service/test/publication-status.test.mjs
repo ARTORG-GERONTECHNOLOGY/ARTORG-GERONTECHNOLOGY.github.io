@@ -37,6 +37,14 @@ test('an older actual successful deployment remains distinguishable from a newer
   const facts=await readPublicationFacts(f.api,f.head,{revision:f.public});assert.equal(facts.pages.conclusion,'failure');assert.equal(facts.live.revision,f.live);
   f.extra[0].path='.github/workflows/unrelated.yml';assert.equal((await readPublicationFacts(f.api,f.head,{revision:f.public})).live,null);
 });
+test('a manual commit deployment is matched to its public revision and exact run',async()=>{
+  const f=fixture();f.public=id('d');
+  f.extra=[{id:110,path:'.github/workflows/publish-pages.yml',repository:{full_name:policy.repository},head_sha:f.main,head_branch:'main',event:'workflow_dispatch',display_title:`Publish commit ${f.public}`,status:'completed',conclusion:'success'}];
+  const facts=await readPublicationFacts(f.api,f.head,{revision:f.public,run_id:'110'});
+  assert.equal(facts.live.revision,f.public);assert.ok(facts.live.url.endsWith('/110'));
+  assert.equal(facts.pages.id,100);
+  assert.equal((await readPublicationFacts(f.api,f.head,{revision:f.public,run_id:'111'})).live,null);
+});
 test('facts retain exact requested and newer file identities without treating save/check success as deployment',async()=>{
   const f=fixture();f.head=id('b');const facts=await readPublicationFacts(f.api,id('a'),null);assert.equal(facts.commit,id('a'));assert.equal(facts.head,id('b'));assert.equal(facts.selected[file],id('1'));assert.equal(facts.current[file],id('2'));assert.equal(facts.live,null);assert.equal(facts.publicUnavailable,true);
   await assert.rejects(readPublicationFacts(f.api,'not-a-revision',null),error=>error.status===422);

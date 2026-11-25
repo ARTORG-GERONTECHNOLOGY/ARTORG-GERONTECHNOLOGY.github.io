@@ -8,6 +8,15 @@ import {policy,editable,asset,sha} from '../admin-service/content-policy.mjs';
 
 const root=fileURLToPath(new URL('..',import.meta.url));
 function git(...args){const result=spawnSync('git',['--no-pager','-c','core.hooksPath=NUL',...args],{cwd:root,encoding:'utf8',windowsHide:true,maxBuffer:8*1024*1024});if(result.status!==0)throw Error('Local revision metadata is unavailable.');return result.stdout.trim();}
+export async function pagesRevision(provider,{ref,revision,expected,commit,event,built},{readGit=git}={}){
+  if(ref!=='refs/heads/'+policy.productionBranch||!sha(revision)||expected&&expected!==revision||await provider.head(policy.productionBranch)!==revision)throw Error('This run is no longer based on the current main revision.');
+  if(commit&&(event!=='workflow_dispatch'||expected))throw Error('A commit can only be selected for a manual deployment.');
+  const selected=commit?commit.trim().toLowerCase():revision;
+  if(!sha(selected))throw Error('Enter a full 40-character commit hash.');
+  if(selected!==revision&&!readGit('rev-list','--first-parent',revision).split(/\r?\n/).includes(selected))throw Error('The commit must be in the first-parent history of main.');
+  if(built!==undefined&&built!==selected)throw Error('The artifact revision does not match the selected commit.');
+  return selected;
+}
 export async function publicationMetadata(directory,revision,{runId=null,readGit=git}={}){
   if(!sha(revision)||readGit('rev-parse','HEAD')!==revision)throw Error('Build revision does not match the checked-out source.');
   if(readGit('status','--porcelain','--untracked-files=normal'))throw Error('Publication metadata requires a clean checkout of the approved revision.');
@@ -29,9 +38,12 @@ async function main(){
   if(process.env.GITHUB_ACTIONS!=='true'||process.env.GITHUB_REPOSITORY!==policy.repository||!process.env.GH_TOKEN)throw Error('Publication operations run only in the configured GitHub workflow.');
   const provider=new GitHubPublication(process.env.GH_TOKEN);
   if(action==='guard-pages'){
-    const revision=process.env.GITHUB_SHA;
-    if(process.env.GITHUB_REF!=='refs/heads/'+policy.productionBranch||!sha(revision)||process.env.REQUESTED_REVISION&&process.env.REQUESTED_REVISION!==revision||await provider.head(policy.productionBranch)!==revision)throw Error('This build is no longer the current production revision.');
-    console.log('Current production revision verified.');return;
+    const revision=await pagesRevision(provider,{
+      ref:process.env.GITHUB_REF,revision:process.env.GITHUB_SHA,expected:process.env.REQUESTED_REVISION,
+      commit:process.env.DEPLOY_COMMIT,event:process.env.GITHUB_EVENT_NAME,built:process.env.BUILT_REVISION
+    }).catch(error=>{console.error(error.message);throw error;});
+    if(process.env.GITHUB_OUTPUT)await fs.appendFile(process.env.GITHUB_OUTPUT,`revision=${revision}\n`);
+    console.log(`Verified website revision ${revision}.`);return;
   }
   if(action==='check-candidate'){
     const plan=await candidate(provider,process.env.GITHUB_SHA);

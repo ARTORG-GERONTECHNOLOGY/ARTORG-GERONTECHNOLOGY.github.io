@@ -13,13 +13,13 @@ import { localSnapshot, ProposalEditor } from '../editor.mjs';
 import { ContentRevisions } from '../revisions.mjs';
 
 const hash = value => createHash('sha1').update(value).digest('hex');
-async function fixture() {
+async function fixture({userLogin = false} = {}) {
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'ger-github-'));
   const keys = generateKeyPairSync('rsa', {modulusLength: 2048});
   const keyFile = path.join(temporary, 'app.pem');
   await fs.writeFile(keyFile, keys.privateKey.export({type: 'pkcs8', format: 'pem'}));
   const {files} = await localSnapshot();
-  const fake = {head: hash('initial'), files, mutations: 0, mints: 0, race: false, fail: false, loseResponse: false};
+  const fake = {head: hash('initial'), files, mutations: 0, mints: 0, race: false, fail: false, loseResponse: false, validationRequests: []};
   fake.revisions=new Map([[fake.head,{files:new Map(files),parents:[],paths:[...files.keys()],time:'2026-01-15T00:30:00Z'}]]);
   const label=commit=>({sha:commit,parents:fake.revisions.get(commit).parents.map(sha=>({sha})),author:{type:'Bot',login:'ger-admin[bot]'},commit:{committer:{date:fake.revisions.get(commit).time},author:{name:'Shared administration'},message:'Update staff content'}});
   const response = value => new Response(JSON.stringify(value), {status: 200});
@@ -40,12 +40,22 @@ async function fixture() {
       return response({token: 'fixture-installation-token', expires_at: new Date(Date.now() + 3600000).toISOString(),
         permissions: {contents: 'write', checks: 'read', actions:'read', deployments:'read', metadata: 'read', ...(fake.excessPermissions ? {issues: 'write'} : {})}, repositories: [{id: 56}]});
     }
-    assert.ok(options.headers.Authorization === 'Bearer fixture-installation-token');
+    assert.equal(options.headers.Authorization, userLogin ? 'Bearer fixture-user-token' : 'Bearer fixture-installation-token');
     const prefix = '/repos/' + policy.repository;
-    if (route === prefix) return response({id: 56, full_name: policy.repository});
+    if (route === prefix) return response({id: 56, full_name: policy.repository, permissions: {push: !fake.readOnly}});
+    if (route === prefix + '/actions/workflows/validate-staff-upload.yml') {
+      return fake.missingWorkflow ? new Response(null, {status: 404}) : response({state: 'active'});
+    }
+    if (route === prefix + '/dispatches') {
+      assert.equal(options.method, 'POST');
+      assert.deepEqual(body, {event_type: 'staff-content-uploaded', client_payload: {revision: fake.head}});
+      fake.validationRequests.push(body.client_payload.revision);
+      return new Response(null, {status: fake.failDispatch ? 503 : 204});
+    }
     if (route.startsWith(prefix + '/git/ref/heads/')) {
       assert.ok(route === prefix + '/git/ref/heads/' + policy.contentBranch);
-      return response({object: {sha: fake.head}});
+      if (fake.missingBranch) return new Response(null, {status: 404});
+      return response({node_id: 'fixture-staff-branch', object: {sha: fake.head}});
     }
     if (route.startsWith(prefix+'/commits?')){const query=new URL('https://api.github.com'+route).searchParams;assert.equal(query.get('sha'),fake.head);const matches=[...fake.revisions.keys()].reverse().filter(commit=>fake.revisions.get(commit).paths.includes(query.get('path')));const offset=(Number(query.get('page'))-1)*20;return response(matches.slice(offset,offset+20).map(label));}
     if (route.startsWith(prefix+'/commits/')&&/^[a-f0-9]{40}$/.test(route.slice((prefix+'/commits/').length)))return response(label(route.split('/').at(-1)));
@@ -59,8 +69,7 @@ async function fixture() {
     if (route === '/graphql') {
       fake.mutations++;
       const input = body.variables.input;
-      assert.equal(input.branch.repositoryNameWithOwner, policy.repository);
-      assert.equal(input.branch.refName, 'refs/heads/' + policy.contentBranch);
+      assert.deepEqual(input.branch, {id: 'fixture-staff-branch'});
       assert.equal(input.message.headline, 'Update staff content');
       assert.ok(!input.force);
       assert.ok((input.fileChanges.deletions||[]).every(item=>editable(item.path)&&item.path.startsWith('_posts/')));
@@ -79,13 +88,36 @@ async function fixture() {
     if (route.includes('/check-runs?')) return response({total_count: 1, check_runs: fake.checkRuns || [{id: 1, name: policy.requiredCheck, app: {slug: 'github-actions'}, head_sha: fake.head, status: 'completed', conclusion: 'success'}]});
     throw Error('Unexpected API request');
   };
-  const provider = new GitHubContent(config, {fetch: fetcher});
+  const provider = new GitHubContent(userLogin ? {userToken: 'fixture-user-token'} : config, {fetch: fetcher});
   return {temporary, fake, provider, close: () => fs.rm(temporary, {recursive: true, force: true})};
 }
 const authorize = async () => {};
 function change(snapshot, file, priority) {
   return {path: file, sha: snapshot.files.get(file).sha, content: snapshot.files.get(file).bytes.toString('utf8').replace(/priority: \d+/, 'priority: ' + priority)};
 }
+
+test('personal GitHub login uploads and refreshes the staff branch with write permission', async () => {
+  const f = await fixture({userLogin: true});
+  try {
+    const store = new ContentStore(f.provider);
+    const before = await f.provider.snapshot();
+    const path = [...before.files.keys()].find(name => name.startsWith('_posts/'));
+    const saved = await store.save({baseCommit: before.head, changes: [change(before, path, 22)]}, authorize);
+    const refreshed = await f.provider.snapshot();
+    assert.equal(refreshed.head, saved.commit);
+    assert.match(refreshed.files.get(path).bytes.toString('utf8'), /^priority: 22$/m);
+    assert.deepEqual(f.fake.validationRequests, [saved.commit]);
+    assert.equal(f.fake.mints, 0);
+    f.fake.missingWorkflow = true;
+    const pending = await store.save({baseCommit: refreshed.head, changes: [change(refreshed, path, 23)]}, authorize);
+    assert.equal(pending.validationRequested, false);
+    assert.deepEqual(f.fake.validationRequests, [saved.commit]);
+    f.fake.missingBranch = true;
+    await assert.rejects(f.provider.snapshot(), {code: 'staff_branch_missing'});
+    f.fake.readOnly = true;
+    await assert.rejects(f.provider.snapshot(), {code: 'github_write_required'});
+  } finally { await f.close(); }
+});
 
 test('real schemas and immutable metadata protect an atomic multi-file save', async () => {
   const f = await fixture();
@@ -95,6 +127,7 @@ test('real schemas and immutable metadata protect an atomic multi-file save', as
     const changes = paths.map((file, i) => change(snapshot, file, 20 + i));
     const result = await store.save({baseCommit: snapshot.head, changes}, authorize);
     assert.equal(result.state, 'committed_validation_pending'); assert.equal(result.live, false);
+    assert.equal(result.validationRequested, true); assert.deepEqual(f.fake.validationRequests, [result.commit]);
     assert.equal(f.fake.mutations, 1); assert.equal(f.fake.mints, 1);
     for (const item of changes) assert.equal(f.fake.files.get(item.path).bytes.toString('utf8'), item.content);
     await assert.rejects(store.save({baseCommit: snapshot.head, changes}, authorize), error => error.status === 409);
@@ -114,8 +147,10 @@ test('real schemas and immutable metadata protect an atomic multi-file save', as
       {path: '_posts/' + paths[0].slice(7, 17) + '-project-created-fixture.md', sha: null, content: created},
       {path: categories, sha: createBase.files.get(categories).sha, content: createBase.files.get(categories).bytes.toString('utf8') + '\n- id: fixture-category\n  label: Fixture category\n'}
     ];
+    f.fake.failDispatch = true;
     const added = await store.save({baseCommit: createBase.head, changes: additions}, authorize);
     assert.equal(added.live, false); assert.equal(f.fake.mutations, 2);
+    assert.equal(added.validationRequested, false); assert.deepEqual(f.fake.validationRequests, [result.commit, added.commit]);
     const status = await f.provider.checks(f.fake.head); assert.equal(status.state, 'passed'); assert.equal(status.live, false);
     f.fake.checkRuns = [{id: 2, name: policy.requiredCheck, app: {slug: 'untrusted-check-app'}, head_sha: f.fake.head, status: 'completed', conclusion: 'success'}];
     assert.equal((await f.provider.checks(f.fake.head)).state, 'pending');

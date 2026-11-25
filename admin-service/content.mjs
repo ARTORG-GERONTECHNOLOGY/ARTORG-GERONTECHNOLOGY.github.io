@@ -86,7 +86,15 @@ export class ContentStore {
     await this.validate(next, snapshot.files);
     await authorize();
     const committed = await this.provider.commit(snapshot.head, changes);
+    // Report a committed save even if the separate notification cannot be confirmed.
+    let validationRequested;
+    if (this.provider.requestValidation) {
+      try {
+        await this.provider.requestValidation(committed);
+        validationRequested = true;
+      } catch { validationRequested = false; }
+    }
     return {commit: committed, files: changes.map(item => ({path: item.path, sha: item.delete ? null : blobSha(item.bytes || Buffer.from(item.content, 'utf8'))})), branch: policy.contentBranch, state: 'committed_validation_pending', live: false, requiredCheck: policy.requiredCheck,
-      publication: policy.publication};
+      publication: policy.publication, validationRequested};
   }
 }

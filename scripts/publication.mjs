@@ -3,7 +3,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-import {GitHubPublication,prepare,promote,verifyRun,candidate} from './lib/publication.mjs';
+import {GitHubPublication,prepare,promote,verifyRun,candidate,requestStaffValidation} from './lib/publication.mjs';
 import {policy,editable,asset,sha} from '../admin-service/content-policy.mjs';
 
 const root=fileURLToPath(new URL('..',import.meta.url));
@@ -56,7 +56,12 @@ async function main(){
     }
     console.log('Candidate identity, allowlist, previous-content rules and new media verified.');return;
   }
-  if(!['prepare','promote'].includes(action)||process.env.PUBLICATION_ENABLED!=='true'||process.env.GITHUB_REF!=='refs/heads/'+policy.productionBranch)throw Error('Staff publication is disabled or not running trusted production code.');
+  if(!['prepare','promote','request-staff-validation'].includes(action)||process.env.PUBLICATION_ENABLED!=='true'||process.env.GITHUB_REF!=='refs/heads/'+policy.productionBranch)throw Error('Staff publication is disabled or not running trusted production code.');
+  if(action==='request-staff-validation'){
+    if(process.env.GITHUB_EVENT_NAME!=='repository_dispatch')throw Error('Unsupported staff upload event.');
+    await requestStaffValidation(provider,process.env.REQUESTED_REVISION);
+    console.log('Requested validation of the exact uploaded staff revision.');return;
+  }
   const event=JSON.parse(await fs.readFile(process.env.GITHUB_EVENT_PATH,'utf8'));
   let id;
   if(process.env.GITHUB_EVENT_NAME==='workflow_run'){

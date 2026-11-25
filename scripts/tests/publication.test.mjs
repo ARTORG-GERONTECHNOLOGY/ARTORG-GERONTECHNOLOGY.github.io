@@ -6,7 +6,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {pagesRevision,publicationMetadata} from '../publication.mjs';
-import {entries,treeSha,mergePlan,prepare,promote,candidate,verifyRun,GitHubPublication} from '../lib/publication.mjs';
+import {entries,treeSha,mergePlan,prepare,promote,candidate,verifyRun,GitHubPublication,requestStaffValidation} from '../lib/publication.mjs';
 import {policy,blobSha} from '../../admin-service/content-policy.mjs';
 const hash=value=>createHash('sha1').update(value).digest('hex');
 const file=(path,text,mode='100644')=>({path,mode,type:'blob',sha:blobSha(Buffer.from(text)),size:Buffer.byteLength(text)});
@@ -42,7 +42,12 @@ test('trusted merge retains production code, rejects code/media changes and dete
   const withAsset=new Map(base);withAsset.set('assets/images/a.png',file('assets/images/a.png','old'));assert.throws(()=>mergePlan(withAsset,withAsset,new Map(base)),/Shared media/);
 });
 test('successful checked publication advances only the exact merge and explicitly requests both workflows',async()=>{
-  const repo=new Repository();const prepared=await prepare(repo,repo.staff);assert.equal(prepared.state,'validation_pending');assert.equal(await repo.head('main'),repo.base);assert.equal(repo.calls.at(-1).workflow,'validate.yml');
+  const repo=new Repository();
+  await assert.rejects(requestStaffValidation(repo,repo.base),/superseded/);
+  assert.equal(repo.calls.length,0);
+  await requestStaffValidation(repo,repo.staff);
+  assert.deepEqual(repo.calls.at(-1),{workflow:'validate.yml',ref:'content/staff',inputs:{revision:repo.staff}});
+  const prepared=await prepare(repo,repo.staff);assert.equal(prepared.state,'validation_pending');assert.equal(await repo.head('main'),repo.base);assert.equal(repo.calls.at(-1).workflow,'validate.yml');
   const plan=await candidate(repo,prepared.candidate);assert.equal(plan.main,repo.base);assert.equal(plan.staff,repo.staff);
   await assert.rejects(promote(repo,prepared.candidate),/has not passed/);assert.equal(await repo.head('main'),repo.base);
   repo.checks.set(prepared.candidate,true);const accepted=await promote(repo,prepared.candidate);assert.equal(accepted.live,false);assert.equal(await repo.head('main'),prepared.candidate);assert.equal(repo.calls.at(-1).workflow,'publish-pages.yml');assert.equal(repo.calls.at(-1).inputs.revision,prepared.candidate);

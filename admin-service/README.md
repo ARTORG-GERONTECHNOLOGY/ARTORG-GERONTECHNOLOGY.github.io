@@ -93,12 +93,40 @@ browser synchronization or upstream logs. A clean redirect cannot erase those.
 
 ## Local review
 
-The prepared local-only demo uses `http://localhost:4100`, a private state file
+Copy the team's existing private `access.json` to
+`../.local/admin-private/access.json`. Run `bash scripts/start-admin-docker.sh`
+from the repository root, open <http://localhost:4100/admin/>, and enter the
+team access code. The launcher uses a GitHub CLI login or the host's GitHub
+HTTPS credential. If neither is available, it starts a one-time GitHub sign-in
+in Docker and stores that login under `../.local/admin-github/`. Use an
+account with write access to the website repository. The launcher passes the
+credential to the service through standard input. For review using the local
+checkout, use `--preview`.
+
+The editor reads the current `content/staff` revision on startup and when you
+click **Sync from GitHub**. This includes saved proposal changes that are still
+awaiting publication. Downloaded drafts remain on the machine where they were
+saved and can be reopened with **Open draft**. Use **Upload reviewed changes**
+to commit a ready proposal. An older open draft still needs to be checked
+against newer repository changes before it can be saved.
+
+### Manual loopback setup
+
+The standalone service also supports `http://localhost:4100`, a private state file
 at `../.local/admin-private/access.json` and a private entry link at
-`../.local/admin-private/link.txt`. These paths are outside the website repository.
+`../.local/admin-private/link.txt`. From the repository root, generate the link
+and state file when setting up the editor or replacing an old link:
+
+```sh
+node admin-service/manage-access.mjs rotate --state-file ../.local/admin-private/access.json --link-file ../.local/admin-private/link.txt --origin http://localhost:4100
+```
+
+Set `ADMIN_ORIGIN=http://localhost:4100` and set `ADMIN_ACCESS_FILE` to the
+absolute path of that state file. With the local HTTP settings below, start the
+editor from the repository root with `node admin-service/start.mjs`.
 Open the address from that link file in your browser. Successful entry redirects
 to `/admin/` without the token. The proposal list supports editing, preview and
-Markdown draft download. With GitHub disabled, Save proposal is disabled;
+Markdown draft download. With GitHub disabled, **Upload reviewed changes** is disabled;
 the service does not write to the local checkout as a substitute.
 
 For this loopback-only development mode, set `ADMIN_ALLOW_LOCAL_HTTP=1` and
@@ -107,6 +135,10 @@ For this loopback-only development mode, set `ADMIN_ALLOW_LOCAL_HTTP=1` and
 that do not accept Secure cookies on localhost require trusted local HTTPS;
 do not disable cookie protection or bypass certificate warnings to compensate.
 Production always uses the separate HTTPS administration origin.
+
+The standalone service can also use the GitHub App variables below. In either
+publishing mode, GitHub validates the uploaded commit, builds the accepted
+production commit, and deploys the inspected Pages artifact.
 
 The page opens the administration editor. Download drafts and temporary files
 before closing the browser or letting the session expire.
@@ -177,8 +209,9 @@ Before real activation, a separately authorized operator must:
    pushes/deletion. Protect `main` with the required **Website validation** check
    from GitHub Actions, with no App bypass. Follow the Step 23 settings and
    activation guide for exact checked merges and automatic publication.
-4. After an App-originated save, run **Validate website** manually on
-   `content/staff`. Verify that a failed check prevents production advancement
+4. Verify that **Upload reviewed changes** triggers **Validate uploaded staff
+   content** and a **Validate website** run for the uploaded commit. Verify
+   that a failed check prevents production advancement
    and a successful save is still reported as pending
    until the later deployment reports the same revision live. These remote
    acceptance checks are explicitly deferred and must not be inferred from the
@@ -293,7 +326,7 @@ recovery. The current tab holds the working copy and warns before leaving.
 After expiry, sign in using the private link in another tab and retry in the
 original tab to preserve your work.
 
-**Save proposal** submits the complete publication candidate to the Step 17
+**Upload reviewed changes** submits the complete publication candidate to the Step 17
 atomic save gate. Confirmed saves update the displayed file/branch revisions;
 stale saves are rejected and ambiguous failures are never automatically retried.
 Failed requests retain all form fields and offer download/reload guidance.

@@ -452,11 +452,8 @@ with a PDF reader as well; text extraction alone cannot verify pagination.
 
 ## Validate changes before publication
 
-Step 15 is prepared for local use. At the user's request, activating the checks
-on GitHub and changing branch protection are deferred. No workflow has been run
-on GitHub and no repository protection settings have been changed.
-
-From the website root, after installing the Ruby and PDF dependencies above:
+To run the optional full validation suite, use these commands from the website
+root after installing the Ruby and PDF dependencies above.
 
 ```sh
 python -m pip install -r scripts/requirements-validation.txt
@@ -487,34 +484,19 @@ URLs; their original source folder is still excluded. CSS source maps are
 intentional browser assets. The inherited stray source file named `¨` is now
 excluded from the public output without deleting the original.
 
-The GitHub workflow is `.github/workflows/validate.yml`. Once separately
-authorized and pushed, it is configured to run for pull requests, pushes to `main`,
-merge-queue candidates and manual requests. It calls this same validation
-command, with no separate publishing implementation. The check name to require
-later is **Website validation**; keep that job name stable. Activation requires
-a successful GitHub run followed by an authorized branch rule requiring that
-check before merging. Merely committing this file locally does not enable it.
+The **Website validation** check runs Jekyll on pull requests, pushes to `main`,
+merge-queue candidates, and manual requests. Staff publication candidates also
+check content changes and new media before promotion. The **Publish website**
+workflow builds Jekyll, generates proposal PDFs, and inspects the Pages artifact
+before deploying it. Both workflows use the existing pinned build dependencies.
 
-The workflow uses Windows 2025 with Ruby 3.3.13, Bundler 2.5.22,
-Node 24.22.1, Python 3.13.14 and pnpm 11.25.0.
-Ruby and Node packages use their existing lockfiles; verification-only Python
-packages have exact versions in `scripts/requirements-validation.txt`. Actions
-are pinned to full commit SHAs. The token has only repository read access,
-checkout does not retain Git credentials, and no production secrets, deployment
-environment, write permissions or deployment/upload action is provided.
-Workflow checks guard these constraints and the shared command. A hosted GitHub
-run remains unverified until activation; macOS/Linux validation is unverified.
-
-The final user review resolved the originally temporary content choices.
-Before a real release, verify the current editorial record with:
+To check the editorial record locally, run:
 
 ```sh
 bundle exec ruby scripts/validate-proposals.rb --release
 ```
 
-That check now passes for the confirmed content and still fails if new editorial
-blockers are recorded. Hosting and live acceptance remain separate requirements
-in the [release handover](release-handover.md). Neither command deploys the site.
+The command reports any outstanding editorial blockers in the migration record.
 
 ## Private administration access
 

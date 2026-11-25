@@ -55,13 +55,18 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
   const server = http.createServer(async (req, res) => {
     let receivingUpload = false;
     let route = 'invalid';
+    let localSignIn = false;
     const send = (status, content, type = 'text/html; charset=utf-8', extra = {}) => {
-      res.writeHead(status, {...headers, ...(route === '/admin/access' ? {'Content-Security-Policy': "default-src 'none'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'"} : {}), ...(!config.local ? {'Strict-Transport-Security': 'max-age=31536000'} : {}), 'Content-Type': type, ...extra});
+      res.writeHead(status, {...headers, ...(route === '/admin/access' ? {'Content-Security-Policy': "default-src 'none'; style-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"} : {}), ...(!config.local ? {'Strict-Transport-Security': 'max-age=31536000'} : {}), 'Content-Type': type, ...extra});
       res.end(content);
       // No URLs, query strings, cookies, headers, verifier digests or exception values.
       log({event: 'admin_request', route, status});
     };
-    const denied = (status = 401, extra = {}) => send(status, page('Access needed', '<p>Open the private administration link provided by your maintainer.</p>'), undefined, extra);
+    const denied = (status = 401, extra = {}) => send(status, page('Access needed',
+      localSignIn
+        ? '<form method="post" action="/admin/access"><label>Team access code <input name="token" type="password" required maxlength="64" autocomplete="current-password"></label> <button type="submit">Sign in</button></form>'
+        : '<p>Open the private administration link provided by your maintainer.</p>'), undefined,
+      localSignIn ? {...extra, 'Referrer-Policy': 'same-origin'} : extra);
     try {
       const host = new URL(config.origin).host;
       const remote = req.socket.remoteAddress || '';
@@ -74,15 +79,28 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
       const url = new URL(req.url, config.origin);
       if (url.origin !== config.origin) return denied(400);
       route = url.pathname.startsWith('/admin/api/media') ? 'media' : url.pathname.startsWith('/admin/api/editor') ? 'editor' : url.pathname === '/admin/editor.js' ? 'editor_script' : url.pathname.startsWith('/admin/api/content') ? 'content' : new Set(['/admin/access', '/admin/', '/admin/api/session', '/admin/logout', '/admin/style.css']).has(url.pathname) ? url.pathname : 'not_found';
+      localSignIn = config.local && !url.search && (route === '/admin/' || route === '/admin/access');
       const forwarded = req.headers['x-forwarded-for'];
       const ip = trusted && typeof forwarded === 'string' && isIP(forwarded) ? forwarded : remote;
       if (limited('global', 2000, 60)) return denied(429, {'Retry-After': '60'});
       if (route === '/admin/style.css' && req.method === 'GET') {
         return send(200, await fs.readFile(new URL('./style.css', import.meta.url), 'utf8'), 'text/css; charset=utf-8');
       }
-      if (route === '/admin/access' && req.method !== 'GET') return denied(405, {'Allow': 'GET'});
+      const codeEntry = config.local && route === '/admin/access' && req.method === 'POST';
+      if (route === '/admin/access' && req.method !== 'GET' && !codeEntry) return denied(405, {'Allow': config.local ? 'GET, POST' : 'GET'});
       if (route === '/admin/access' && limited('access:' + ip, 20, 600)) return denied(429, {'Retry-After': '600'});
       if (!['GET', 'HEAD'].includes(req.method) && limited('write:' + ip, 60, 60)) return denied(429, {'Retry-After': '60'});
+      let tokens = url.searchParams.getAll('token');
+      if (codeEntry) {
+        if (req.headers.origin !== config.origin || url.search) return denied(403);
+        if (req.headers['content-type']?.split(';')[0] !== 'application/x-www-form-urlencoded') return denied(415);
+        let body = '';
+        for await (const chunk of req) {
+          body += chunk;
+          if (body.length > 1024) return denied(413);
+        }
+        tokens = new URLSearchParams(body).getAll('token');
+      }
       const access = await readAccess(config.accessFile);
       const fingerprint = digest(JSON.stringify(access));
       if (generation !== fingerprint) { sessions.clear(); generation = fingerprint; }
@@ -91,7 +109,6 @@ export function createAdministration(config, {now = Date.now, log = () => {}, co
       purgeUploads();
       if (access.revoked) return denied(401, {'Set-Cookie': clearCookie});
       if (route === '/admin/access') {
-        const tokens = url.searchParams.getAll('token');
         const valid = tokens.length === 1 && /^[a-f0-9]{64}$/.test(tokens[0]);
         // Compare fixed-length digests even when the candidate is malformed.
         const candidate = digest(valid ? tokens[0] : 'invalid');

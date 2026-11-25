@@ -319,8 +319,9 @@
         const saved=await api('save',{baseCommit:state.context.baseCommit,changes:[{path:savedPath,sha:state.context.sha??null,content:result.source}],uploads});
         populate(result,{path:savedPath,baseCommit:saved.commit,sha:saved.files.find(file=>file.path===savedPath).sha},activeContentTab===editorContentTab());
         trackSaved(saved);
-        message('Committed; validation/build pending. This is not a live deployment confirmation.');
-        try { bootstrap=await api('bootstrap'); await loadSupporting();await loadMedia();renderList();renderMedia(); } catch { message('Committed; validation/build pending. The list could not refresh. Reload it before editing more content.'); }
+        const uploadStatus=saved.validationRequested===false?'Uploaded to GitHub. The validation request could not be confirmed. Check GitHub Actions before requesting validation again.':'Uploaded to GitHub. Validation and deployment are pending.';
+        message(uploadStatus);
+        try { bootstrap=await api('bootstrap'); await loadSupporting();await loadMedia();renderList();renderMedia(); } catch { message(uploadStatus+' Reload the list before editing more content.'); }
       } else if(name!=='download') message(result.ready?'Content checks passed.':'Working copy retained — required publication fields need attention.');
     } catch(error) { errors(error.data?.errors||{});message(error.message+' Your working copy remains in this tab.');if(error.status===409)$('reload').hidden=false; }
     finally {busy=false;}
@@ -447,6 +448,7 @@
     try {
       const session=await fetch('/admin/api/session',{credentials:'same-origin'}).then(r=>r.json());csrf=session.csrf;
       bootstrap=await api('bootstrap'); $('connection').textContent=bootstrap.canPublish?'Connected to the staff content branch. Saves wait for validation.':'Local review — GitHub saving is not connected. You can edit, preview and download drafts.';
+      if(bootstrap.canPublish)$('reload-list').textContent='Sync from GitHub';
       renderList();
       $('new-proposal').disabled=false;
       try{await loadSupporting();}catch(error){listMessage(error.message);}
@@ -506,7 +508,7 @@
     await loadDeleted();
   }
   $('save-order').addEventListener('click',async()=>{if(busy||!orderDirty||listNeedsReload)return;if(dirty){listMessage('Reset the proposed order before saving proposal edits. Both working copies are retained.');return;}busy=true;try{const saved=await api('lifecycle',{action:'order',baseCommit:bootstrap.baseCommit,order:orderPaths});trackSaved(saved);orderDirty=false;listNeedsReload=true;try{await refreshAfterListSave();listMessage('Order committed; checks/build pending. Content-update dates were preserved.');}catch{renderList();listMessage('Order committed; checks/build pending. Reload the list before another action.');}}catch(error){if(error.status===409)listNeedsReload=true;listMessage(error.message+' The proposed order is retained; reset/reload only after comparing newer changes.');}finally{busy=false;}});
-  $('reload-list').addEventListener('click',async()=>{if(busy)return;if(orderDirty&&!confirm('Discard the proposed order and load the latest list? Your proposal form will be kept.'))return;busy=true;try{bootstrap=await api('bootstrap');orderDirty=false;listNeedsReload=false;renderList();listMessage('Latest list loaded. Any working proposal retains its original revision so newer edits cannot be overwritten.');}catch(error){listMessage(error.message);}finally{busy=false;}});
+  $('reload-list').addEventListener('click',async()=>{if(busy)return;if(orderDirty&&!confirm('Discard the proposed order and load the latest list? Your proposal form will be kept.'))return;busy=true;try{bootstrap=await api('bootstrap');await loadSupporting();orderDirty=false;listNeedsReload=false;renderList();listMessage('Latest list loaded. Any working proposal retains its original revision so newer edits cannot be overwritten.');}catch(error){listMessage(error.message);}finally{busy=false;}});
   $('reset-order').addEventListener('click',()=>{if(busy)return;orderDirty=false;renderList();listMessage('The proposed order was reset.');});
   $('cancel-delete').addEventListener('click',()=>$('delete-dialog').close());
   $('archive-instead').addEventListener('click',()=>{const item=deleteTarget;$('delete-dialog').close();if(item)lifecycleAction(item,'status','archived');});
@@ -547,9 +549,12 @@
       const source=await file.text();
       let value=await api('support-prepare',{operation:'parse',source});
       if(value.isProposal)value=await api('prepare',{operation:'parse',source});
+      const context={...value.context};
+      // A new proposal has no saved file to overwrite. Its draft may predate the GitHub connection.
+      if(!value.supporting&&!context.path&&!context.sha)context.baseCommit=bootstrap.baseCommit;
       populate(value,{
         baseCommit:value.supporting?supportingBase:bootstrap.baseCommit,sha:null,
-        ...value.context,path:value.supporting?value.path:value.context?.path
+        ...context,path:value.supporting?value.path:context.path
       });
     }catch(error){listMessage(error.message);}finally{busy=false;}
   });

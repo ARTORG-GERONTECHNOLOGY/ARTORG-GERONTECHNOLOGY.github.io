@@ -6,6 +6,7 @@ import {readPublicationFacts} from './publication-status.mjs';
 
 const endpoint = 'https://api.github.com';
 const prefix = '/repos/' + policy.repository;
+const staffRef = prefix + '/git/ref/heads/' + policy.contentBranch;
 const safeFailure = () => new ContentError(503, 'github_unavailable', 'GitHub is unavailable or its configuration needs attention. Your changes have not been retried.');
 export class GitHubContent {
   #config; #fetch; #now; #token; #minting; #publicationReads=new Map();
@@ -16,11 +17,18 @@ export class GitHubContent {
         Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + token,
         'X-GitHub-Api-Version': '2026-03-10', 'User-Agent': 'GER-administration', 'Content-Type': 'application/json'
       }, ...(body === undefined ? {} : {body: JSON.stringify(body)})});
+      if (method === 'GET' && route === staffRef && response.status === 404) {
+        throw new ContentError(503, 'staff_branch_missing', `The ${policy.contentBranch} branch is missing or inaccessible on GitHub. Check that it exists and your account can access it.`);
+      }
       if (!response.ok) throw safeFailure();
+      if (response.status === 204) return;
       const chunks = []; let length = 0;
       for await (const chunk of response.body) { length += chunk.length; if (length > 16 * 1024 * 1024) throw safeFailure(); chunks.push(chunk); }
       return JSON.parse(Buffer.concat(chunks).toString('utf8'));
-    } catch { throw safeFailure(); }
+    } catch (error) {
+      if (error instanceof ContentError) throw error;
+      throw safeFailure();
+    }
   }
   async #installationToken() {
     if (this.#token && this.#token.expires > this.#now() + 60000) return this.#token.value;
@@ -47,15 +55,17 @@ export class GitHubContent {
     })().finally(() => { this.#minting = undefined; });
     return this.#minting;
   }
-  async #api(method, route, body) { return this.#request(method, route, await this.#installationToken(), body); }
-  async head() {
-    const ref = await this.#api('GET', prefix + '/git/ref/heads/' + policy.contentBranch);
+  async #api(method, route, body) { return this.#request(method, route, this.#config.userToken ?? await this.#installationToken(), body); }
+  async #staffBranch() {
+    const ref = await this.#api('GET', staffRef);
     if (!sha(ref.object?.sha)) throw safeFailure();
-    return ref.object.sha;
+    return ref;
   }
+  async head() { return (await this.#staffBranch()).object.sha; }
   async snapshot() {
     const repo = await this.#api('GET', prefix);
-    if (repo.id !== this.#config.repositoryId || repo.full_name !== policy.repository) throw safeFailure();
+    if (repo.full_name !== policy.repository || (!this.#config.userToken && repo.id !== this.#config.repositoryId)) throw safeFailure();
+    if (this.#config.userToken && repo.permissions?.push !== true) throw new ContentError(403, 'github_write_required', 'The signed-in GitHub account needs write access to the website repository.');
     const head = await this.head();
     const commit = await this.#api('GET', prefix + '/git/commits/' + head);
     if (!sha(commit.tree?.sha)) throw safeFailure();
@@ -79,11 +89,14 @@ export class GitHubContent {
     // GitHub creates the Git tree/commit and conditionally advances the branch
     // together. expectedHeadOid is an atomic compare-and-swap, with no force push
     // or check-then-update gap. Never retry this mutation after an ambiguous failure.
+    const branch = await this.#staffBranch();
+    if (branch.object.sha !== expectedHead) throw conflict(branch.object.sha);
+    if (typeof branch.node_id !== 'string' || !branch.node_id) throw safeFailure();
     let result;
     try {
       result = await this.#api('POST', '/graphql', {
         query: 'mutation SaveContent($input:CreateCommitOnBranchInput!){createCommitOnBranch(input:$input){commit{oid}}}',
-        variables: {input: {branch: {repositoryNameWithOwner: policy.repository, refName: 'refs/heads/' + policy.contentBranch},
+        variables: {input: {branch: {id: branch.node_id},
           expectedHeadOid: expectedHead, message: {headline: 'Update staff content'},
           fileChanges: {additions: changes.filter(item=>!item.delete).map(item => ({path: item.path, contents: (item.bytes || Buffer.from(item.content, 'utf8')).toString('base64')})),
             ...(changes.some(item=>item.delete)?{deletions:changes.filter(item=>item.delete).map(item=>({path:item.path}))}:{})}}}
@@ -97,6 +110,12 @@ export class GitHubContent {
     const committed = result.data?.createCommitOnBranch?.commit?.oid;
     if (!sha(committed)) throw new ContentError(502, 'save_outcome_unknown', 'The save outcome could not be confirmed. Reload and compare before trying again.');
     return committed;
+  }
+  async requestValidation(revision) {
+    if (!sha(revision)) throw safeFailure();
+    const workflow = await this.#api('GET', prefix + '/actions/workflows/validate-staff-upload.yml');
+    if (workflow.state !== 'active') throw safeFailure();
+    await this.#api('POST', prefix + '/dispatches', {event_type: 'staff-content-uploaded', client_payload: {revision}});
   }
   async history(path,page,head){
     if(!editable(path)||!sha(head)||!Number.isInteger(page)||page<1||page>50)throw new ContentError(422,'invalid_revision','Choose an allowed content history.');
@@ -149,7 +168,11 @@ export class GitHubContent {
   }
 }
 
-export function githubConfiguration(env = process.env) {
+export function githubConfiguration(env = process.env, userToken) {
+  if (userToken !== undefined) {
+    if (!/^[!-~]{1,1024}$/.test(userToken)) throw safeFailure();
+    return {userToken};
+  }
   if (env.ADMIN_GITHUB_ENABLED !== '1') return null;
   const config = {appId: Number(env.ADMIN_GITHUB_APP_ID), installationId: Number(env.ADMIN_GITHUB_INSTALLATION_ID),
     repositoryId: Number(env.ADMIN_GITHUB_REPOSITORY_ID), keyFile: outsideRepository(env.ADMIN_GITHUB_PRIVATE_KEY_FILE || '')};

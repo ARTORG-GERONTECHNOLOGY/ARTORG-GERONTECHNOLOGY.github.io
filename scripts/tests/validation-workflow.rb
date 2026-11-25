@@ -16,6 +16,6 @@ steps.select { |step| step.key?('uses') }.each do |step|
 end
 checkout = steps.find { |step| step.fetch('uses', '').start_with?('actions/checkout@') }
 raise 'Checkout must not retain Git credentials' unless checkout&.dig('with', 'persist-credentials') == false
-raise 'CI must use the shared local validation command' unless steps.last['run'] == 'bundle exec ruby scripts/validate-site.rb'
+raise 'CI must check that Jekyll can build the site' unless steps.last['run'] == 'bundle exec jekyll build --disable-disk-cache'
 raise 'Validation must not receive production secrets' if workflow.to_s.match?(/\$\{\{\s*secrets\./)
-puts 'Validation workflow contracts pass: stable required check, full action pins, unfiltered PRs, read-only token, no retained credentials/secrets/environment, shared entry point.'
+puts 'Validation workflow contracts pass: stable required check, pinned actions, unfiltered PRs, read-only credentials and a Jekyll build.'

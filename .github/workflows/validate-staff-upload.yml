@@ -1,0 +1,34 @@
+name: Validate uploaded staff content
+run-name: Validate staff upload ${{ github.event.client_payload.revision }}
+
+'on':
+  repository_dispatch:
+    types: [staff-content-uploaded]
+
+permissions:
+  contents: read
+
+jobs:
+  request-validation:
+    if: vars.ENABLE_STAFF_PUBLICATION == 'true' && github.ref == 'refs/heads/main' && github.repository == 'ARTORG-GERONTECHNOLOGY/ARTORG-GERONTECHNOLOGY.github.io'
+    runs-on: windows-2025
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Check out the trusted workflow revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.22.1'
+      - name: Request validation of the uploaded commit
+        run: node scripts/publication.mjs request-staff-validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLICATION_ENABLED: ${{ vars.ENABLE_STAFF_PUBLICATION }}
+          REQUESTED_REVISION: ${{ github.event.client_payload.revision }}

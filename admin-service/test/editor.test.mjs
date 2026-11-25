@@ -1,11 +1,60 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {createHash, randomBytes} from 'node:crypto';
+import {chromium} from 'playwright';
 import {ProposalEditor, localSnapshot} from '../editor.mjs';
 import {ContentStore} from '../content.mjs';
 import {blobSha, conflict} from '../content-policy.mjs';
+import {createAdministration} from '../service.mjs';
 
 const authorize=async()=>{};
+
+test('a downloaded new proposal uploads against the current staff revision', async()=>{
+  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'ger-editor-import-'));
+  const accessFile=path.join(directory,'access.json');
+  const token=randomBytes(32).toString('hex');
+  await fs.writeFile(accessFile,JSON.stringify({generation:randomBytes(16).toString('hex'),revoked:false,digest:createHash('sha256').update(token).digest('hex')}));
+  const snapshot=await localSnapshot();
+  const provider={snapshot:async()=>snapshot,commit:async(head,changes)=>{
+    assert.equal(head,snapshot.head);
+    for(const item of changes){const bytes=Buffer.from(item.content);snapshot.files.set(item.path,{bytes,sha:blobSha(bytes)});}
+    snapshot.head=blobSha(Buffer.from('saved proposal'));
+    return snapshot.head;
+  }};
+  const content=new ContentStore(provider);
+  const editor=new ProposalEditor(content);
+  const original=(await editor.bootstrap(authorize)).proposals[0];
+  const fresh=await editor.prepare({operation:'new'},authorize);
+  const keys=['summary','categories','status','supervisors','institutes','contact','workload','language'];
+  const title='Imported proposal fixture';
+  const draft=await editor.prepare({operation:'download',source:fresh.source,context:{baseCommit:'a'.repeat(40),sha:null},
+    patch:{...Object.fromEntries(keys.map(key=>[key,original.metadata[key]])),title},sections:original.sections},authorize);
+  const config={accessFile,ttl:7200,local:true};
+  const server=createAdministration(config,{content});
+  let browser;
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  config.origin='http://127.0.0.1:'+server.address().port;
+  try{
+    browser=await chromium.launch();
+    const page=await browser.newPage();
+    await page.goto(config.origin+'/admin/');
+    await page.getByLabel('Team access code').fill(token);
+    await page.getByRole('button',{name:'Sign in'}).click();
+    await page.getByRole('button',{name:'New proposal'}).waitFor();
+    await page.locator('#open-draft').setInputFiles({name:'proposal-draft.md',mimeType:'text/markdown',buffer:Buffer.from(draft.source)});
+    const save=page.getByRole('button',{name:'Upload reviewed changes'});
+    const [response]=await Promise.all([page.waitForResponse(value=>new URL(value.url()).pathname==='/admin/api/editor/save'),save.click()]);
+    assert.equal(response.status(),201);
+    await page.getByRole('table',{name:'Existing proposals'}).getByRole('button',{name:title,exact:true}).waitFor();
+  }finally{
+    await browser?.close();
+    await new Promise(resolve=>server.close(resolve));
+    await fs.rm(directory,{recursive:true,force:true});
+  }
+});
 
 test('editor draft download, reopen, field validation and immutable publication metadata', async()=>{
   const editor=new ProposalEditor();

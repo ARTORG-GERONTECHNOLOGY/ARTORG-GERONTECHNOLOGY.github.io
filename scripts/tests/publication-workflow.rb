@@ -5,6 +5,7 @@ root=File.expand_path('../..',__dir__)
 accept=YAML.safe_load_file(File.join(root,'.github/workflows/publish-content.yml'))
 pages=YAML.safe_load_file(File.join(root,'.github/workflows/publish-pages.yml'))
 validation=YAML.safe_load_file(File.join(root,'.github/workflows/validate.yml'))
+staff_upload=YAML.safe_load_file(File.join(root,'.github/workflows/validate-staff-upload.yml'))
 [accept,pages].each do |workflow|
   raise 'Publication must start read-only' unless workflow['permissions']=={'contents'=>'read'}
   raise 'Do not cancel an active publication' unless workflow.dig('concurrency','cancel-in-progress')==false
@@ -30,8 +31,9 @@ raise 'Only main can build for production' unless build['if'].include?("github.r
 raise 'Builds must be immutable' unless build['steps'].first.dig('with','ref')=='${{ github.sha }}'
 raise 'Build must remain read-only' if build.key?('permissions')
 runs=build['steps'].filter_map { |step| step['run'] }
-raise 'Production must use full shared validation' unless runs.include?('bundle exec ruby scripts/validate-site.rb')
-raise 'Production must enforce editorial release readiness' unless runs.include?('bundle exec ruby scripts/validate-proposals.rb --release')
+site_build=runs.index('bundle exec jekyll build --disable-disk-cache')
+pdf_build=runs.index('node scripts/generate-proposal-pdfs.mjs _site')
+raise 'Production must build the site before generating proposal PDFs' unless site_build && pdf_build && site_build<pdf_build
 selected='${{ steps.select.outputs.revision }}'
 raise 'Only a verified commit can be built' unless build.dig('outputs','revision')==selected && build['steps'].any? { |step| step['id']=='select' && step['run']=='node scripts/publication.mjs guard-pages' }
 metadata=build['steps'].find { |step| step['run']&.include?('node scripts/publication.mjs metadata _site') }
@@ -47,6 +49,10 @@ raise 'Deploy must recheck the built revision' unless deploy['steps'][-2].dig('e
 raise 'Use same-run Pages artifact' unless deploy['steps'].last['uses'].start_with?('actions/deploy-pages@')
 candidate=validation.dig('jobs','validate','steps').find { |step| step['run']=='node scripts/publication.mjs check-candidate' }
 raise 'Merged candidates need previous-content/media validation' unless candidate && candidate['if']=="startsWith(github.ref, 'refs/heads/publication/staff-')"
+raise 'Only staff uploads can request validation through this workflow' unless staff_upload['on']=={'repository_dispatch'=>{'types'=>['staff-content-uploaded']}}
+request=staff_upload.dig('jobs','request-validation')
+raise 'Upload events may dispatch validation with trusted main code only' unless request['permissions']=={'contents'=>'read','actions'=>'write'} && request['if'].include?("github.ref == 'refs/heads/main'") && request['steps'].first.dig('with','ref')=='${{ github.sha }}' && request['steps'].first.dig('with','persist-credentials')==false
+raise 'The staff commit input must be checked before source checkout' unless validation.dig('jobs','validate','steps',0,'if')&.include?('github.sha != inputs.revision')
 settings=JSON.parse(File.read(File.join(root,'.github/publication-settings.json')))
 raise 'Local settings must leave activation off' unless settings['activation_variables'].values.all? { |value| value=='false' }
 main=settings.dig('branch_protection','main')

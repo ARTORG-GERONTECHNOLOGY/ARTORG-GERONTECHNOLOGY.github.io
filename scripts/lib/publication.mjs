@@ -74,6 +74,10 @@ export async function candidate(provider,id){
   if(plan.tree!==value.tree.sha||!plan.changes.length)throw Error('Candidate contains changes outside the trusted merge plan.');
   return {...plan,id};
 }
+export async function requestStaffValidation(provider,staff){
+  if(!sha(staff)||await provider.head(policy.contentBranch)!==staff)throw Error('The requested staff commit is invalid or has been superseded.');
+  await provider.dispatch('validate.yml',policy.contentBranch,{revision:staff});
+}
 export async function prepare(provider,staff){
   if(!sha(staff)||await provider.head(policy.contentBranch)!==staff)throw Error('A newer staff save exists. Use the latest successful check.');
   if(!await provider.passed(staff))throw Error('The exact staff revision has not passed Website validation.');

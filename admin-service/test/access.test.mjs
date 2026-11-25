@@ -7,8 +7,49 @@ import { randomBytes, createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
 import { createAdministration } from '../service.mjs';
 import { configuration, outsideRepository } from '../config.mjs';
+
+test('local sign-in verifies the provisioned team code without placing it in the URL', async () => {
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'ger-local-access-'));
+  const accessFile = path.join(temporary, 'access.json');
+  const token = randomBytes(32).toString('hex');
+  const state = JSON.stringify({generation: randomBytes(16).toString('hex'), revoked: false,
+    digest: createHash('sha256').update(token).digest('hex')});
+  await fs.writeFile(accessFile, state);
+  const config = {accessFile, ttl: 7200, local: true};
+  const server = createAdministration(config);
+  let browser;
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  config.origin = 'http://127.0.0.1:' + server.address().port;
+  try {
+    const signIn = await fetch(config.origin + '/admin/');
+    assert.equal(signIn.status, 401);
+    const html = await signIn.text();
+    assert.match(html, /name="token" type="password"/);
+    assert.ok(!html.includes(token));
+    const submit = (origin, body) => fetch(config.origin + '/admin/access', {method: 'POST', redirect: 'manual', headers: {origin}, body});
+    assert.equal((await submit('https://other.example', new URLSearchParams({token}))).status, 403);
+    assert.equal((await submit(config.origin, new URLSearchParams({token: 'wrong'}))).status, 401);
+    browser = await chromium.launch();
+    const page = await browser.newPage();
+    await page.goto(config.origin + '/admin/');
+    await page.getByLabel('Team access code').fill(token);
+    const [result] = await Promise.all([
+      page.waitForResponse(response => new URL(response.url()).pathname === '/admin/access'),
+      page.getByRole('button', {name: 'Sign in'}).click()
+    ]);
+    assert.equal(result.status(), 303);
+    assert.equal(result.headers().location, '/admin/');
+    await page.locator('#editor-title').waitFor({state: 'attached'});
+    assert.equal(await fs.readFile(accessFile, 'utf8'), state);
+  } finally {
+    await browser?.close();
+    await new Promise(resolve => server.close(resolve));
+    await fs.rm(temporary, {recursive: true, force: true});
+  }
+});
 
 test('shared-link sessions, failure cases, transport and logging', async () => {
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'ger-access-'));

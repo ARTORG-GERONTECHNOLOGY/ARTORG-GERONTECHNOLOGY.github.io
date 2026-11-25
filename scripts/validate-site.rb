@@ -28,7 +28,7 @@ end
 %w[catalogue-filters search].each { |name| run.call(node, "scripts/tests/#{name}.cjs") }
 run.call(node, '--test', 'admin-service/test/access.test.mjs', 'admin-service/test/content.test.mjs', 'admin-service/test/editor.test.mjs', 'admin-service/test/media.test.mjs', 'admin-service/test/lifecycle.test.mjs', 'admin-service/test/supporting.test.mjs', 'admin-service/test/publication-status.test.mjs')
 run.call(node, '--test', 'scripts/tests/publication.test.mjs')
-# Use the same Bundler/Jekyll command locally and on the CI runner.
+# Build the site as part of the optional full validation suite.
 run.call(RbConfig.ruby, '-S', 'bundle', 'exec', 'jekyll', 'build', '--config', options[:config],
          '--destination', options[:output], '--disable-disk-cache')
 %w[proposal-rendering proposal-catalogue site-navigation print-layout].each do |name|

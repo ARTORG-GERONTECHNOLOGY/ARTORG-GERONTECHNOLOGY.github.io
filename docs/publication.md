@@ -8,10 +8,12 @@ off when absent; the proposed settings explicitly keep them off.
 
 ## How a staff save reaches the website
 
-1. The administration service's repository-scoped App commits allowed content
-   to `content/staff`. Run **Validate website** manually on `content/staff`
-   after the save. Pushes trigger validation only on `main`. Keep the workflow on
-   `content/staff` up to date with the CI fixes from `main`.
+1. In the local admin editor, review the preview and click **Upload reviewed
+   changes**. The repository-scoped App commits the allowed content to
+   `content/staff` and sends its commit hash to **Validate uploaded staff
+   content**. That workflow runs trusted code on `main` and requests **Validate
+   website** for the exact staff commit. Keep `content/staff` up to date with the
+   workflow changes from `main`. Push triggers remain limited to `main`.
 2. A successful run starts **Accept validated staff content**, whose privileged
    job checks out trusted `main` tools, not staff-branch code or artifacts. The
    job verifies the repository, workflow file, exact checked revision and latest
@@ -26,16 +28,15 @@ off when absent; the proposed settings explicitly keep them off.
    explicitly dispatches **Validate website**: a `GITHUB_TOKEN` branch update
    alone does not reliably trigger another push workflow. Candidate validation
    proves its exact tree, checks changes against the previous production content
-   with the shared validators and inspects new media, then runs the complete
-   website checks with a read-only token.
+   with the shared validators and inspects new media, then builds the Jekyll site
+   with a read-only token.
 5. After that exact candidate passes, the trusted accepting job verifies its tree
    again and checks both branch heads. It advances `main` with a non-force,
    fast-forward-only update, subject to branch protection, then explicitly
    dispatches **Publish website** for that revision. Changed heads, rejected
    writes and ambiguous failures are not automatically retried.
-6. The production build checks out one exact `main` revision, enforces the
-   editorial release gate and runs the complete shared build/validation,
-   including QR generation and all PDFs. `publication.json` records the build
+6. The production build checks out one exact `main` revision, builds the Jekyll
+   site, and generates the proposal PDFs. `publication.json` records the build
    revision, associated staff revision and per-content Git revisions/hashes.
    Metadata generation requires a clean checkout. The staff revision is attached
    only to an exact publication merge; a later maintainer edit/revert does not
@@ -78,8 +79,8 @@ Once live activation is separately approved:
   uses direct checked fast-forward advancement, so a separate requirement for
   pull requests or human reviews would intentionally block automatic acceptance.
   Reconcile any organization-level rules before enabling the path.
-- Protect `content/staff` against force pushes/deletion. Run validation manually
-  after the content push so the check runs on the new commit.
+- Protect `content/staff` against force pushes/deletion. Keep its **Validate
+  website** workflow current so it can check the expected commit input.
   Reserve `publication/staff-*` branches for this workflow. The service itself
   still writes only `content/staff`; it gains no production or Actions endpoint.
 - Permit the accepting workflow's built-in token to write Contents and Actions.
@@ -88,11 +89,6 @@ Once live activation is separately approved:
 - Select GitHub Actions as the Pages source. Restrict the `github-pages`
   environment to `main`, without required human reviewers, matching the chosen
   automatic-publication policy. Preserve the configured domain and HTTPS.
-- Recheck the final editorial review in `_data/proposal_migration.yml`. The user
-  confirmed statuses and workloads, removed the example
-  profiles, and resolved the Figure 1 cross-reference during Step 25. Production
-  still runs `bundle exec ruby scripts/validate-proposals.rb --release`; do not
-  remove a future blocker until its underlying issue has been resolved.
 - Enable `ENABLE_STAFF_PUBLICATION` and `ENABLE_PAGES_PUBLICATION` only after
   authorization and the above checks. Test an actual App save, a failed
   candidate, a successful deployment and a recovery before claiming activation.
@@ -106,8 +102,11 @@ that hosted protection is configured.
 
 An invalid candidate does not advance `main`. A failed build, inspection, upload
 or deployment does not intentionally replace the last successful Pages site.
-Inspect the failed run first. Fix invalid content in the editor and save a new
-revision, or fix the trusted code in a reviewed maintainer change. Retry
+Inspect the failed run first. If the commit was uploaded but the validation
+request failed, run **Validate website** on `content/staff` with the uploaded
+hash as **revision** if that commit is still at the branch head. Fix invalid
+content in the editor and save a new revision, or fix the trusted code in a
+reviewed maintainer change. Retry
 **Accept validated staff content** on `main` for the latest staff revision.
 Retry **Publish website** on `main` for a failed production build. Leave both
 fields blank to deploy current `main`. To deploy a specific commit, enter its full
@@ -138,7 +137,7 @@ for diagnosis; deleting obsolete candidates is a separate maintainer operation.
 
 ## Local evidence and references
 
-The shared `bundle exec ruby scripts/validate-site.rb` command checks workflow
+The optional local `bundle exec ruby scripts/validate-site.rb` command checks workflow
 contracts, simulated successful/failed/stale/racing acceptance and new-commit
 rollback, plus the actual generated Pages package. Simulations make no GitHub
 writes. The package checks prove that a failed candidate leaves the previously

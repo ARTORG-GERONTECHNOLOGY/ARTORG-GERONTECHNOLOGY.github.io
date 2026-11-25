@@ -488,15 +488,15 @@ intentional browser assets. The inherited stray source file named `¨` is now
 excluded from the public output without deleting the original.
 
 The GitHub workflow is `.github/workflows/validate.yml`. Once separately
-authorized and pushed, it is configured to run for pull requests, branch pushes,
+authorized and pushed, it is configured to run for pull requests, pushes to `main`,
 merge-queue candidates and manual requests. It calls this same validation
 command, with no separate publishing implementation. The check name to require
 later is **Website validation**; keep that job name stable. Activation requires
 a successful GitHub run followed by an authorized branch rule requiring that
 check before merging. Merely committing this file locally does not enable it.
 
-The workflow uses Windows 2025, matching the locally verified Windows setup:
-Ruby 3.3.13, Bundler 2.5.22, Node 24.22.1, Python 3.12.14 and pnpm 11.25.0.
+The workflow uses Windows 2025 with Ruby 3.3.13, Bundler 2.5.22,
+Node 24.22.1, Python 3.13.14 and pnpm 11.25.0.
 Ruby and Node packages use their existing lockfiles; verification-only Python
 packages have exact versions in `scripts/requirements-validation.txt`. Actions
 are pinned to full commit SHAs. The token has only repository read access,

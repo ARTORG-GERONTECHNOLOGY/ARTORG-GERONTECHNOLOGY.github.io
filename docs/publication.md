@@ -9,9 +9,9 @@ off when absent; the proposed settings explicitly keep them off.
 ## How a staff save reaches the website
 
 1. The administration service's repository-scoped App commits allowed content
-   to `content/staff`. Its installation token can trigger the existing
-   **Validate website** workflow. It cannot change workflows through the service
-   or bypass production protection.
+   to `content/staff`. Run **Validate website** manually on `content/staff`
+   after the save. Pushes trigger validation only on `main`. Keep the workflow on
+   `content/staff` up to date with the CI fixes from `main`.
 2. A successful run starts **Accept validated staff content**, whose privileged
    job checks out trusted `main` tools, not staff-branch code or artifacts. The
    job verifies the repository, workflow file, exact checked revision and latest
@@ -78,8 +78,8 @@ Once live activation is separately approved:
   uses direct checked fast-forward advancement, so a separate requirement for
   pull requests or human reviews would intentionally block automatic acceptance.
   Reconcile any organization-level rules before enabling the path.
-- Protect `content/staff` against force pushes/deletion. Do not require a check
-  before its initial content push: that new commit must exist to run checks.
+- Protect `content/staff` against force pushes/deletion. Run validation manually
+  after the content push so the check runs on the new commit.
   Reserve `publication/staff-*` branches for this workflow. The service itself
   still writes only `content/staff`; it gains no production or Actions endpoint.
 - Permit the accepting workflow's built-in token to write Contents and Actions.

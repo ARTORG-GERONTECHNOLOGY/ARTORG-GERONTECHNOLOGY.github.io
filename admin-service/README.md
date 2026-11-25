@@ -177,8 +177,9 @@ Before real activation, a separately authorized operator must:
    pushes/deletion. Protect `main` with the required **Website validation** check
    from GitHub Actions, with no App bypass. Follow the Step 23 settings and
    activation guide for exact checked merges and automatic publication.
-4. Verify an App-originated save triggers that check, a failed check prevents
-   production advancement and a successful save is still reported as pending
+4. After an App-originated save, run **Validate website** manually on
+   `content/staff`. Verify that a failed check prevents production advancement
+   and a successful save is still reported as pending
    until the later deployment reports the same revision live. These remote
    acceptance checks are explicitly deferred and must not be inferred from the
    local simulator passing.

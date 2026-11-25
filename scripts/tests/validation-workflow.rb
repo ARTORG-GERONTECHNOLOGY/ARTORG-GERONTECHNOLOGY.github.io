@@ -3,6 +3,7 @@ require 'yaml'
 workflow = YAML.safe_load_file(File.expand_path('../../.github/workflows/validate.yml', __dir__))
 events = workflow.fetch('on')
 raise 'Unsafe or missing validation event' unless events.keys.sort == %w[merge_group pull_request push workflow_dispatch]
+raise 'Only main pushes may trigger validation' unless events.dig('push', 'branches') == ['main']
 raise 'PR checks must not be skipped by file/branch filters' unless events['pull_request'].nil?
 raise 'Validation requires read-only repository access' unless workflow['permissions'] == {'contents' => 'read'}
 raise 'Ruby dependency lock must be frozen' unless workflow.fetch('env')['BUNDLE_FROZEN'] == 'true'
